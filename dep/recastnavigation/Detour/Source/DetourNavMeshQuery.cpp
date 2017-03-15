@@ -163,11 +163,10 @@ dtNavMeshQuery::~dtNavMeshQuery()
 /// functions are used.
 ///
 /// This function can be used multiple times.
-dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes, unsigned int threadId)
+dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 {
 	m_nav = nav;
-    m_owningThread = threadId;
-
+	
 	if (!m_nodePool || m_nodePool->getMaxNodes() < maxNodes)
 	{
 		if (m_nodePool)
@@ -2420,7 +2419,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			hit->pathCount = n;
 			return status;
 		}
-        // Nostalrius: may be a bugged triangle (3 aligned points)
+        // Elysium: may be a bugged triangle (3 aligned points)
         if (tmax - tmin < 0.00001f)
             return DT_FAILURE;
 

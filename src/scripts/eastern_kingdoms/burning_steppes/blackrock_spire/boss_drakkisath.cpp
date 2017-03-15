@@ -46,7 +46,12 @@ struct boss_drakkisathAI : public ScriptedAI
     uint32 m_uiConfligurationTimer;
     uint32 m_uiThunderclapTimer;
     uint32 m_uiRageTimer;
+    uint32 checkConflagTimer;
     uint32 m_uiPierceArmorTimer;
+
+    uint64 ConflagGuids[10];
+    float ConflagAggro[10];
+    bool conflag;
 
     void Reset()
     {
@@ -55,7 +60,39 @@ struct boss_drakkisathAI : public ScriptedAI
         m_uiConfligurationTimer = 8000;
         m_uiThunderclapTimer    = 1000;
         m_uiRageTimer           = 1000;
+        checkConflagTimer       = 1000;
         m_uiPierceArmorTimer    = 5000;
+        conflag                 = false;
+
+        for (int i = 0; i < 10; i++)
+        {
+            ConflagGuids[i] = 0;
+            ConflagAggro[i] = 0;
+        }
+    }
+
+    void SpellHitTarget(Unit* pCaster, const SpellEntry* pSpell)
+    {
+        if (!pCaster)
+            return;
+
+        if (pSpell->Id == SPELL_CONFLIGURATION)
+        {
+            if (pCaster->GetTypeId() != TYPEID_PLAYER)
+                return;
+
+            for (int i = 0; i < 10; i++)
+            {
+                if (ConflagGuids[i] == 0)
+                {
+                    ConflagGuids[i] = pCaster->GetGUID();
+                    ConflagAggro[i] = m_creature->getThreatManager().getThreat(pCaster);
+                    break;
+                }
+            }
+            conflag = true;
+            m_creature->getThreatManager().modifyThreatPercent(pCaster, -100);
+        }
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -81,6 +118,43 @@ struct boss_drakkisathAI : public ScriptedAI
         }
         else
             m_uiCleaveTimer -= uiDiff;
+
+        if (conflag)
+        {
+            if (checkConflagTimer < uiDiff)
+            {
+                int var = 10;
+                for (int i = 0; i < 10; i++)
+                {
+                    if (ConflagGuids[i] == 0)
+                    {
+                        --var;
+                        continue;
+                    }
+                    // Ustaag : testé et fonctionnel même si GetPlayer & Unit* -_-
+                    if (Unit* pTarget = m_creature->GetMap()->GetPlayer(ConflagGuids[i]))
+                    {
+                        if (!pTarget->HasAura(SPELL_CONFLIGURATION))
+                        {
+                            m_creature->getThreatManager().modifyThreatPercent(pTarget, -100);
+                            m_creature->getThreatManager().addThreatDirectly(pTarget, ConflagAggro[i]);
+                            ConflagGuids[i] = 0;
+                            ConflagAggro[i] = 0;
+                        }
+                    }
+                    else
+                    {
+                        ConflagGuids[i] = 0;
+                        ConflagAggro[i] = 0;
+                    }
+                }
+                if (!var)
+                    conflag = false;
+                checkConflagTimer = 1000;
+            }
+            else
+                checkConflagTimer -= uiDiff;
+        }
 
         // Confliguration
         if (m_uiConfligurationTimer < uiDiff)

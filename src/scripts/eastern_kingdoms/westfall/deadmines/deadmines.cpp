@@ -63,9 +63,9 @@ bool GOHello_go_defias_gunpowder(Player* player, GameObject* pGo)
     if (pInstance->GetData(GUN_POWDER_EVENT) == 0)
     {
         Creature* pirate3;
-        if (pirate3 = pGo->SummonCreature(634, -131.290833f, -591.243103f, 18.077190f, 4.792192f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))//DEFIAS_OVERSEER
+        if (pirate3 = pGo->SummonCreature(634, -131.290833, -591.243103, 18.077190, 4.792192, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))//DEFIAS_OVERSEER
         {
-            pirate3->GetMotionMaster()->MovePoint(0, -128.925980f, -616.494629f, 13.532340f, MOVE_PATHFINDING, 0, 6.269623f);
+            pirate3->GetMotionMaster()->MovePoint(0, -128.925980, -616.494629, 13.532340, 6.269623);
             pirate3->SetRespawnDelay(350000);
         }
         pInstance->SetData(GUN_POWDER_EVENT, 1);
@@ -82,9 +82,9 @@ struct go_defias_gunpowderAI: public GameObjectAI
         if (motion_type == POINT_MOTION_TYPE)
         {
             if (point_id == 0)
-                summoned->GetMotionMaster()->MovePoint(1, -115.263672f, -617.396118f, 13.579387f, MOVE_PATHFINDING, 0, 6.182347f);
+                summoned->GetMotionMaster()->MovePoint(1, -115.263672, -617.396118, 13.579387, 6.182347);
             else if (point_id == 1)
-                summoned->SetHomePosition(-115.263672f, -617.396118f, 13.579387f, 6.182347f);
+                summoned->SetHomePosition(-115.263672, -617.396118, 13.579387, 6.182347);
         }
     }
 };

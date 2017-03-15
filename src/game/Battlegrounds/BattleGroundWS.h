@@ -73,7 +73,7 @@ enum BG_WS_Graveyards
     WS_GRAVEYARD_MAIN_HORDE        = 772
 };
 
-// Nostalrius
+// Elysium
 enum BG_WS_GameObjects
 {
     WS_HORDE_FLAG_BASE      = 179831,

@@ -64,7 +64,6 @@ enum
     MAX_PANTHER_COUNT           = 30,
 
     GO_ARLOKK_FORCE_FIELD       = 180497,
-    GO_ARLOKK_GONG              = 180526
 };
 
 /*
@@ -141,13 +140,10 @@ struct boss_arlokkAI : public ScriptedAI
     void JustReachedHome()
     {
         if (m_pInstance)
-            if (m_pInstance->GetData(TYPE_ARLOKK) != DONE)
-                m_pInstance->SetData(TYPE_ARLOKK, NOT_STARTED);
+            m_pInstance->SetData(TYPE_ARLOKK, NOT_STARTED);
 
         if (GameObject* door = m_creature->FindNearestGameObject(GO_ARLOKK_FORCE_FIELD, 100.0f))
             door->ResetDoorOrButton();
-        if (GameObject* gong = m_creature->FindNearestGameObject(GO_ARLOKK_GONG, 100.0f))
-            gong->Respawn();
         //we should be summoned, so despawn
         m_creature->ForcedDespawn();
     }

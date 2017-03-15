@@ -31,9 +31,6 @@ enum
     NPC_SOLAKAR_TRIGGER         = 160014,
     NPC_DRAKKISATH              = 10363,
 
-    NPC_FIREBRAND_GRUNT         = 9259,
-    NPC_BANNOK_GRIMAXE          = 9596,
-
     // Doors
     GO_EMBERSEER_IN             = 175244,
     GO_DOORS                    = 175705,
@@ -145,8 +142,6 @@ class instance_blackrock_spire : public ScriptedInstance
         std::list<uint64> m_lRoomEventMobGUIDList;
         std::list<uint64> m_lIncanceratorGUIDList;
         std::list<uint64> m_lRookeryEggGUIDList;
-
-        bool m_bBannokSpawned;
 };
 
 #endif

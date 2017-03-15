@@ -204,7 +204,7 @@ struct npc_hakkari_doctor : public ScriptedAI
 
         if (m_uiMaleficeTimer < uiDiff)
         {
-            if (Unit* pTarget = m_creature->GetFarthestVictimInRange(10.0f, 20.0f))
+            if (Unit* pTarget = m_creature->GetFarestVictimInRange(10.0f, 20.0f))
             {
                 DoCastSpellIfCan(pTarget, 24053);
                 m_uiMaleficeTimer = urand(20000, 40000);
@@ -215,7 +215,7 @@ struct npc_hakkari_doctor : public ScriptedAI
 
         if (m_uiCrapaudsTimer < uiDiff)
         {
-            if (Unit* pTarget = m_creature->GetFarthestVictimInRange(10.0f, 20.0f))
+            if (Unit* pTarget = m_creature->GetFarestVictimInRange(10.0f, 20.0f))
             {
                 for (uint8 i = 0; i < 4; ++i)
                     m_creature->SummonCreatureAndAttack(15010, pTarget);
@@ -239,7 +239,7 @@ struct npc_hakkari_doctor : public ScriptedAI
 
         if (m_uiOrionOmbreTimer < uiDiff)
         {
-            if (Unit* pTarget = m_creature->GetFarthestVictimInRange(10.0f, 20.0f))
+            if (Unit* pTarget = m_creature->GetFarestVictimInRange(10.0f, 20.0f))
             {
                 m_creature->CastSpell(pTarget, 17289, true);
                 m_uiOrionOmbreTimer = urand(5000, 20000);

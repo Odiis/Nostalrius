@@ -281,7 +281,6 @@ class MANGOS_DLL_SPEC WorldSession
         bool PlayerLogout() const { return m_playerLogout; }
         bool PlayerLogoutWithSave() const { return m_playerLogout && m_playerSave; }
 
-        bool CharacterScreenIdleKick(uint32 diff);
 
         void SizeError(WorldPacket const& packet, uint32 size) const;
 
@@ -443,7 +442,8 @@ class MANGOS_DLL_SPEC WorldSession
         uint32 GetAccountMaxLevel() const { return _characterMaxLevel; }
         void SetAccountMaxLevel(uint32 l) { _characterMaxLevel = l; }
 
-        bool IsReplaying() const { return _pcktReading != nullptr; }
+        // Elysium
+        bool IsReplaying() const { return _pcktReading != NULL; }
         ObjectGuid GetRecorderGuid() const { return _recorderGuid; }
         void ReplaySkipTime(int32 delay) { _pcktReadTimer += delay; }
         void SetReplaySpeedRate(float r) { _pcktReadSpeedRate = r; }
@@ -484,7 +484,7 @@ class MANGOS_DLL_SPEC WorldSession
         void ComputeClientHash();
         bool IsClientHashComputed() const { return _clientHashComputeStep != HASH_NOT_COMPUTED; }
 
-        WardenInterface* GetWarden() const { return m_warden; }
+        WardenInterface* GetWarden() const { return m_Warden; }
 
         void AddScript(std::string name, WorldSessionScript* script)
         {
@@ -525,9 +525,6 @@ class MANGOS_DLL_SPEC WorldSession
         void SetAccountFlags(uint32 f) { _accountFlags = f; }
         uint32 GetAccountFlags() const { return _accountFlags; }
         uint32      _accountFlags;
-
-        uint32 m_idleTime;
-
     public:                                                 // opcodes handlers
 
         void Handle_NULL(WorldPacket& recvPacket);          // not used
@@ -933,7 +930,7 @@ class MANGOS_DLL_SPEC WorldSession
         ACE_Based::LockedQueue<WorldPacket*, ACE_Thread_Mutex> _recvQueue[PACKET_PROCESS_MAX_TYPE];
         bool _receivedPacketType[PACKET_PROCESS_MAX_TYPE];
 
-        WardenInterface* m_warden;
+        WardenInterface* m_Warden;
         std::string m_username;
         uint32 _floodPacketsCount[FLOOD_MAX_OPCODES_TYPE];
         PlayerBotEntry* m_bot;
@@ -962,8 +959,8 @@ class MANGOS_DLL_SPEC WorldSession
         void SetMasterSession(NodeSession* s) { m_masterSession = s; }
         NodeSession* GetNodeSession() const { return m_nodeSession; }
         void SetNodeSession(NodeSession* s) { m_nodeSession = s; }
-        bool IsNode() const { return m_nodeSession == nullptr; }
-        bool IsMaster() const { return m_masterSession == nullptr; }
+        bool IsNode() const { return m_nodeSession == NULL; }
+        bool IsMaster() const { return m_masterSession == NULL; }
         MasterPlayer* GetMasterPlayer() const { return m_masterPlayer; }
         PlayerPointer GetPlayerPointer() const
         {
@@ -971,7 +968,7 @@ class MANGOS_DLL_SPEC WorldSession
                 return PlayerPointer(new PlayerWrapper<Player>(_player));
             if (GetMasterPlayer())
                 return PlayerPointer(new PlayerWrapper<MasterPlayer>(GetMasterPlayer()));
-            return PlayerPointer(nullptr);
+            return PlayerPointer(NULL);
         }
 
         /**

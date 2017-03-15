@@ -65,11 +65,6 @@ void AuthCrypt::EncryptSend(uint8* data, size_t len)
     }
 }
 
-void AuthCrypt::SetKey(const std::vector<uint8>& key)
-{
-    _key = key;
-}
-
 void AuthCrypt::SetKey(uint8* key, size_t len)
 {
     _key.resize(len);

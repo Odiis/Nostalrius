@@ -878,7 +878,7 @@ bool Item::IsFitToSpellRequirements(SpellEntry const* spellInfo) const
 
     if (spellInfo->EquippedItemClass != -1)                 // -1 == any item class
     {
-        // Ustaag <Nostalrius> : ajout exception pour le spell Enchant Cloak - Minor Agility
+        // Ustaag <Elysium> : ajout exception pour le spell Enchant Cloak - Minor Agility
         // prob de DB : spellInfo->EquippedItemClass == 2 alors qu'il devrait etre == 4
         if (spellInfo->Id == 13419 && proto->InventoryType == INVTYPE_CLOAK)
             return true;

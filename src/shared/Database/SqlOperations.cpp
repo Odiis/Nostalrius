@@ -125,8 +125,8 @@ void SqlResultQueue::Update(uint32 timeout)
     uint32 begin = WorldTimer::getMSTime();
     /// execute the callbacks waiting in the synchronization queue
     int threadsCount = 6;
+    // Automatically deleted
     SqlResultCallbackCaller* caller = new SqlResultCallbackCaller();
-    caller->incReference();
     ACE_Based::Thread** threads = new ACE_Based::Thread*[threadsCount];
     MaNGOS::IQueryCallback* callback = NULL;
     int n = 0;
@@ -168,7 +168,6 @@ void SqlResultQueue::Update(uint32 timeout)
         delete t;
     }
     delete[] threads;
-    caller->decReference();
  }
 
 void SqlResultQueue::CancelAll()

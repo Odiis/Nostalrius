@@ -80,7 +80,7 @@ struct MANGOS_DLL_DECL CoordPair
 {
     CoordPair(int32 x=0, int32 y=0) : x_coord(x), y_coord(y)
     {
-        // Nostalrius : crashfix
+        // Elysium : crashfix
         if (x < 0)
             x_coord = 0;
         else if (x >= LIMIT)
@@ -198,7 +198,7 @@ namespace MaNGOS
 
     inline bool IsValidMapCoord(float x, float y, float z, float o)
     {
-        return IsValidMapCoord(x,y,z) && finite(o) && fabs(o) <= 4 * M_PI;
+        return IsValidMapCoord(x,y,z) && fabs(o) <= 4 * M_PI;
     }
 }
 #endif

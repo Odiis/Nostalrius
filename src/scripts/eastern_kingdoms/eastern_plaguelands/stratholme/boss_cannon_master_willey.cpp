@@ -72,200 +72,136 @@ EndScriptData */
 #define ADD_9Z 125.001015f
 #define ADD_9O 0.592007f
 
-
-/*######
-## boss_cannon_master_willey
-######*/
-
-enum
-{
-    SPELL_KNOCK_AWAY        = 10101,
-    SPELL_PUMMEL            = 15615,
-    SPELL_SHOOT             = 20463,
-  //SPELL_SUMMON_CRIMSON    = 17279,            // Summons three Crimson Rifleman
-
-    NPC_CRIMSON_RIFLEMAN    = 11054,
-
-    GO_WILLEY_GATE          = 175969,
-
-    CLOSED    = 0,
-    OPEN      = 1
-};
+#define SPELL_KNOCKAWAY    10101
+#define SPELL_PUMMEL    15615
+#define SPELL_SHOOT    20463
+//#define SPELL_SUMMONCRIMSONRIFLEMAN    17279
 
 struct boss_cannon_master_willeyAI : public ScriptedAI
 {
     boss_cannon_master_willeyAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
     }
-    ScriptedInstance* pInstance;
 
-    bool m_bInMelee;
-    uint32 m_uiKnockAwayTimer;
-    uint32 m_uiPummelTimer;
-    uint32 m_uiShootTimer;
-    uint32 m_uiSummonRiflemanTimer;
+    uint32 KnockAway_Timer;
+    uint32 Pummel_Timer;
+    uint32 Shoot_Timer;
+    uint32 SummonRifleman_Timer;
 
     void Reset()
     {
-        ToggleGate(OPEN);
-
-        SetCombatMovement(true);
-        m_bInMelee                  = true;
-
-        m_uiKnockAwayTimer          = urand(15000, 20000);
-        m_uiPummelTimer             = urand(5000, 10000);
-        m_uiShootTimer              = 1000;
-        m_uiSummonRiflemanTimer     = 5000;
+        Shoot_Timer = 1000;
+        Pummel_Timer = 7000;
+        KnockAway_Timer = 11000;
+        SummonRifleman_Timer = 20000;
     }
 
-    void Aggro(Unit* pWho) override
+    void Aggro(Unit* pWho)
     {
-        ToggleGate(CLOSED);
+        SummonRifleman_Timer = 1000;
     }
 
     void JustDied(Unit* Victim)
     {
-        ToggleGate(OPEN);
+        m_creature->SummonCreature(11054, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_2X, ADD_2Y, ADD_2Z, ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_3X, ADD_3Y, ADD_3Z, ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_4X, ADD_4Y, ADD_4Z, ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_5X, ADD_5Y, ADD_5Z, ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_7X, ADD_7Y, ADD_7Z, ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        m_creature->SummonCreature(11054, ADD_9X, ADD_9Y, ADD_9Z, ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 60000);
     }
 
-    void ToggleGate(bool bOpen)
-    {
-        if (GameObject* pGo = m_creature->FindNearestGameObject(GO_WILLEY_GATE, 200.0f))
-        {
-            if (bOpen && pGo->GetGoState() == GO_STATE_READY)
-                pInstance->DoUseDoorOrButton(pGo->GetObjectGuid());
-            if (!bOpen && pGo->GetGoState() == GO_STATE_ACTIVE)
-                pInstance->DoUseDoorOrButton(pGo->GetObjectGuid());
-        }
-    }
-
-    void JustSummoned(Creature* pWho) override
-    {
-        pWho->SetInCombatWithZone();
-    }
-
-    void EnterEvadeMode() override
-    {
-        std::list<Creature*> RiflemanList;
-        GetCreatureListWithEntryInGrid(RiflemanList, m_creature, NPC_CRIMSON_RIFLEMAN, 200.0f);
-        for (std::list<Creature*>::iterator itr = RiflemanList.begin(); itr != RiflemanList.end(); ++itr)            
-            (*itr)->ForcedDespawn();
-        
-        ScriptedAI::EnterEvadeMode();
-    }
-
-    void UpdateAI(const uint32 diff) override
+    void UpdateAI(const uint32 diff)
     {
         //Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        // Pummel
-        if (m_uiPummelTimer < diff)
+        //Pummel
+        if (Pummel_Timer < diff)
         {
+            //Cast
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_PUMMEL) == CAST_OK)
-                m_uiPummelTimer = 12000;
+                Pummel_Timer = 12000;
         }
-        else 
-            m_uiPummelTimer -= diff;
+        else Pummel_Timer -= diff;
 
-        // Knock Away
-        if (m_uiKnockAwayTimer < diff)
+        //KnockAway
+        if (KnockAway_Timer < diff)
         {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_KNOCK_AWAY) == CAST_OK)
-                m_uiKnockAwayTimer = urand(15000, 20000);
+            //Cast
+            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_KNOCKAWAY) == CAST_OK)
+                KnockAway_Timer = 14000;
         }
-        else 
-            m_uiKnockAwayTimer -= diff;
+        else KnockAway_Timer -= diff;
 
-        // Summon Rifleman
-        if (m_uiSummonRiflemanTimer < diff)
+        //Shoot
+        if (Shoot_Timer < diff)
+        {
+            //Cast
+            DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHOOT);
+            //1 seconds until we should cast this again
+            Shoot_Timer = 1000;
+        }
+        else Shoot_Timer -= diff;
+
+        //SummonRifleman
+        if (SummonRifleman_Timer < diff)
         {
             //Cast
             switch (urand(0, 8))
             {
                 case 0:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_1X,ADD_1Y,ADD_1Z,ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_2X,ADD_2Y,ADD_2Z,ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_4X,ADD_4Y,ADD_4Z,ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_2X, ADD_2Y, ADD_2Z, ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_4X, ADD_4Y, ADD_4Z, ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 1:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_2X,ADD_2Y,ADD_2Z,ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_3X,ADD_3Y,ADD_3Z,ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_5X,ADD_5Y,ADD_5Z,ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_2X, ADD_2Y, ADD_2Z, ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_3X, ADD_3Y, ADD_3Z, ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_5X, ADD_5Y, ADD_5Z, ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 2:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_3X,ADD_3Y,ADD_3Z,ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_4X,ADD_4Y,ADD_4Z,ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_6X,ADD_6Y,ADD_6Z,ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_3X, ADD_3Y, ADD_3Z, ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_4X, ADD_4Y, ADD_4Z, ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_6X, ADD_6Y, ADD_6Z, ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 3:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_4X,ADD_4Y,ADD_4Z,ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_5X,ADD_5Y,ADD_5Z,ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_7X,ADD_7Y,ADD_7Z,ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_4X, ADD_4Y, ADD_4Z, ADD_4O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_5X, ADD_5Y, ADD_5Z, ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_7X, ADD_7Y, ADD_7Z, ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 4:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_5X,ADD_5Y,ADD_5Z,ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_6X,ADD_6Y,ADD_6Z,ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_8X,ADD_8Y,ADD_8Z,ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_5X, ADD_5Y, ADD_5Z, ADD_5O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_6X, ADD_6Y, ADD_6Z, ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_8X, ADD_8Y, ADD_8Z, ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 5:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_6X,ADD_6Y,ADD_6Z,ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_7X,ADD_7Y,ADD_7Z,ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_9X,ADD_9Y,ADD_9Z,ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_6X, ADD_6Y, ADD_6Z, ADD_6O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_7X, ADD_7Y, ADD_7Z, ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_9X, ADD_9Y, ADD_9Z, ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 6:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_7X,ADD_7Y,ADD_7Z,ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_8X,ADD_8Y,ADD_8Z,ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_1X,ADD_1Y,ADD_1Z,ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_7X, ADD_7Y, ADD_7Z, ADD_7O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_8X, ADD_8Y, ADD_8Z, ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 7:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_8X,ADD_8Y,ADD_8Z,ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_9X,ADD_9Y,ADD_9Z,ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_2X,ADD_2Y,ADD_2Z,ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_8X, ADD_8Y, ADD_8Z, ADD_8O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_9X, ADD_9Y, ADD_9Z, ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_2X, ADD_2Y, ADD_2Z, ADD_2O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
                 case 8:
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_9X,ADD_9Y,ADD_9Z,ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_1X,ADD_1Y,ADD_1Z,ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 240000);
-                    m_creature->SummonCreature(NPC_CRIMSON_RIFLEMAN, ADD_3X,ADD_3Y,ADD_3Z,ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 240000);
+                    m_creature->SummonCreature(11054, ADD_9X, ADD_9Y, ADD_9Z, ADD_9O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                    m_creature->SummonCreature(11054, ADD_3X, ADD_3Y, ADD_3Z, ADD_3O, TEMPSUMMON_TIMED_DESPAWN, 60000);
                     break;
-            }            
-            m_uiSummonRiflemanTimer = 10000;
-        }
-        else 
-            m_uiSummonRiflemanTimer -= diff;
-
-        // Shoot
-        if (m_uiShootTimer < diff)
-        {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHOOT) == CAST_OK)
-                m_uiShootTimer = urand(2500, 3500);
-        }
-        else 
-            m_uiShootTimer -= diff;
-
-        if (!IsCombatMovement())
-        { //Melee
-            if (!m_bInMelee && (m_creature->GetDistance2d(m_creature->getVictim()) < 8.0f || m_creature->GetDistance2d(m_creature->getVictim()) > 27.0f || !m_creature->IsWithinLOSInMap(m_creature->getVictim())))
-            {
-                SetCombatMovement(true);
-                DoStartMovement(m_creature->getVictim());
-                m_bInMelee = true;
-                return;
             }
+            SummonRifleman_Timer = 20000;
         }
-        else
-        { //Range
-            if (m_bInMelee && m_creature->GetDistance2d(m_creature->getVictim()) >= 8.0f && m_creature->GetDistance2d(m_creature->getVictim()) <= 27.0f && m_creature->IsWithinLOSInMap(m_creature->getVictim()))
-            {
-                SetCombatMovement(false);
-                m_bInMelee = false;
-                DoStartNoMovement(m_creature->getVictim());
-                return;
-            }
-        }
+        else SummonRifleman_Timer -= diff;
 
         DoMeleeAttackIfReady();
     }
@@ -275,107 +211,26 @@ CreatureAI* GetAI_boss_cannon_master_willey(Creature* pCreature)
     return new boss_cannon_master_willeyAI(pCreature);
 }
 
-/*######
-## Crimson Rifleman
-######*/
-
-enum
+struct go_scarlet_cannonAI: public GameObjectAI
 {
-    SPELL_SHOOT_2     = 17353,
-    SPELL_CANNON_FIRE = 17278
-};
+    go_scarlet_cannonAI(GameObject* pGo) : GameObjectAI(pGo) {}
 
-struct mob_crimson_riflemanAI : public ScriptedAI
-{
-    mob_crimson_riflemanAI(Creature* pCreature) : ScriptedAI(pCreature)
+    bool OnUse(Unit* pUser)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    bool m_bInMelee;    
-    uint32 m_uiShootTimer;
-    
-    void Reset() override
-    {
-        SetCombatMovement(false);
-
-        m_bInMelee      = false;
-        m_uiShootTimer  = 1000;
-    }
-    
-    void SpellHit(Unit* /*pCaster*/, const SpellEntry* pSpell) override
-    {
-        if (pSpell && pSpell->Id == SPELL_CANNON_FIRE) 
+        if (Creature* CannonBall = pUser->SummonCreature(160018, 3541.06f, -2951.33f, 126.381f, 0.0f, TEMPSUMMON_TIMED_DESPAWN, 5000)) // Trigger Cannonball
         {
-            m_creature->DealDamage(m_creature, m_creature->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-        }
-    }
-
-    void UpdateAI(const uint32 diff) override
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        // Shoot
-        if (m_uiShootTimer < diff)
-        {
-            if (m_creature->GetDistance2d(m_creature->getVictim()) >= 5.0f && DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHOOT_2) == CAST_OK)
-                m_uiShootTimer = urand(2500, 3500);
-        }
-        else 
-            m_uiShootTimer -= diff;
-
-        if (!IsCombatMovement())
-        { //Melee
-            if (!m_bInMelee && (m_creature->GetDistance2d(m_creature->getVictim()) < 5.0f || m_creature->GetDistance2d(m_creature->getVictim()) > 95.0f || !m_creature->IsWithinLOSInMap(m_creature->getVictim())))
-            {
-                SetCombatMovement(true);
-                DoStartMovement(m_creature->getVictim());
-                m_bInMelee = true;
-                return;
-            }
+            CannonBall->CastSpell(CannonBall, 17278, false);
+            return true;
         }
         else
-        { //Range
-            if (m_bInMelee && m_creature->GetDistance2d(m_creature->getVictim()) >= 5.0f && m_creature->GetDistance2d(m_creature->getVictim()) <= 95.0f && m_creature->IsWithinLOSInMap(m_creature->getVictim()))
-            {
-                SetCombatMovement(false);
-                m_bInMelee = false;
-                DoStartNoMovement(m_creature->getVictim());
-                return;
-            }
-        }
-        
-        DoMeleeAttackIfReady();
+            return false;
     }
 };
 
-CreatureAI* GetAI_mob_crimson_rifleman(Creature* pCreature)
+GameObjectAI* GetAIgo_scarlet_cannon(GameObject *pGo)
 {
-    return new mob_crimson_riflemanAI(pCreature);
+    return new go_scarlet_cannonAI(pGo);
 }
-
-/*######
-## GO_scarlet_cannon
-######*/
-
-enum
-{
-    NPC_CANNONBALL    = 160018,
-};
-
-bool GO_scarlet_cannon(Player* pPlayer, GameObject* pGo)
-{
-    if (Creature* pCannonBall = pPlayer->SummonCreature(NPC_CANNONBALL, 3534.661f, -2966.512f, 125.001f, 0.592f, TEMPSUMMON_TIMED_DESPAWN, 5000)) // Trigger Cannonball
-    {
-        pCannonBall->CastSpell(pCannonBall, SPELL_CANNON_FIRE, false);
-        pCannonBall->ForcedDespawn(200);
-    }
-    return false;
-};
 
 void AddSC_boss_cannon_master_willey()
 {
@@ -386,12 +241,7 @@ void AddSC_boss_cannon_master_willey()
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "mob_crimson_rifleman";
-    newscript->GetAI = &GetAI_mob_crimson_rifleman;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
     newscript->Name = "go_scarlet_cannon";
-    newscript->pGOHello = &GO_scarlet_cannon;
+    newscript->GOGetAI = &GetAIgo_scarlet_cannon;
     newscript->RegisterSelf();
 }

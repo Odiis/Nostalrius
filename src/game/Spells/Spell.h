@@ -34,7 +34,6 @@
 #else
 #include "tbb/concurrent_vector.h"
 #endif
-
 #include <memory>
 
 #define MAX_SPELL_ID 40000
@@ -315,9 +314,9 @@ class Spell
         void EffectSpiritHeal(SpellEffectIndex eff_idx);
         void EffectSkinPlayerCorpse(SpellEffectIndex eff_idx);
         void EffectSummonDemon(SpellEffectIndex eff_idx);
-        // Nostalrius
+        // Elysium
         void EffectDespawnObject(SpellEffectIndex eff_idx);
-        void EffectNostalrius(SpellEffectIndex eff_idx);
+        void EffectElysium(SpellEffectIndex eff_idx);
         void HandleAddTargetTriggerAuras();
 
         Spell(Unit* caster, SpellEntry const *info, bool triggered, ObjectGuid originalCasterGUID = ObjectGuid(), SpellEntry const* triggeredBy = NULL);
@@ -338,20 +337,18 @@ class Spell
         SpellCastResult CheckCast(bool strict);
         SpellCastResult CheckPetCast(Unit* target);
 
-        bool isSuccessCast() const { return m_successCast; }
-
         // handlers
         void handle_immediate();
         uint64 handle_delayed(uint64 t_offset);
         // handler helpers
         void _handle_immediate_phase();
         void _handle_finish_phase();
-        // Nostalrius
+        // Elysium
         void OnSpellLaunch();
 
         SpellCastResult CheckItems();
         SpellCastResult CheckRange(bool strict);
-        SpellCastResult CheckPower() const;
+        SpellCastResult CheckPower();
         SpellCastResult CheckCasterAuras() const;
 
         int32 CalculateDamage(SpellEffectIndex i, Unit* target) { return m_caster->CalculateSpellDamage(target, m_spellInfo, i, &m_currentBasePoints[i], this); }
@@ -373,7 +370,7 @@ class Spell
         void SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList &targetUnitMap);
 
         void FillAreaTargets(UnitList &targetUnitMap, float radius, SpellNotifyPushType pushType, SpellTargets spellTargets, WorldObject* originalCaster = NULL);
-        void FillRaidOrPartyTargets( UnitList &TagUnitMap, Unit* target, float radius, bool raid, bool withPets, bool withcaster ) const;
+        void FillRaidOrPartyTargets( UnitList &TagUnitMap, Unit* target, float radius, bool raid, bool withPets, bool withcaster );
 
         template<typename T> WorldObject* FindCorpseUsing();
 
@@ -429,7 +426,7 @@ class Spell
         bool IsNeedSendToClient() const;                    // use for hide spell cast for client in case when cast not have client side affect (animation or log entries)
         bool IsTriggeredSpellWithRedundentData() const;     // use for ignore some spell data for triggered spells like cast time, some triggered spells have redundent copy data from main spell for client use purpose
 
-        CurrentSpellTypes GetCurrentContainer() const;
+        CurrentSpellTypes GetCurrentContainer();
 
         // caster types:
         // formal spell caster, in game source of spell affects cast
@@ -457,6 +454,7 @@ class Spell
         void CleanupTargetList();
         void ClearCastItem();
 
+        // Elysium : Ivina
         bool   m_isClientStarted;
         void   SetClientStarted(bool isClientStarted);
         bool IsTriggered() const       { return m_IsTriggeredSpell; }
@@ -469,17 +467,14 @@ class Spell
         }
         void RemoveStealthAuras();
 
-        void Delete() const;
+        void Delete();
 
         bool HasModifierApplied(SpellModifier* mod);
         std::list<SpellModifier*> m_appliedMods;
 
         SpellSchoolMask m_spellSchoolMask;                  // Spell school (can be overwrite for some spells (wand shoot for example)
-
-        // Stryg
-        uint8 GetTargetNum() const { return m_targetNum; }
     protected:
-        bool HasGlobalCooldown() const;
+        bool HasGlobalCooldown();
         void TriggerGlobalCooldown();
         void CancelGlobalCooldown();
 
@@ -503,7 +498,6 @@ class Spell
         bool m_canReflect;                                  // can reflect this spell?
         bool m_autoRepeat;
         bool m_delayed;
-        bool m_successCast;
 
         uint8 m_delayAtDamageCount;
         int32 GetNextDelayAtDamageMsTime() { return m_delayAtDamageCount < 5 ? 1000 - (m_delayAtDamageCount++)* 200 : 200; }
@@ -520,12 +514,10 @@ class Spell
         uint8 m_applyMultiplierMask;                        // by effect: damage multiplier needed?
         float m_damageMultipliers[3];                       // by effect: damage multiplier
 
-        uint8 m_targetNum;                                  // the target number for each bounce in a spell
-
         // Current targets, to be used in SpellEffects (MUST BE USED ONLY IN SPELL EFFECTS)
         Unit* unitTarget;
         Item* itemTarget;
-        Corpse* corpseTarget; // Nostalrius
+        Corpse* corpseTarget; // Elysium
         GameObject* gameObjTarget;
         SpellAuraHolder* m_spellAuraHolder;                 // spell aura holder for current target, created only if spell has aura applying effect
         int32 damage;
@@ -601,7 +593,7 @@ class Spell
         ItemTargetList m_UniqueItemInfo;
 
         void AddUnitTarget(Unit* target, SpellEffectIndex effIndex);
-        void CheckAtDelay(TargetInfo* pInf);
+        void CheckAtDelay(TargetInfo* pInf); // Elysium
         void AddUnitTarget(ObjectGuid unitGuid, SpellEffectIndex effIndex);
         void AddGOTarget(GameObject* target, SpellEffectIndex effIndex);
         void AddGOTarget(ObjectGuid goGuid, SpellEffectIndex effIndex);
@@ -636,57 +628,6 @@ class Spell
         // we can't store original aura link to prevent access to deleted auras
         // and in same time need aura data and after aura deleting.
         SpellEntry const* m_triggeredByAuraSpell;
-
-        struct ExecuteLogInfo
-        {
-            ExecuteLogInfo() {}
-            ExecuteLogInfo(ObjectGuid _targetGuid) : targetGuid(_targetGuid) {}
-
-            ObjectGuid targetGuid;
-
-            union
-            {
-                struct
-                {
-                    uint32 power;
-                    uint32 amount;
-                    float multiplier;
-                } powerDrain;
-
-                struct
-                {
-                    uint32 count;
-                } extraAttacks;
-
-                struct
-                {
-                    uint32 itemEntry;
-                } createItem;
-
-                struct
-                {
-                    uint32 spellId;
-                } interruptCast;
-
-                struct
-                {
-                    uint32 itemEntry;
-                } feedPet;
-
-                struct
-                {
-                    int32 itemEntry;
-                    int32 unk;
-                } durabilityDamage;
-            };
-        };
-
-        std::vector<ExecuteLogInfo> m_executeLogInfo[MAX_EFFECT_INDEX];
-
-        void AddExecuteLogInfo(SpellEffectIndex i, ExecuteLogInfo info)
-        {
-            m_executeLogInfo[i].push_back(info);
-        }
 };
 
 enum ReplenishType

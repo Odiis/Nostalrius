@@ -22,11 +22,10 @@ SDCategory: Zul'Gurub
 EndScriptData */
 
 #include "scriptPCH.h"
-#include "zulgurub.h"
-
 enum
 {
     // Datas :
+    // NPC_GAHZ_RANKA              = 15114,
 
     // Gahz'ranka's spells
     // -------------------
@@ -45,13 +44,8 @@ struct boss_gahzrankaAI : public ScriptedAI
 {
     boss_gahzrankaAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
-        CheckSpawnStatus();
     }
-
-    ScriptedInstance* m_pInstance;
-
     uint32 Frostbreath_Timer;
     uint32 MassiveGeyser_Timer;
     uint32 Slam_Timer;
@@ -62,37 +56,6 @@ struct boss_gahzrankaAI : public ScriptedAI
         MassiveGeyser_Timer = 25000;
         Slam_Timer = 17000;
     }
-
-    void JustRespawned()
-    {
-        CheckSpawnStatus();
-    }
-
-   void CheckSpawnStatus()
-   {
-        if (!m_pInstance)
-            return;
-
-        if (m_pInstance->GetData(TYPE_GAHZRANKA) != DONE)
-        {
-            m_creature->DisappearAndDie();
-            m_creature->SetRespawnTime(259200);
-        }
-        else
-        {
-            m_creature->GetMotionMaster()->MovePoint(0, -11709.3476f, -1749.965f, 8.733f, 5.3478f);
-            m_creature->SetHomePosition(-11688.95f, -1777.21f, 12.593f, 5.81f);
-        }
-    }
-
-    void MovementInform(uint32 uiType, uint32 uiPointId)
-    {
-        if (uiType != POINT_MOTION_TYPE)
-            return;
-
-        if (uiPointId == 0) // move to the Beach
-            m_creature->GetMotionMaster()->MovePoint(1, -11688.95f, -1777.21f, 12.593f, 5.81f);
-    } 
 
     void UpdateAI(const uint32 diff)
     {

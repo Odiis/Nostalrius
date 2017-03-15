@@ -5,11 +5,11 @@
 UPDATE `creature_template` SET `ScriptName`='mobs_rat_pestifere' WHERE (`entry`='10441');
 UPDATE `gameobject_template` SET `ScriptName`='go_entree_de_service' WHERE (`entry`='175368');
 INSERT INTO `creature_ai_texts` (`entry` ,`content_default` ,`content_loc1` ,`content_loc2` ,`content_loc3` ,`content_loc4` ,`content_loc5` ,`content_loc6` ,`content_loc7` ,`content_loc8` ,`sound` ,`type` ,`language` ,`emote` ,`comment`) VALUES
-('-20000', 'Des intrus ! Encore des marionnettes de l''Aube d''argent, sans doute. J''en ai dï¿½jï¿½ une parmi mes prisonniers. Hï¿½tez-vous de quitter nom domaine, sans quoi elle sera exï¿½cutï¿½e !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
-('-20001', 'Je vais prendre beaucoup de plaisir ï¿½ tuer cette pauvre femme ! Il n''est pas trop tard, Il n''est pas nï¿½cessaire qu''elle souffre pour rien. Allez-vous-en et sa mort sera misï¿½ricordieuse !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
-('-20002', 'Ne vous inquiï¿½tez pas de moi ! Tuez cette bï¿½te odieuse ! Libï¿½rez le monde de sa vile corruption !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
-('-20003', 'Un Cristal d''Ash''ari vient d''ï¿½tre renversï¿½ ! Restaurez la ziggourat avant que la nï¿½cropole ne soit vulnï¿½rable.', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
-('-20004', 'Les cristaux d''Ash''ari ont ï¿½tï¿½ dï¿½truits ! L''abattoir est vulnï¿½rable !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL);
+('-20000', 'Des intrus ! Encore des marionnettes de l''Aube d''argent, sans doute. J''en ai déjà une parmi mes prisonniers. Hâtez-vous de quitter nom domaine, sans quoi elle sera exécutée !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
+('-20001', 'Je vais prendre beaucoup de plaisir à tuer cette pauvre femme ! Il n''est pas trop tard, Il n''est pas nécessaire qu''elle souffre pour rien. Allez-vous-en et sa mort sera miséricordieuse !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
+('-20002', 'Ne vous inquiétez pas de moi ! Tuez cette bête odieuse ! Libérez le monde de sa vile corruption !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
+('-20003', 'Un Cristal d''Ash''ari vient d''être renversé ! Restaurez la ziggourat avant que la nécropole ne soit vulnérable.', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL),
+('-20004', 'Les cristaux d''Ash''ari ont été détruits ! L''abattoir est vulnérable !', NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL , '0', '0', '0', '0', NULL);
 DELETE FROM gameobject WHERE guid = '82644';
 INSERT INTO gameobject VALUES ( 82644, 181072, 329, 4044.34, -3334.23, 115.06, 2.61058, 0, 0, 0.877461, -0.479649, 180, 100, 1);
 DELETE FROM gameobject WHERE guid = '82643';
@@ -18,6 +18,10 @@ UPDATE creature SET position_x = '4044.34', position_y = '-3334.23', position_z 
 DELETE FROM creature WHERE id = '10558';
 UPDATE `creature_template` SET `MovementType` = '0',`InhabitType` = '4',`ScriptName` = 'mobs_cristal_zuggurat' WHERE `entry` =10415;
 */
+
+#define TEXTE_TIMER_BARON_45MIN            -20000
+#define TEXTE_TIMER_BARON_5MIN            -20001
+#define TEXTE_TIMER_BARON_5MIN_YSIDA    -20002
 
 enum
 {
@@ -43,7 +47,6 @@ enum
     NPC_TIMMY                   = 10808,
     NPC_AURIUS_1                = 10917,
     NPC_AURIUS_2                = 10931,
-    NPC_DATHROHAN               = 10812,
 
     NPC_RAMSTEIN                = 10439,
     NPC_ABOM_BILE               = 10416,
@@ -56,21 +59,8 @@ enum
     NPC_INSECTE                 = 10461,
 
     QUEST_AURIUSRECKONING       = 5125,
-    QUEST_THEMEDALLIONOFFAITH   = 5122,
+    QUEST_THEMEDALLIONOFFAITH   = 5122
 
-    RIVENDARE_YELL_45MIN        = -1000020,
-    RIVENDARE_YELL_10MIN        = -1000021,
-    RIVENDARE_YELL_5MIN         = -1000022,
-    YSIDA_YELL_5MIN             = -1000023,
-    RIVENDARE_YELL_FAILED       = -1000024,
-    RIVENDARE_YELL_RAMMSTEIN    = -1000025,
-    RAMMSTEIN_YELL_SPAWN        = -1000026,
-    BLACKGUARD_YELL_SPAWN       = -1000027,
-    RIVENDARE_YELL_READY        = -1000028,
-    YSIDA_YELL_FAILED           = -1000029,
-    YSIDA_SAY_REWARD            = -1000030,
-
-    SPELL_YSIDA_FREED           = 27773
 };
 
 struct instance_stratholme : public ScriptedInstance
@@ -120,15 +110,11 @@ struct instance_stratholme : public ScriptedInstance
     uint64 m_uiAuriusGUID;
     uint64 m_uiRamsteinGUID;
     uint64 m_uiQuestPlayerGUID;
-    uint64 m_uiDathrohanGUID;
     std::set<uint64> crystalsGUID;
     std::set<uint64> abomnationGUID;
     std::list<uint64> slaugtherAboGUID;
     std::set<uint64> npc_placeEcarlateGUID;
     bool m_summoningRammstein;
-
-    uint8 m_uiBlackguardCount;
-    uint32 m_uiYsidaReward_Timer;
 
     void Initialize()
     {
@@ -174,7 +160,6 @@ struct instance_stratholme : public ScriptedInstance
         m_uiAuriusGUID = 0;
         m_uiRamsteinGUID = 0;
         m_uiQuestPlayerGUID = 0;
-        m_uiDathrohanGUID = 0;
 
         crystalsGUID.clear();
         abomnationGUID.clear();
@@ -182,9 +167,6 @@ struct instance_stratholme : public ScriptedInstance
         npc_placeEcarlateGUID.clear();
 
         m_summoningRammstein = false;
-
-        m_uiBlackguardCount = 5;
-        m_uiYsidaReward_Timer = 0;
     }
 
     bool IsEncounterInProgress() const
@@ -245,8 +227,7 @@ struct instance_stratholme : public ScriptedInstance
         {
             case NPC_BARON:
                 m_uiBaronGUID = pCreature->GetGUID();
-                if (GetData(TYPE_RAMSTEIN) != DONE)
-                    pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
                 break;
             case NPC_YSIDA_TRIGGER:
                 m_uiYsidaTriggerGUID = pCreature->GetGUID();
@@ -274,12 +255,9 @@ struct instance_stratholme : public ScriptedInstance
             case NPC_TIMMY:
                 m_uiTimmyGUID = pCreature->GetGUID();
                 break;
-            case NPC_DATHROHAN:
-                m_uiDathrohanGUID = pCreature->GetGUID();
-                break;
         }
 
-        // on add tous les pnj (le tri sera fait chaque uptade) sinon on a un probleme de coodonï¿½e (il nous donne x, y et z = 0)
+        // on add tous les pnj (le tri sera fait chaque uptade) sinon on a un probleme de coodonée (il nous donne x, y et z = 0)
         npc_placeEcarlateGUID.insert(pCreature->GetGUID());
 
         if (!m_ChantelogeFosrestin_pop)
@@ -287,16 +265,16 @@ struct instance_stratholme : public ScriptedInstance
             switch (urand(1, 4))
             {
                 case 1:
-                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3717.1f, -3499.8f, 130.6f, 2.14583f, TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3717.1, -3499.8, 130.6, 2.14583, TEMPSUMMON_DEAD_DESPAWN, 0);
                     break;
                 case 2:
-                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3696.47f, -3370.6f, 131.71f, 3.354f, TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3696.47, -3370.6, 131.71, 3.354, TEMPSUMMON_DEAD_DESPAWN, 0);
                     break;
                 case 3:
-                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3556.1f, -3397.61f, 134.1f, 3.147f, TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3556.1, -3397.61, 134.1, 3.147, TEMPSUMMON_DEAD_DESPAWN, 0);
                     break;
                 default:
-                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3595.75f, -3509.93f, 137.6f, 5.74213f, TEMPSUMMON_DEAD_DESPAWN, 0);
+                    pCreature->SummonCreature(NPC_CHANTELOGE_FORRESTIN, 3595.75, -3509.93, 137.6, 5.74213, TEMPSUMMON_DEAD_DESPAWN, 0);
                     break;
             }
         }
@@ -330,13 +308,9 @@ struct instance_stratholme : public ScriptedInstance
                     pGo->UseDoorOrButton();
                 break;
             case GO_ZIGGURAT4:
-                if (GetData(TYPE_RAMSTEIN) == DONE)
-                    pGo->UseDoorOrButton();
                 m_uiZiggurat4GUID = pGo->GetGUID();
                 break;
             case GO_ZIGGURAT5:
-                if (GetData(TYPE_RAMSTEIN) == DONE)
-                    pGo->UseDoorOrButton();
                 m_uiZiggurat5GUID = pGo->GetGUID();
                 break;
             case GO_PORT_GAUNTLET:
@@ -370,21 +344,6 @@ struct instance_stratholme : public ScriptedInstance
         }
     }
 
-    void OnCreatureDeath(Creature *who)
-    {
-        switch (who->GetEntry())
-        {
-            case NPC_BLACK_GUARD:
-                m_uiBlackguardCount--;
-                if (!m_uiBlackguardCount)
-                {
-                    if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                        DoScriptText(RIVENDARE_YELL_READY, pBaron);
-                }
-                break;
-        }
-    }
-
     uint32 GetData(uint32 uiType)
     {
         switch (uiType)
@@ -411,8 +370,6 @@ struct instance_stratholme : public ScriptedInstance
                 return m_uiAuriusGUID;
             case DATA_QUESTPLAYER:
                 return m_uiQuestPlayerGUID;
-            case NPC_DATHROHAN:
-                return m_uiDathrohanGUID;
         }
         return 0;
     }
@@ -437,26 +394,18 @@ struct instance_stratholme : public ScriptedInstance
                     case IN_PROGRESS:
                         if (m_auiEncounter[TYPE_BARON_RUN] == IN_PROGRESS || m_auiEncounter[TYPE_BARON_RUN] == FAIL)
                             break;
-                        m_uiBaronRun_Timer = 45*MINUTE*IN_MILLISECONDS;
+                        m_uiBaronRun_Timer = 2700000;
                         m_phaseBaron = 0;
                         sLog.outDebug("Instance Stratholme: Baron run in progress.");
-                        if (Creature* pYsidaT = instance->GetCreature(m_uiYsidaTriggerGUID))
-                            pYsidaT->SummonCreature(NPC_YSIDA,
-                                                    4044.163f, -3334.2f, 115.0596f, 4.2f,
-                                                    TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 1*HOUR*IN_MILLISECONDS);
                         break;
                     case FAIL:
                         //may add code to remove aura from players, but in theory the time should be up already and removed.
                         break;
                     case DONE:
-                        if (instance->GetGameObject(m_cageYsidaGUID))
-                            instance->GetGameObject(m_cageYsidaGUID)->SetGoState(GO_STATE_ACTIVE);
-                        if (Creature* pYsida = instance->GetCreature(m_uiYsidaGUID))
-                        {
-                            pYsida->SetWalk(true);
-                            pYsida->GetMotionMaster()->MovePoint(1, 4041.2f, -3339.0f, 115.1f, MOVE_PATHFINDING);
-                        }
-                        m_uiYsidaReward_Timer = 5000;
+                        if (Creature* pYsidaT = instance->GetCreature(m_uiYsidaTriggerGUID))
+                            pYsidaT->SummonCreature(NPC_YSIDA,
+                                                    pYsidaT->GetPositionX(), pYsidaT->GetPositionY(), pYsidaT->GetPositionZ(), pYsidaT->GetOrientation(),
+                                                    TEMPSUMMON_TIMED_DESPAWN, 1800000);
                         m_uiBaronRun_Timer = 0;
                         break;
                 }
@@ -489,7 +438,7 @@ struct instance_stratholme : public ScriptedInstance
                 if (uiData == SPECIAL) // on mob Aggro OK
                 {
                     if (GameObject* pGob = instance->GetGameObject(m_uiPortGauntletGUID))
-                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermï¿½e
+                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermée
                             UpdateGoState(m_uiPortGauntletGUID, GO_STATE_READY, false);
                     m_uiSlaugtherAboMob_Timer = 20000;
                 }
@@ -501,7 +450,7 @@ struct instance_stratholme : public ScriptedInstance
                     if (m_uiRamsteinGUID)
                     {
                         if (GameObject* pGob = instance->GetGameObject(m_uiPortGauntletGUID))
-                            if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermï¿½e
+                            if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermée
                                 UpdateGoState(m_uiPortGauntletGUID, GO_STATE_READY, false);
                         m_auiEncounter[TYPE_RAMSTEIN] = uiData;
                         m_summoningRammstein = false;
@@ -520,10 +469,8 @@ struct instance_stratholme : public ScriptedInstance
 
                     if (!uiCount)
                     {
-                        if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                            DoScriptText(RIVENDARE_YELL_RAMMSTEIN, pBaron);
                         UpdateGoState(m_uiZiggurat4GUID, GO_STATE_ACTIVE, false);
-                        m_uiSlaugtherSquare_Timer = 5000;
+                        m_uiSlaugtherSquare_Timer = 2000;
                         SummonRamstein();
                     }
                     else
@@ -549,24 +496,6 @@ struct instance_stratholme : public ScriptedInstance
             case TYPE_BARON:
             {
                 if (uiData == IN_PROGRESS)
-                {
-                    if (GetData(TYPE_EVENT_AURIUS) == SPECIAL)
-                    {
-                        if (Player* pPlayer = instance->GetPlayer(GetData64(DATA_QUESTPLAYER)))
-                        {
-                            pPlayer->SummonCreature(NPC_AURIUS_2, 4045.71f, -3357.38f, 115.10f, 2.08f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 1800000);
-                            SetData(TYPE_EVENT_AURIUS, IN_PROGRESS);
-                        }
-                    }
-                    if (GameObject* pGob = instance->GetGameObject(m_uiZiggurat4GUID))
-                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermï¿½e
-                            UpdateGoState(m_uiZiggurat4GUID, GO_STATE_READY, false);
-                    UpdateGoState(m_uiZiggurat5GUID, GO_STATE_READY, false);
-                    if (GameObject* pGob = instance->GetGameObject(m_uiPortGauntletGUID))
-                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermï¿½e
-                            UpdateGoState(m_uiPortGauntletGUID, GO_STATE_READY, false);
-                }
-                if (uiData == DONE)
                 {
                     if (GetData(TYPE_BARON_RUN) == IN_PROGRESS)
                     {
@@ -596,6 +525,24 @@ struct instance_stratholme : public ScriptedInstance
                         }
                         SetData(TYPE_BARON_RUN, DONE);
                     }
+                    if (GetData(TYPE_EVENT_AURIUS) == SPECIAL)
+                    {
+                        if (Player* pPlayer = instance->GetPlayer(GetData64(DATA_QUESTPLAYER)))
+                        {
+                            pPlayer->SummonCreature(NPC_AURIUS_2, 4045.71f, -3357.38f, 115.10f, 2.08f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 1800000);
+                            SetData(TYPE_EVENT_AURIUS, IN_PROGRESS);
+                        }
+                    }
+                    if (GameObject* pGob = instance->GetGameObject(m_uiZiggurat4GUID))
+                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermée
+                            UpdateGoState(m_uiZiggurat4GUID, GO_STATE_READY, false);
+                    UpdateGoState(m_uiZiggurat5GUID, GO_STATE_READY, false);
+                    if (GameObject* pGob = instance->GetGameObject(m_uiPortGauntletGUID))
+                        if (pGob->GetGoState() != GO_STATE_READY) // Si pas fermée
+                            UpdateGoState(m_uiPortGauntletGUID, GO_STATE_READY, false);
+                }
+                if (uiData == DONE)
+                {
                     if (GameObject* pGob = instance->GetGameObject(m_uiZiggurat4GUID))
                         if (pGob->GetGoState() != GO_STATE_ACTIVE) // Si pas ouverte
                             UpdateGoState(m_uiZiggurat4GUID, GO_STATE_ACTIVE, false);
@@ -690,14 +637,14 @@ struct instance_stratholme : public ScriptedInstance
 
     bool JoueurDansPiegeRat1()
     {
-        float x1 = 3907.45f;
-        float y1 = -3550.41f;
-        float x2 = 3909.34f;
-        float y2 = -3540.14f;
-        float x3 = 3930.1f;
-        float y3 = -3554.4f;
-        float x4 = 3931.9f;
-        float y4 = -3544.6f;
+        float x1 = 3907.45;
+        float y1 = -3550.41;
+        float x2 = 3909.34;
+        float y2 = -3540.14;
+        float x3 = 3930.1;
+        float y3 = -3554.4;
+        float x4 = 3931.9;
+        float y4 = -3544.6;
 
         Map::PlayerList const &listeJoueur = instance->GetPlayers();
         for (Map::PlayerList::const_iterator itr = listeJoueur.begin(); itr != listeJoueur.end(); ++itr)
@@ -769,12 +716,13 @@ struct instance_stratholme : public ScriptedInstance
     {
         if (m_uiBaronRun_Timer)
         {
-            if (m_uiBaronRun_Timer <= 45*MINUTE*IN_MILLISECONDS && m_phaseBaron == 0)
+            if (m_uiBaronRun_Timer >= 45 * 60000 && m_phaseBaron == 0)
             {
+                m_uiBaronRun_Timer = 45 * 60000;
                 m_phaseBaron++;
 
                 if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                    DoScriptText(RIVENDARE_YELL_45MIN, pBaron);
+                    pBaron->MonsterYellToZone(TEXTE_TIMER_BARON_45MIN, LANG_UNIVERSAL, 0);
 
                 Map::PlayerList const& players = instance->GetPlayers();
                 if (!players.isEmpty())
@@ -782,12 +730,9 @@ struct instance_stratholme : public ScriptedInstance
                         if (!itr->getSource()->HasAura(SPELL_BARON_ULTIMATUM_45MIN, EFFECT_INDEX_0))
                             itr->getSource()->CastSpell(itr->getSource(), SPELL_BARON_ULTIMATUM_45MIN, true);
             }
-            if (m_uiBaronRun_Timer <= 10*MINUTE*IN_MILLISECONDS && m_phaseBaron == 1)
+            if (m_uiBaronRun_Timer <= 10 * 60000 && m_phaseBaron == 1)
             {
                 m_phaseBaron++;
-
-                if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                    DoScriptText(RIVENDARE_YELL_10MIN, pBaron);
 
                 Map::PlayerList const& players = instance->GetPlayers();
                 if (!players.isEmpty())
@@ -795,12 +740,12 @@ struct instance_stratholme : public ScriptedInstance
                         if (!itr->getSource()->HasAura(SPELL_BARON_ULTIMATUM_10MIN, EFFECT_INDEX_0))
                             itr->getSource()->CastSpell(itr->getSource(), SPELL_BARON_ULTIMATUM_10MIN, true);
             }
-            if (m_uiBaronRun_Timer <= 5*MINUTE*IN_MILLISECONDS && m_phaseBaron == 2)
+            if (m_uiBaronRun_Timer <= 5 * 60000 && m_phaseBaron == 2)
             {
                 m_phaseBaron++;
 
                 if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                    DoScriptText(RIVENDARE_YELL_5MIN, pBaron);
+                    pBaron->MonsterYellToZone(TEXTE_TIMER_BARON_5MIN, LANG_UNIVERSAL, 0);
 
                 Map::PlayerList const& players = instance->GetPlayers();
                 if (!players.isEmpty())
@@ -808,14 +753,14 @@ struct instance_stratholme : public ScriptedInstance
                         if (!itr->getSource()->HasAura(SPELL_BARON_ULTIMATUM_5MIN, EFFECT_INDEX_0))
                             itr->getSource()->CastSpell(itr->getSource(), SPELL_BARON_ULTIMATUM_5MIN, true);
             }
-            if (m_uiBaronRun_Timer <= 5*MINUTE*IN_MILLISECONDS - 3000 && m_phaseBaron == 3)
+            if (m_uiBaronRun_Timer <= 5 * 60000 - 3000 && m_phaseBaron == 3)
             {
                 m_phaseBaron++;
 
                 if (Creature* pYsida = instance->GetCreature(m_uiYsidaGUID))
-                    DoScriptText(YSIDA_YELL_5MIN, pYsida);
+                    pYsida->MonsterYellToZone(TEXTE_TIMER_BARON_5MIN_YSIDA, LANG_UNIVERSAL, 0);
             }
-            if (m_uiBaronRun_Timer <= 1*MINUTE*IN_MILLISECONDS && m_phaseBaron == 4)
+            if (m_uiBaronRun_Timer <= 60000 && m_phaseBaron == 4)
             {
                 m_phaseBaron++;
 
@@ -833,17 +778,11 @@ struct instance_stratholme : public ScriptedInstance
                 if (GetData(TYPE_BARON_RUN) != DONE)
                     SetData(TYPE_BARON_RUN, FAIL);
 
-                if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
-                    DoScriptText(RIVENDARE_YELL_FAILED, pBaron);
-
                 if (instance->GetGameObject(m_cageYsidaGUID))
                     instance->GetGameObject(m_cageYsidaGUID)->SetGoState(GO_STATE_ACTIVE);
 
                 if (Creature* pYsida = instance->GetCreature(m_uiYsidaGUID))
-                {
-                    DoScriptText(YSIDA_YELL_FAILED, pYsida);
-                    pYsida->CastSpell(pYsida, 5, true); // deathtouch
-                }
+                    pYsida->MonsterMove(4041.2, -3339, 115.1);
 
                 sLog.outDebug("Instance Stratholme: Baron run event reached end. Event has state %u.", GetData(TYPE_BARON_RUN));
             }
@@ -869,11 +808,7 @@ struct instance_stratholme : public ScriptedInstance
             if (m_uiSlaugtherSquare_Timer <= uiDiff)
             {
                 if (GetData(TYPE_RAMSTEIN) == IN_PROGRESS)
-                {
                     UpdateGoState(m_uiZiggurat4GUID, GO_STATE_READY, false);
-                    if (Creature* pRamstein = instance->GetCreature(m_uiRamsteinGUID))
-                        DoScriptText(RAMMSTEIN_YELL_SPAWN, pRamstein);
-                }
                 else
                 {
                     if (Creature* pBaron = instance->GetCreature(m_uiBaronGUID))
@@ -884,8 +819,6 @@ struct instance_stratholme : public ScriptedInstance
                             {
                                 pBlackGuard->GetMotionMaster()->MovePoint(0, 4033.34f, -3419.75f, 116.35f);
                                 pBlackGuard->SetHomePosition(4033.34f, -3419.75f, 116.35f, 4.80f);
-                                if (i == 0)
-                                    DoScriptText(BLACKGUARD_YELL_SPAWN, pBlackGuard);
                             }
                         }
                         UpdateGoState(m_uiZiggurat4GUID, GO_STATE_ACTIVE, false);
@@ -899,30 +832,6 @@ struct instance_stratholme : public ScriptedInstance
             }
             else
                 m_uiSlaugtherSquare_Timer -= uiDiff;
-        }
-
-        if (m_uiYsidaReward_Timer)
-        {
-            if (m_uiYsidaReward_Timer <= uiDiff)
-            {
-                if (Creature* pYsida = instance->GetCreature(m_uiYsidaGUID))
-                    DoScriptText(YSIDA_SAY_REWARD, pYsida);
-                /* disable until t0.5 quest line is in TODO: handle this with eventMgr check
-                // reward +150 Argent Dawn reputation
-                Map::PlayerList const& players = instance->GetPlayers();
-                if (!players.isEmpty())
-                {
-                    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-                    {
-                        if (Player* pPlayer = itr->getSource())
-                            pPlayer->CastSpell(pPlayer, SPELL_YSIDA_FREED, true);
-                    }
-                }
-                */
-                m_uiYsidaReward_Timer = 0;
-            }
-            else
-                m_uiYsidaReward_Timer -= uiDiff;
         }
     }
     void SummonRamstein()

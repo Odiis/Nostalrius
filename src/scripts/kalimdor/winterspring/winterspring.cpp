@@ -134,254 +134,293 @@ bool GossipSelect_npc_witch_doctor_mauari(Player* pPlayer, Creature* pCreature, 
     return true;
 }
 
+// Elysium - quete épique chasseur
+
 enum
 {
-    SPELL_FOOLS_PLIGHT              = 23504,
-        
-    SPELL_DEMONIC_FRENZY            = 23257,
-    SPELL_DEMONIC_DOOM              = 23298,
-    SPELL_STINGING_TRAUMA           = 23299,
-    
-    EMOTE_POISON                    = -1000651,
+    DEMONIC_FRENZY          = 23257,
+    DEMONIC_DOOM            = 23298,
+    STINGING_TRAUMA         = 23299,
+    DESESPOIR_IDIOT         = 23503,
+    FOOL_PLIGHT             = 23504,
 
-    NPC_ARTORIUS_THE_AMIABLE        = 14531,
-    NPC_ARTORIUS_THE_DOOMBRINGER    = 14535,
-    NPC_THE_CLEANER                 = 14503,
-    
-    QUEST_STAVE_OF_THE_ANCIENTS     = 7636
+    HUNTER_QUEST_DESPAWN_TIMER    = 2400000, //Shall despawn after 40 minutes if turned into a demon
+    HUNTER_QUEST_COMBAT_TIMER     = 1200000, //Combat shall not last more than 20 minutes
+
+    NPC_CLEANER             = 14503,
+    NPC_ARTORIUS            = 14531,
+    NPC_ARTORIUS_EVIL       = 14535
 };
 
-#define GOSSIP_ITEM                 "Show me your real face, demon."
-
-/*######
-## npc_artorius_the_amiable
-######*/
-
-/*######
-## npc_artorius_the_doombringer
-######*/
-
-struct npc_artoriusAI : public ScriptedAI
+struct mob_ArtoriusAI : public ScriptedAI
 {
-    npc_artoriusAI(Creature* pCreature) : ScriptedAI(pCreature)
+    mob_ArtoriusAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_bTransform      = false;
-        m_uiDespawn_Timer = 0;
+        EventBegin = false;
+        EventEnd = true;
+        BoredOrInterfere = false;
+        CombatTimer = 10000;
+        _combatDespawnTimer = HUNTER_QUEST_COMBAT_TIMER;
+        _despawnTimer       = HUNTER_QUEST_DESPAWN_TIMER;
+
         Reset();
     }
 
-    uint32 m_uiTransform_Timer;
-    uint32 m_uiTransformEmote_Timer;
-    bool m_bTransform;
+    bool isEngaged;
+    bool EventBegin;
+    bool EventEnd;
+    bool BoredOrInterfere;
+    uint32 CombatTimer;
+    uint32 FrenezyTimer;
+    uint32 DespawnTimer;
+    uint64 PlayerGuid;
+    uint32 CheckBug_Timer;
+    uint32 CleanerTimer;
+    uint32 _despawnTimer;
+    uint32 _combatDespawnTimer;
 
-    ObjectGuid m_hunterGuid;
-    uint32 m_uiDemonic_Doom_Timer;
-    uint32 m_uiDemonic_Frenzy_Timer;
-    uint32 m_uiDespawn_Timer;
-
-    void Reset() 
+    void Reset()
     {
-        switch (m_creature->GetEntry())
+        isEngaged = false;
+        //EventBegin = false;
+        FrenezyTimer = 15000;
+        CheckBug_Timer = 0;
+        CleanerTimer = 0;
+        PlayerGuid = 0;
+
+        if (BoredOrInterfere || EventEnd)
         {
-            case NPC_ARTORIUS_THE_AMIABLE:
-                m_creature->SetRespawnDelay(35*MINUTE);
-                m_creature->SetRespawnTime(35*MINUTE);
-                m_creature->SetHomePosition(7909.71f, -4598.67f, 710.008f, 0.606013f);
-                m_creature->NearTeleportTo(7909.71f, -4598.67f, 710.008f, 0.606013f);
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE) 
-                { 
-                    m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE); 
-                    m_creature->GetMotionMaster()->Initialize(); 
-                }
-            
-                m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-                m_uiTransform_Timer      = 10000;
-                m_uiTransformEmote_Timer = 5000;
-                m_bTransform             = false;
-                m_uiDespawn_Timer        = 0;
-                break;
-            case NPC_ARTORIUS_THE_DOOMBRINGER:
-                 if (!m_uiDespawn_Timer)
-                    m_uiDespawn_Timer = 20*MINUTE*IN_MILLISECONDS;
-
-                m_hunterGuid.Clear();
-                m_uiDemonic_Doom_Timer   = 7500;
-                m_uiDemonic_Frenzy_Timer = urand(5000, 8000);
-                break;
+            EventBegin = false;
+            EventEnd = false;
+            BoredOrInterfere = false;
+            CombatTimer = 10000;
+            m_creature->SetEntry(NPC_ARTORIUS);
+            m_creature->UpdateEntry(NPC_ARTORIUS);
+            m_creature->SetHomePosition(7909.71f, -4598.67f, 710.008f, 0.606013f);
+            m_creature->NearTeleportTo(7909.71f, -4598.67f, 710.008f, 0.606013f);
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveWaypoint();
+            _despawnTimer     = HUNTER_QUEST_DESPAWN_TIMER;
+            m_creature->SaveToDB();
+        }
+        else if (EventBegin)
+        {
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveIdle();
+             if (_despawnTimer < 1000)
+             {
+                 m_creature->SetRespawnDelay(10000);
+                 m_creature->DisappearAndDie();
+                 EventEnd = true;
+             }
         }
     }
 
-    /** Artorius the Amiable */
-    void Transform()
+    void Aggro(Unit* pWho)
     {
-        m_creature->UpdateEntry(NPC_ARTORIUS_THE_DOOMBRINGER);
-        m_creature->SetHomePosition(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation());
-        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
-        m_creature->GetMotionMaster()->Initialize();
-        Reset();
-    }
-    
-    void BeginEvent(ObjectGuid playerGuid)
-    {
-		m_hunterGuid = playerGuid;
-        m_creature->GetMotionMaster()->Clear(false);
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
-        m_bTransform = true;        
+         /** Combat shall not last more than 20 minutes */
+         if(!isEngaged)
+         {
+             isEngaged     = true;
+             _combatDespawnTimer = HUNTER_QUEST_DESPAWN_TIMER;
+         }
     }
 
-    /** Artorius the Doombringer */
-    void Aggro(Unit* pWho) 
+    void JustDied(Unit* pKiller)
     {
-        if (pWho->getClass() == CLASS_HUNTER && (m_hunterGuid.IsEmpty() || m_hunterGuid == pWho->GetObjectGuid())/*&& pWho->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE*/)
-        {
-            m_hunterGuid = pWho->GetObjectGuid();
-        }
-        else
-            DemonDespawn();
-    }    
-    
-    void JustDied(Unit* /*pKiller*/)
-    {
-        m_creature->SetHomePosition(7909.71f, -4598.67f, 710.008f, 0.606013f);
-
-        // DRSS
-        uint32 m_respawn_delay_Timer = 3*HOUR;
-        if (sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
-            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
-
-        m_creature->SetRespawnDelay(m_respawn_delay_Timer);
-        m_creature->SetRespawnTime(m_respawn_delay_Timer);
-        m_creature->SaveRespawnTime();
+        //m_creature->SetHomePosition(7909.71f, -4598.67f, 710.01f, 0.91f);
+        //m_creature->SaveToDB();
+        if (!BoredOrInterfere)
+            EventEnd = true;
     }
-    
-    void DemonDespawn(bool triggered = true)
+
+    void JustReachedHome()
     {
-        m_creature->SetHomePosition(7909.71f, -4598.67f, 710.008f, 0.606013f);
-        m_creature->SetRespawnDelay(15*MINUTE);
-        m_creature->SetRespawnTime(15*MINUTE);
-        m_creature->SaveRespawnTime();
-        
-        if (triggered)
-        {
-            Creature* pCleaner = m_creature->SummonCreature(NPC_THE_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetAngle(m_creature), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 20*MINUTE*IN_MILLISECONDS);
-            if (pCleaner)
-            {
-                ThreatList const& tList = m_creature->getThreatManager().getThreatList();
-                
-                for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
-                {
-                    if (Unit* pUnit = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
-                    {
-                        if (pUnit->isAlive())
-                        {
-                            pCleaner->SetInCombatWith(pUnit);
-                            pCleaner->AddThreat(pUnit);
-                            pCleaner->AI()->AttackStart(pUnit);
-                        }
-                    }
-                }
-            }
-        }
-        
-        m_creature->ForcedDespawn();
     }
-    
-    void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
+
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
     {
-        if (pSpell->Id == 13555 || pSpell->Id == 25295)             // Serpent Sting (Rank 8 or Rank 9)
+        if (pSpell->Id == 13555 || pSpell->Id == 25295) // Morsure de serpent rang 8 et 9
         {
-            if (DoCastSpellIfCan(m_creature, SPELL_STINGING_TRAUMA, CAST_TRIGGERED) == CAST_OK)
-                DoScriptText(EMOTE_POISON, m_creature);
+            m_creature->CastSpell(m_creature, STINGING_TRAUMA, true);
+            if (m_creature->HasAura(DEMONIC_FRENZY))
+                m_creature->RemoveAurasDueToSpell(DEMONIC_FRENZY);
         }
+    }
+
+    void DamageTaken(Unit *done_by, uint32 &damage)
+    {
+        if (EventBegin == false)
+            m_creature->CastSpell(done_by, DESESPOIR_IDIOT, true);
     }
 
     void UpdateAI(const uint32 uiDiff)
     {
-        /** Artorius the Amiable */
-        if (m_bTransform)
-        {
-            if (m_uiTransformEmote_Timer)
-            {
-                if (m_uiTransformEmote_Timer <= uiDiff)
-                {
-                    m_creature->HandleEmote(EMOTE_ONESHOT_ROAR);
-                    m_uiTransformEmote_Timer = 0;
-                }
-                else
-                    m_uiTransformEmote_Timer -= uiDiff;
-            }
-
-            if (m_uiTransform_Timer < uiDiff)
-            {
-                m_bTransform = false;
-                Transform();
-            }
-            else
-                m_uiTransform_Timer -= uiDiff;
-        }
-
-        /** Artorius the Doombringer */
-        if (m_uiDespawn_Timer)
-        {
-            if (m_uiDespawn_Timer <= uiDiff)
-            {
-                if (m_creature->isAlive() && !m_creature->isInCombat())
-                    DemonDespawn(false);
-            }
-            else
-                m_uiDespawn_Timer -= uiDiff;
-        }
-    
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        if (EventBegin == false)
             return;
+         else
+         {
+             if (_despawnTimer <= uiDiff)
+             {
+                 if(!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+                 {
+                     m_creature->SetRespawnDelay(10000);
+                     m_creature->DisappearAndDie();
+                     EventEnd = true;
+                 }
+            }
+             else
+                 _despawnTimer -= uiDiff;
+          }
 
-        if (m_creature->getThreatManager().getThreatList().size() > 1 /*|| pHunter->isDead()*/)
-            DemonDespawn();
-
-        if (m_uiDemonic_Frenzy_Timer < uiDiff)
+        if (CombatTimer <= uiDiff && CombatTimer != 0)
         {
-            if (DoCastSpellIfCan(m_creature, SPELL_DEMONIC_FRENZY) == CAST_OK)
-                m_uiDemonic_Frenzy_Timer = urand(15000, 20000);
+            if (Player* pPlayer = m_creature->GetMap()->GetPlayer(PlayerGuid))
+            {
+                CombatTimer = 0;
+                m_creature->SetEntry(NPC_ARTORIUS_EVIL);
+                m_creature->UpdateEntry(NPC_ARTORIUS_EVIL);
+                //m_creature->AddThreat(pPlayer);
+            }
+            else
+            {
+                m_creature->MonsterYell("Joueur introuvable, reset.", 0);
+                Reset();
+            }
+        }
+        else if (CombatTimer != 0)
+        {
+            CombatTimer -= uiDiff;
+            return;
+        }
+
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            if (m_creature->GetHealthPercent() < 100.0f)
+            {
+                // En cas de bug pathfinding
+                CheckBug_Timer += uiDiff;
+                if (CheckBug_Timer > 5000)
+                {
+                    EnterEvadeMode();
+                    m_creature->CombatStop();
+                    m_creature->SetHealth(m_creature->GetMaxHealth());
+                }
+            }
+            return;
         }
         else
-            m_uiDemonic_Frenzy_Timer -= uiDiff;    
+            CheckBug_Timer = 0;
 
-        if (m_uiDemonic_Doom_Timer < uiDiff)
+          /** If combat last for too long, force creature respawn */
+          if (_combatDespawnTimer < uiDiff)
+          {
+              if(isEngaged)
+              {
+                  BoredOrInterfere = true;
+                  m_creature->SetRespawnDelay(10000);
+                  m_creature->DisappearAndDie();
+              }
+          }
+          else
+              _combatDespawnTimer -= uiDiff;
+
+        if (m_creature->getThreatManager().getThreatList().size() > 1 && !m_creature->FindNearestCreature(NPC_CLEANER, 150.0f))
         {
-            m_uiDemonic_Doom_Timer = 7500;
-            // only attempt to cast this once every 7.5 seconds to give the hunter some leeway
-            // LOWER max range for lag...
-            if (m_creature->IsWithinDistInMap(m_creature->getVictim(), 25))
-                DoCastSpellIfCan(m_creature->getVictim(), SPELL_DEMONIC_DOOM);
+            if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
+            {
+                Crea->AddThreatsOf(m_creature);
+                //Crea->MonsterYell("Vous osez gener le combat de cette creature ? La bataille doit etre menee seule ! Vous allez tous payer pour cette intervention !", 0);
+                Crea->MonsterYell(ELYSIUM_TEXT(206), 0);
+
+                //m_creature->MonsterSay("Seul un idiot resterait dans la bataille. Adieu, trouillard !", 0);
+                m_creature->MonsterSay(ELYSIUM_TEXT(207), 0);
+                //m_creature->SetRespawnDelay(25200); // Ustaag : prochain respawn fix a 7h 25200
+                m_creature->CastSpellOnNearestVictim(FOOL_PLIGHT, 0.0f, 20.0f, false);
+                BoredOrInterfere = true;
+            }
+        }
+
+        if (Creature* Crea = m_creature->FindNearestCreature(NPC_CLEANER, 50.0f))
+        {
+            CleanerTimer += uiDiff;
+            if (CleanerTimer > 2000)
+                m_creature->DisappearAndDie();
+            return;
         }
         else
-            m_uiDemonic_Doom_Timer -= uiDiff;
+            CleanerTimer = 0;
+
+        if (m_creature->IsWithinDistInMap(m_creature->getVictim(), 30.0f) && !m_creature->getVictim()->HasAura(DEMONIC_DOOM))
+        {
+            if (m_creature->HasAura(DEMONIC_FRENZY))
+            {
+                int demonicDoomCustom = 87; // dégâts finaux du spell en fonction du lvl du caster.. fix dégats initiaux pour coller a 350 degats max
+                m_creature->CastCustomSpell(m_creature->getVictim(), DEMONIC_DOOM, &demonicDoomCustom, NULL, NULL, false);
+            }
+            else
+                DoCastSpellIfCan(m_creature->getVictim(), DEMONIC_DOOM, CAST_AURA_NOT_PRESENT);
+        }
+
+        if (!m_creature->HasAura(13555) && !m_creature->HasAura(25295)) // Morsure de serpent rang 8 et 9
+        {
+            if (FrenezyTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature, DEMONIC_FRENZY, CAST_AURA_NOT_PRESENT) == CAST_OK)
+                    FrenezyTimer = 30000;
+            }
+            else
+                FrenezyTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
 };
 
-bool GossipHello_npc_artorius(Player* pPlayer, Creature* pCreature)
+bool GossipHello_mob_Artorius(Player* pPlayer, Creature* pCreature)
 {
-    if (pPlayer->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE)
-        pPlayer->ADD_GOSSIP_ITEM(0, GOSSIP_ITEM , GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
-    
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetObjectGuid());
+    if (pPlayer->GetQuestStatus(7636) == QUEST_STATUS_INCOMPLETE && pPlayer->getClass() == CLASS_HUNTER)
+        pPlayer->ADD_GOSSIP_ITEM(0, ELYSIUM_TEXT(208), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+        //pPlayer->ADD_GOSSIP_ITEM(0, "Affronte moi, demon !", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+
+    pPlayer->SEND_GOSSIP_MENU(7045, pCreature->GetObjectGuid());
     return true;
 }
 
-bool GossipSelect_npc_artorius(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction )
+bool GossipSelect_mob_Artorius(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action)
 {
-    pPlayer->CLOSE_GOSSIP_MENU();
-    ((npc_artoriusAI*)pCreature->AI())->BeginEvent(pPlayer->GetObjectGuid());    
+    if (sender != GOSSIP_SENDER_MAIN)
+        return false;
+
+    switch (action)
+    {
+        case GOSSIP_ACTION_INFO_DEF:
+        {
+            if (mob_ArtoriusAI* pArtoriusEventAI = dynamic_cast<mob_ArtoriusAI*>(pCreature->AI()))
+            {
+                pArtoriusEventAI->EventBegin = true;
+                pArtoriusEventAI->PlayerGuid = pPlayer->GetGUID();
+                //pCreature->MonsterSay("Comme vous voudrez, Chasseur.", 0, 0);
+                pCreature->MonsterSay(ELYSIUM_TEXT(209),0,0);
+                pCreature->SetHomePosition(pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation());
+                pCreature->GetMotionMaster()->Clear(false);
+                pCreature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+                pCreature->GetMotionMaster()->MoveIdle();
+                pCreature->SaveToDB();
+            }
+            pPlayer->CLOSE_GOSSIP_MENU();
+        }
+        break;
+    }
     return true;
 }
 
-CreatureAI* GetAI_npc_artorius(Creature* pCreature)
+CreatureAI* GetAI_mob_Artorius(Creature* pCreature)
 {
-    return new npc_artoriusAI(pCreature);
+    return new mob_ArtoriusAI(pCreature);
 }
 
 /*####
@@ -437,24 +476,24 @@ struct Locations
 //pretresse gauche
 static Locations xyzp1[] =
 {
-    {5496.097168f, -4919.254395f, 850.485291f},  //0: point de pop
-    {5499.214844f, -4920.547852f, 849.447754f},
-    {5511.166992f, -4920.576172f, 846.266663f},   //2: ï¿½ cotï¿½ de l'altar
-    {5515.273926f, -4921.795898f, 845.202515f}
+    {5496.097168, -4919.254395, 850.485291},  //0: point de pop
+    {5499.214844, -4920.547852, 849.447754},
+    {5511.166992, -4920.576172, 846.266663},   //2: à coté de l'altar
+    {5515.273926, -4921.795898, 845.202515}
 };
 //pretresse droite
 static Locations xyzp2[] =
 {
-    {5514.291992f, -4898.066406f, 847.032471f},
-    {5515.654297f, -4900.294922f, 846.531982f},
-    {5517.178223f, -4912.854492f, 845.877625f},
-    {5519.874023f, -4919.447754f, 844.709473f}
+    {5514.291992, -4898.066406, 847.032471},
+    {5515.654297, -4900.294922, 846.531982},
+    {5517.178223, -4912.854492, 845.877625},
+    {5519.874023, -4919.447754, 844.709473}
 };
 //chouettard
 static Locations xyzm[] =
 {
-    {5497.744629f, -4901.567871f, 850.968018f},
-    {5511.966797f, -4915.375000f, 846.856689f}
+    {5497.744629, -4901.567871, 850.968018},
+    {5511.966797, -4915.375000, 846.856689}
 };
 
 
@@ -467,8 +506,8 @@ struct npc_ranshallaAI : public npc_escortAI
     }
 
     uint32 timer;
-    bool wpInvoqueAtteint; //pour dï¿½marrer le timer de texte.
-    bool pretressesInvoque; //pour ne pas en invoquer une infinitï¿½ ^^'
+    bool wpInvoqueAtteint; //pour démarrer le timer de texte.
+    bool pretressesInvoque; //pour ne pas en invoquer une infinité ^^'
     bool pretressesRepartent;
 
     uint64 guidPriestess1;
@@ -508,24 +547,24 @@ struct npc_ranshallaAI : public npc_escortAI
     {
 
 // GameObject* WorldObject::SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime)
-        m_creature->SummonGameObject(177415, 5514.490234f, -4917.569824f, 846, 0, -0.240f, 0, 0, 0, 120);//1,-0.239//1.1,-0.240 trop.//lumiï¿½re centrale
-        m_creature->SummonGameObject(177415, 5517.699219f, -4923.396484f, 845, 0, 0, 0, 0, 0, 120);//devant.
-        m_creature->SummonGameObject(177415, 5535.837891f, -4914.595215f, 841, 0, -0.1f, 0.3f, 0, 0, 120);//devant ï¿½ cotï¿½ rocher
-        m_creature->SummonGameObject(177415, 5507.489258f, -4921.728516f, 847, 0, 0, 0, 0, 0, 120);//gauche
-        m_creature->SummonGameObject(177415, 5506.629883f, -4908.958496f, 849, 0, 0, 0, 0, 0, 120);//derriï¿½re
-        m_creature->SummonGameObject(177415, 5500.777344f, -4920.617676f, 849, 0, -0.1f, -0.2f, 0, 0, 120);//poutres gauche
-        m_creature->SummonGameObject(177415, 5516.331055f, -4902.605469f, 847, 0, -0.1f, -0.3f, 0, 0, 120);//poutres droite
+        m_creature->SummonGameObject(177415, 5514.490234, -4917.569824, 846, 0, -0.240, 0, 0, 0, 120);//1,-0.239//1.1,-0.240 trop.//lumière centrale
+        m_creature->SummonGameObject(177415, 5517.699219, -4923.396484, 845, 0, 0, 0, 0, 0, 120);//devant.
+        m_creature->SummonGameObject(177415, 5535.837891, -4914.595215, 841, 0, -0.1, 0.3, 0, 0, 120);//devant à coté rocher
+        m_creature->SummonGameObject(177415, 5507.489258, -4921.728516, 847, 0, 0, 0, 0, 0, 120);//gauche
+        m_creature->SummonGameObject(177415, 5506.629883, -4908.958496, 849, 0, 0, 0, 0, 0, 120);//derrière
+        m_creature->SummonGameObject(177415, 5500.777344, -4920.617676, 849, 0, -0.1, -0.2, 0, 0, 120);//poutres gauche
+        m_creature->SummonGameObject(177415, 5516.331055, -4902.605469, 847, 0, -0.1, -0.3, 0, 0, 120);//poutres droite
         //m_creature->SummonGameObject(177415, 5515.588379, -4921.833496, 848, 0, -0.237, 0, 0, 0, 20000);// 00300 horizontal NS//00-0.700 horiz SN
-        //00070 vertical trï¿½s fin//00.7000 horizOE//0-0.235000 casi vertical OE, -0.239 disparait, -0.237 ~vertical
+        //00070 vertical très fin//00.7000 horizOE//0-0.235000 casi vertical OE, -0.239 disparait, -0.237 ~vertical
         //
 
     }
 
     void PopGem()
     {
-        m_creature->SummonGameObject(177414, 5514.490234f, -4917.569824f, 852, 0, 0, 0, 0, 0, 90); //gemme
-        m_creature->SummonGameObject(177486, 5514.490234f, -4917.569824f, 845, 0, 0, 0, 0, 0, 90); //lumiï¿½re bleue
-        Creature* pVoice = m_creature->SummonCreature(12152, 5514.890137f, -4918.169922f, 845.538025f, 5.3f, TEMPSUMMON_TIMED_DESPAWN, 90000); //voix d'elune
+        m_creature->SummonGameObject(177414, 5514.490234, -4917.569824, 852, 0, 0, 0, 0, 0, 90); //gemme
+        m_creature->SummonGameObject(177486, 5514.490234, -4917.569824, 845, 0, 0, 0, 0, 0, 90); //lumière bleue
+        Creature* pVoice = m_creature->SummonCreature(12152, 5514.890137, -4918.169922, 845.538025, 5.3, TEMPSUMMON_TIMED_DESPAWN, 90000); //voix d'elune
         guidVoice = pVoice->GetGUID();
     }
 
@@ -533,8 +572,8 @@ struct npc_ranshallaAI : public npc_escortAI
     {
         bool invoked = false;
         //Creature* SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype = TEMPSUMMON_DEAD_DESPAWN,uint32 despwtime = 25000, bool asActiveObject = false);
-        Creature* pPriestess1 = m_creature->SummonCreature(12116, 5496.097168f, -4919.254395f, 850.485291f, 6.01f, TEMPSUMMON_TIMED_DESPAWN, 240000); //dï¿½pop manuel ï¿½ 2min normalement
-        Creature* pPriestess2 = m_creature->SummonCreature(12116, 5514.291992f, -4898.066406f, 847.032471f, 5.3f, TEMPSUMMON_TIMED_DESPAWN, 240000);
+        Creature* pPriestess1 = m_creature->SummonCreature(12116, 5496.097168, -4919.254395, 850.485291, 6.01, TEMPSUMMON_TIMED_DESPAWN, 240000); //dépop manuel à 2min normalement
+        Creature* pPriestess2 = m_creature->SummonCreature(12116, 5514.291992, -4898.066406, 847.032471, 5.3, TEMPSUMMON_TIMED_DESPAWN, 240000);
         //pPriestess1 = m_creature->SummonCreature(12116, cop1[0].xyz[0],cop1[0].xyz[1], cop1[0].xyz[2], 6.01, TEMPSUMMON_TIMED_DESPAWN, 30000);
 
         if (pPriestess1 && pPriestess2)
@@ -547,18 +586,18 @@ struct npc_ranshallaAI : public npc_escortAI
                 invoked = true;
                 pPriestess1->SetWalk(true);
                 pPriestess2->SetWalk(true);
-                pPriestess1->GetMotionMaster()->MovePoint(1, 5499.214844f, -4920.547852f, 849.447754f);
-                pPriestess2->GetMotionMaster()->MovePoint(1, 5515.654297f, -4900.294922f, 846.531982f);
+                pPriestess1->GetMotionMaster()->MovePoint(1, 5499.214844, -4920.547852, 849.447754);
+                pPriestess2->GetMotionMaster()->MovePoint(1, 5515.654297, -4900.294922, 846.531982);
                 //m_creature->MonsterSay("The priestesses have been invoked.");//test
             }
             else
-                m_creature->MonsterSay("Navrï¿½, les prï¿½tresses n'en font qu'a leur tï¿½te...");
+                m_creature->MonsterSay("Navré, les prêtresses n'en font qu'a leur tête...");
         }
         else
         {
             wpInvoqueAtteint = 0;
             pretressesInvoque = 0;
-            m_creature->MonsterSay("Navrï¿½, les pretresses ne veulent pas pop...");
+            m_creature->MonsterSay("Navré, les pretresses ne veulent pas pop...");
         }
 
         return invoked;
@@ -566,7 +605,7 @@ struct npc_ranshallaAI : public npc_escortAI
 
     void PopMoonkin()
     {
-        Creature* pMoonkin = m_creature->SummonCreature(12140, xyzm[0].x, xyzm[0].y, xyzm[0].z, 6.01f, TEMPSUMMON_TIMED_DESPAWN, 240000);
+        Creature* pMoonkin = m_creature->SummonCreature(12140, xyzm[0].x, xyzm[0].y, xyzm[0].z, 6.01, TEMPSUMMON_TIMED_DESPAWN, 240000);
         pMoonkin->SetWalk(true);
         pMoonkin->GetMotionMaster()->MovePoint(1, xyzm[1].x, xyzm[1].y, xyzm[1].z);
         guidMoonkin = pMoonkin->GetGUID();
@@ -656,11 +695,11 @@ struct npc_ranshallaAI : public npc_escortAI
                 break;
             case 33:
                 DoScriptText(RANSHALLA_LIGHT_ALTAR, m_creature);
-                m_creature->SetFacingTo(2.336624f);
+                m_creature->SetFacingTo(2.336624);
                 WaitingForAltar();
                 break;
             case 35:
-                m_creature->SetFacingTo(5.557543f);
+                m_creature->SetFacingTo(5.557543);
                 timer = 120000; //eum :tousse:
                 wpInvoqueAtteint = 1;
                 DoScriptText(RANSHALLA_EVENT_1, m_creature);
@@ -673,7 +712,7 @@ struct npc_ranshallaAI : public npc_escortAI
                 DoScriptText(RANSHALLA_EVENT_3, m_creature);
                 break;
             case 39:
-                m_creature->SetFacingTo(2.336624f);
+                m_creature->SetFacingTo(2.336624);
                 break;
             case 40:
                 DoScriptText(RANSHALLA_EVENT_4, m_creature, pPlayer);
@@ -726,7 +765,7 @@ struct npc_ranshallaAI : public npc_escortAI
                         {
                             if (pPriestess1->GetEntry() == 12116 && pPriestess2->GetEntry() == 12116)
                             {
-                                if (timer < 115000 + uiDiff && timer >= 115000) //car sinon bah on sait ^^ pas trï¿½s efficace tout ca...
+                                if (timer < 115000 + uiDiff && timer >= 115000) //car sinon bah on sait ^^ pas très efficace tout ca...
                                     DoScriptText(RIGHT_PRIESTESS_1, pPriestess2);//13.20
                                 else if (timer < 114000 + uiDiff && timer >= 114000) //13.21
                                     DoScriptText(LEFT_PRIESTESS_1, pPriestess1);  // 120 115 114 110 107(13.28) 102 98(13.37) 88 80(13.55)
@@ -820,7 +859,7 @@ bool QuestAccept_npc_ranshalla(Player* pPlayer, Creature* pCreature, const Quest
         if (npc_ranshallaAI* pEscortAI = dynamic_cast<npc_ranshallaAI*>(pCreature->AI()))
         {
             //void npc_escortAI::Start(bool bIsActiveAttacker, bool bRun, uint64 uiPlayerGUID, const Quest* pQuest, bool bInstantRespawn, bool bCanLoopPath)
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
         }
     }
     return true;
@@ -836,7 +875,7 @@ bool GOHello_go_fire_of_elune(Player* pPlayer, GameObject* pGo)
 {
     pGo->UseDoorOrButton(12, false); // YEAH YEAH YEAH (false = alume, true = alume pas. dans les 2cas la torche n'est pas cliqueable pendant 12sec! :D)
     //if (pPlayer->GetQuestStatus(4901) == QUEST_STATUS_COMPLETE)// devrait etre QUEST_STATUS_INCOMPLETE mais avec l'auto complete -_-.
-    //{// retirï¿½ car pas reclikable, dommage de faire planter toute la quete pour ca non?
+    //{// retiré car pas reclikable, dommage de faire planter toute la quete pour ca non?
 
     if (Creature* pCreature = pGo->FindNearestCreature(10300, 30.000000, true))
     {
@@ -863,7 +902,7 @@ bool GOHello_go_altar_of_elune(Player* pPlayer, GameObject* pGo)
 {
     pGo->UseDoorOrButton(130, false); // YEAH YEAH YEAH (false = alume, true = alume pas. dans les 2cas la torche n'est pas cliqueable pendant 12sec! :D)
     // if (pPlayer->GetQuestStatus(4901) == QUEST_STATUS_COMPLETE)// devrait etre QUEST_STATUS_INCOMPLETE mais avec l'auto complete -_-.
-    // {//retirï¿½ car pas reclikable, dommage de faire planter toute la quete pour ca(un conard qui passe non?
+    // {//retiré car pas reclikable, dommage de faire planter toute la quete pour ca(un conard qui passe non?
 
     if (Creature* pCreature = pGo->FindNearestCreature(10300, 30.000000, true))
     {
@@ -968,7 +1007,7 @@ struct npc_umi_yetiAI : public ScriptedAI
                                     pCreature->MonsterSay("Why do you chase me, Mechanical yeti?! WHY?!", 0);
                                     break;
                                 case TARGET_LEGACKI:
-                                    pCreature->MonsterSay("You big meanie! Who put you up to this?", 0);
+                                    pCreature->MonsterSay(",You big meanie! Who put you up to this?", 0);
                                     break;
                                 case TARGET_SPRINKLE:
                                     pCreature->MonsterSay("Umi sent you, didn't she? She told me to expect a surprise, but I never thought that this is what she meant! ", 0);
@@ -1018,7 +1057,7 @@ struct npc_umi_yetiAI : public ScriptedAI
                 {
                     m_targetType = TARGET_QUIXXIL;
                     m_targetGuid = pCreature->GetObjectGuid();
-                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI_F);
+                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI);
                 }
                 break;
             case AREA_TANARIS:
@@ -1026,7 +1065,7 @@ struct npc_umi_yetiAI : public ScriptedAI
                 {
                     m_targetType = TARGET_LEGACKI;
                     m_targetGuid = pCreature->GetObjectGuid();
-                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI_F);
+                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI);
                 }
                 break;
             case AREA_WINTERSPRING:
@@ -1034,7 +1073,7 @@ struct npc_umi_yetiAI : public ScriptedAI
                 {
                     m_targetType = TARGET_SPRINKLE;
                     m_targetGuid = pCreature->GetObjectGuid();
-                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI_F);
+                    m_creature->GetMotionMaster()->MoveFollow(pCreature, 0.6f, M_PI);
                 }
                 break;
         }
@@ -1085,13 +1124,15 @@ void AddSC_winterspring()
     newscript->pGossipSelect = &GossipSelect_npc_witch_doctor_mauari;
     newscript->RegisterSelf();
 
+    // Elysium
+
     newscript = new Script;
-    newscript->Name = "npc_artorius";
-    newscript->GetAI = &GetAI_npc_artorius;
-    newscript->pGossipHello =  &GossipHello_npc_artorius;
-    newscript->pGossipSelect = &GossipSelect_npc_artorius;
+    newscript->Name = "mob_Artorius";
+    newscript->GetAI = &GetAI_mob_Artorius;
+    newscript->pGossipHello = &GossipHello_mob_Artorius;
+    newscript->pGossipSelect = &GossipSelect_mob_Artorius;
     newscript->RegisterSelf();
-    
+
     newscript = new Script;
     newscript->Name = "npc_umi_yeti";
     newscript->GetAI = &GetAI_npc_umi_yeti;

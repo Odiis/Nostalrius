@@ -22,8 +22,8 @@
 #include "Database/SQLStorageImpl.h"
 #include "Database/DatabaseEnv.h"
 
-const char CreatureInfosrcfmt[] = "iiiiiiissiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiisiiilliiiiiis";
-const char CreatureInfodstfmt[] = "iiiiiiissiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiisiiilliiiiiii";
+const char CreatureInfosrcfmt[] = "iiiiiiissiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiisiiilliiiiis";
+const char CreatureInfodstfmt[] = "iiiiiiissiiiiiiiiiiifffiffiifiiiiiiiiiiffiiiiiiiiiiiiiiiiiiisiiilliiiiii";
 const char CreatureDataAddonInfofmt[] = "iiibbiis";
 const char CreatureModelfmt[] = "iffbii";
 const char CreatureInfoAddonInfofmt[] = "iiibbiis";
@@ -34,11 +34,12 @@ const char GameObjectInfodstfmt[] = "iiisiifiiiiiiiiiiiiiiiiiiiiiiiiiii";
 const char ItemPrototypesrcfmt[] = "iiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiffiffiffiffiffiiiiiiiiiifiiifiiiiiifiiiiiifiiiiiifiiiiiifiiiisiiiiiiiiiiiiiisiiiiiii";
 const char ItemPrototypedstfmt[] = "iiisiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiffiffiffiffiffiiiiiiiiiifiiifiiiiiifiiiiiifiiiiiifiiiiiifiiiisiiiiiiiiiiiiiiiiiiiiii";
 const char PageTextfmt[] = "isi";
-const char MapEntrysrcfmt[] = "iiiiiiiiiffss";
-const char MapEntrydstfmt[] = "iiiiiiiiiffsi";
+const char InstanceTemplatesrcfmt[] = "iiiiiiiffs";
+const char InstanceTemplatedstfmt[] = "iiiiiiiffi";
+const char WorldTemplatesrcfmt[] = "is";
+const char WorldTemplatedstfmt[] = "ii";
 const char ConditionsSrcFmt[] = "iiii";
 const char ConditionsDstFmt[] = "iiii";
-const char AreaEntryfmt[] = "iiiiiisii";
 
 SQLStorage sCreatureStorage(CreatureInfosrcfmt, CreatureInfodstfmt, "entry", "creature_template");
 SQLStorage sCreatureDataAddonStorage(CreatureDataAddonInfofmt, "guid", "creature_addon");
@@ -46,10 +47,9 @@ SQLStorage sCreatureModelStorage(CreatureModelfmt, "modelid", "creature_model_in
 SQLStorage sCreatureInfoAddonStorage(CreatureInfoAddonInfofmt, "entry", "creature_template_addon");
 SQLStorage sEquipmentStorage(EquipmentInfofmt, "entry", "creature_equip_template");
 SQLStorage sEquipmentStorageRaw(EquipmentInfoRawfmt, "entry", "creature_equip_template_raw");
+SQLStorage sGOStorage(GameObjectInfosrcfmt, GameObjectInfodstfmt, "entry", "gameobject_template");
 SQLStorage sItemStorage(ItemPrototypesrcfmt, ItemPrototypedstfmt, "entry", "item_template");
 SQLStorage sPageTextStore(PageTextfmt, "entry", "page_text");
-SQLStorage sMapStorage(MapEntrysrcfmt, MapEntrydstfmt, "entry", "map_template");
+SQLStorage sInstanceTemplate(InstanceTemplatesrcfmt, InstanceTemplatedstfmt, "map", "instance_template");
+SQLStorage sWorldTemplate(WorldTemplatesrcfmt, WorldTemplatedstfmt, "map", "world_template");
 SQLStorage sConditionStorage(ConditionsSrcFmt, ConditionsDstFmt, "condition_entry", "conditions");
-SQLStorage sAreaStorage(AreaEntryfmt, "entry", "area_template");
-
-SQLHashStorage sGOStorage(GameObjectInfosrcfmt, GameObjectInfodstfmt, "entry", "gameobject_template");

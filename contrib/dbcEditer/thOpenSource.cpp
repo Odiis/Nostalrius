@@ -113,13 +113,7 @@ void thOpenFile::ReadAndModifyFromBuff(char *pBuff, DWORD dwSize, const char* ps
 		for(j=0; j<dwCols; j++)
 		{
                     //SleepEx(0,0);
-                    if(Terminated)
-                    {
-                        delete [] pbString;
-                        delete ini;  
-                        return;
-                    }
-
+                    if(Terminated) return;
                     lTemp = *p.l;
                     newTmp = *p.f;
                     memcpy(&fTemp, &newTmp, 4);

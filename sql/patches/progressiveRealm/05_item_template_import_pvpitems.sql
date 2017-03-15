@@ -1,1 +1,0 @@
-INSERT IGNORE INTO item_template SELECT * FROM item_template_112 WHERE requiredhonorrank >= 1 AND class IN (2, 4);

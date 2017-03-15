@@ -34,21 +34,24 @@ set(CMAKE_MODULE_PATH
 # Force out-of-source build
 string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}" BUILDING_IN_SOURCE)
 if(BUILDING_IN_SOURCE)
-  message(FATAL_ERRO
+  message(FATAL_ERROR
     "This project requires an out of source build. Remove the file 'CMakeCache.txt' found in this directory before continuing, create a separate build directory and run 'cmake <srcs> [options]' from there."
   )
 endif()
 
-if(WIN32)
-  if(NOT MSVC)
-    message(FATAL_ERROR "Under Windows other compiler than Microsoft Visual Studio are not supported.")
-  elseif(MSVC_VERSION LESS 1900)
-    message(FATAL_ERROR "Only Visual Studio 2015 or newer is supported")
-  endif()
+if(WIN32 AND NOT MSVC)
+  message(FATAL_ERROR
+    "Under Windows other compiler than Microsoft Visual Studio are not supported."
+  )
 endif()
 
 find_package(Platform REQUIRED)
 find_package(Git)
+
+# VS100 uses MSBuild.exe instead of devenv.com, so force it to use devenv.com
+if(WIN32 AND MSVC_VERSION MATCHES 1600)
+  find_package(VisualStudio2010)
+endif()
 
 # Output description of this script
 message(STATUS
@@ -81,8 +84,6 @@ endif()
 option(DEBUG "Debug mode" 0)
 option(USE_STD_MALLOC "Use standard malloc instead of TBB" 0)
 option(TBB_DEBUG "Use TBB debug librairies" 0)
-option(USE_ANTICHEAT "Use anticheat" 0)
-option(SCRIPTS "Compile scripts" 1)
 
 find_package(PCHSupport)
 
@@ -129,12 +130,14 @@ set(CMAKE_INSTALL_RPATH ${LIBS_DIR})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH 1)
 
 # Find needed packages and if necessery abort if something important is missing
-unset(ACE_INCLUDE_DIR CACHE)
-unset(ACE_LIBRARIES CACHE)
-unset(ACE_LIBRARIES_DIR CACHE)
-unset(ACE_INCLUDE_DIR)
-unset(ACE_LIBRARIES)
-unset(ACE_LIBRARIES_DIR)
+#unset(ACE_INCLUDE_DIR CACHE)
+#unset(ACE_LIBRARIES CACHE)
+#unset(ACE_LIBRARIES_DIR CACHE)
+#unset(ACE_INCLUDE_DIR)
+#unset(ACE_LIBRARIES)
+#unset(ACE_LIBRARIES_DIR)
+
+find_package(ACE REQUIRED)
 
 find_package(ACE)
 if(NOT ACE_FOUND)
@@ -260,6 +263,12 @@ else()
   message(STATUS "PGO profile           : Disabled")
 endif()
 
+if(DEBUG_SYMBOLS)
+  message(STATUS "Debug symbols         : Included")
+else()
+  message(STATUS "Debug symbols         : Disabled")
+endif()
+
 if(USE_STD_MALLOC)
   set(ALLOC_LIB_INFO_STRING "std::malloc")
 else()
@@ -280,42 +289,23 @@ else()
   message(STATUS "Build in debug-mode   : No  (default)")
 endif()
 
-if(USE_ANTICHEAT)
-  message(STATUS "Use anticheat    : Yes")
-  set(DEFINITIONS ${DEFINITIONS} USE_ANTICHEAT)
-else()
-  message(STATUS "Use anticheat    : No  (default)")
-endif()
-
-if(SCRIPTS)
-  message(STATUS "Build scripts    : Yes (default)")
-else()
-  message(STATUS "Build scripts    : No")
+if(DEBUG_SYMBOLS)
+  set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -g")
 endif()
 
 if(UNIX)
-  if(DEBUG_SYMBOLS)
-    message(STATUS "Debug symbols         : Included")
-    set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -g")
-  else()
-    message(STATUS "Debug symbols         : Disabled")
-  endif()
-  
   if(GCC_SANITIZE)
-    set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+    set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-sanitize-recover")
     set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=address")
     #set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=thread")
     set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=return")
+    set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=bounds")
     set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=shift")
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-      set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=bounds")
-      set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=vptr")
-      set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fno-sanitize-recover")
-    endif()
+    set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=vptr")
     #set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fsanitize=unsigned-integer-overflow")
   endif()
 
-  set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -std=c++14 --no-warnings -fexceptions -fnon-call-exceptions -march=native -mtune=native -pipe ")
+  set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -std=c++11 --no-warnings -fexceptions -fnon-call-exceptions -march=native -mtune=native -pipe ")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(PROFILE_GENERATE)
       set(BUILD_ADDITIONAL_FLAGS "${BUILD_ADDITIONAL_FLAGS} -fprofile-generate")
@@ -344,8 +334,23 @@ elseif(WIN32)
   endif()
 endif()
 
-set(DEFINITIONS_RELEASE ${DEFINITIONS_RELEASE} NDEBUG MANGOS_BUILD_OPTIONS="${CMAKE_CXX_FLAGS_RELEASE}")
-set(DEFINITIONS_DEBUG ${DEFINITIONS_DEBUG} _DEBUG MANGOS_BUILD_OPTIONS="${CMAKE_CXX_FLAGS_DEBUG}")
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  message(STATUS "Build flags (RELEASE) : ${CMAKE_CXX_FLAGS_RELEASE}")
+  set(DEFINITIONS_RELEASE
+    ${DEFINITIONS_RELEASE}
+    NDEBUG
+    MANGOS_BUILD_OPTIONS="${CMAKE_CXX_FLAGS_RELEASE}"
+  )
+else()
+  message(STATUS "Build flags (DEBUG)   : ${CMAKE_CXX_FLAGS_DEBUG}")
+  set(DEFINITIONS_DEBUG
+    ${DEFINITIONS_DEBUG}
+    _DEBUG
+    MANGOS_BUILD_OPTIONS="${CMAKE_CXX_FLAGS_DEBUG}"
+  )
+endif()
+
+message(STATUS "")
 
 # Some small tweaks for Visual Studio 7 and above.
 if(MSVC)
@@ -417,7 +422,6 @@ if(WIN32)
 else()
   set(DEFINITIONS ${DEFINITIONS} SYSCONFDIR="${CONF_DIR}/")
 endif()
-
 if(USE_STD_MALLOC)
   set(DEFINITIONS ${DEFINITIONS} USE_STANDARD_MALLOC)
 endif()
@@ -425,8 +429,5 @@ endif()
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS}")
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_RELEASE "${DEFINITIONS_RELEASE}")
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "${DEFINITIONS_DEBUG}")
-
-message(STATUS "Build flags (RELEASE) : ${CMAKE_CXX_FLAGS_RELEASE}")
-message(STATUS "Build flags (DEBUG)   : ${CMAKE_CXX_FLAGS_DEBUG}")
 
 add_subdirectory(src)

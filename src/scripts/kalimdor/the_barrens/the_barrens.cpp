@@ -248,7 +248,7 @@ bool QuestAccept_npc_gilthares(Player* pPlayer, Creature* pCreature, const Quest
         DoScriptText(SAY_GIL_START, pCreature, pPlayer);
 
         if (npc_giltharesAI* pEscortAI = dynamic_cast<npc_giltharesAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -754,7 +754,7 @@ bool QuestAccept_npc_wizzlecranks_shredder(Player* pPlayer, Creature* pCreature,
         pCreature->setFaction(FACTION_RATCHET);
 
         if (npc_wizzlecranks_shredderAI* pEscortAI = dynamic_cast<npc_wizzlecranks_shredderAI*>(pCreature->AI()))
-            pEscortAI->Start(true, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, true, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -798,30 +798,30 @@ static const sSummonInformation asSummonKolkarPositions[12] =
 {
     //{NPC_KOLKAR_INVADER, -566.8114f, -111.7036f, -151.1891f, 0},
     //{NPC_KOLKAR_STORMSEER, -474.5954f, -104.074f, -146.0483f, 0},
-    {NPC_KOLKAR_INVADER, -308.233f, -1871.729f, 92.682f, 0},
-    {NPC_KOLKAR_INVADER, -295.339f, -1860.895f, 92.664f, 0},
-    {NPC_KOLKAR_INVADER, -320.998f, -1822.503f, 96.258f, 0},
-    {NPC_KOLKAR_STORMSEER, -324.955f, -1843.961f, 95.519f, 0},
-    {NPC_KOLKAR_INVADER, -285.416f, -1888.028f, 92.477f, 0},
+    {NPC_KOLKAR_INVADER, -308.233, -1871.729, 92.682, 0},
+    {NPC_KOLKAR_INVADER, -295.339, -1860.895, 92.664, 0},
+    {NPC_KOLKAR_INVADER, -320.998, -1822.503, 96.258, 0},
+    {NPC_KOLKAR_STORMSEER, -324.955, -1843.961, 95.519, 0},
+    {NPC_KOLKAR_INVADER, -285.416, -1888.028, 92.477, 0},
 
 
-    {NPC_KOLKAR_INVADER, -272.033f, -1801.63f , 91.944f, 0},
-    {NPC_KOLKAR_STORMSEER, -274.320f, -1831.754f, 92.565f, 0},
+    {NPC_KOLKAR_INVADER, -272.033, -1801.63 , 91.944, 0},
+    {NPC_KOLKAR_STORMSEER, -274.320, -1831.754, 92.565, 0},
 
-    {NPC_KOLKAR_INVADER, -299.147f, -1836.961f, 94.183f, 0},
-    {NPC_KOLKAR_INVADER, -303.332f, -1806.830f, 95.149f, 0},
+    {NPC_KOLKAR_INVADER, -299.147, -1836.961, 94.183, 0},
+    {NPC_KOLKAR_INVADER, -303.332, -1806.830, 95.149, 0},
 
-    {NPC_KOLKAR_INVADER, -339.375f, -1843.254f, 94.453f, 0},
-    {NPC_KOLKAR_STORMSEER, -359.209f, -1875.078f, 92.593f, 0},
-    {NPC_KOLKAR_INVADER, -343.810f, -1866.406f, 93.091f, 0}
+    {NPC_KOLKAR_INVADER, -339.375, -1843.254, 94.453, 0},
+    {NPC_KOLKAR_STORMSEER, -359.209, -1875.078, 92.593, 0},
+    {NPC_KOLKAR_INVADER, -343.810, -1866.406, 93.091, 0}
 };
 static const sSummonInformation asSummonDefenderPositions[5] =
 {
-    {NPC_DEFENDER, -268.454f, -1902.257f, 91.677f, 2.33f},
-    {NPC_AXE_THROWER , -281.283f, -1906.531f, 91.667f, 2.13f},
-    {NPC_DEFENDER, -294.023f, -1908.578f, 91.667f, 1.69f},
-    {NPC_DEFENDER, -300.648f, -1916.286f, 91.667f, 1.35f},
-    {NPC_DEFENDER, -310.658f, -1918.231f, 91.668f, 1.00f}
+    {NPC_DEFENDER, -268.454, -1902.257, 91.677, 2.33},
+    {NPC_AXE_THROWER , -281.283, -1906.531, 91.667, 2.13},
+    {NPC_DEFENDER, -294.023, -1908.578, 91.667, 1.69},
+    {NPC_DEFENDER, -300.648, -1916.286, 91.667, 1.35},
+    {NPC_DEFENDER, -310.658, -1918.231, 91.668, 1.00}
 };
 //possibly use TEMPSUMMON_TIMED_DESPAWN ???
 //TEMPSUMMON_TIMED_OR_DEAD_DESPAWN ??
@@ -868,7 +868,7 @@ struct npc_regthar_deathgateAI : public ScriptedAI
         float fX, fY, fZ;
         for (uint8 i = 0; i < 4; i++)
         {
-            m_creature->GetRandomPoint(-207.977f, -1925.8556f, 93.5536f, 20.0f, fX, fY, fZ);
+            m_creature->GetRandomPoint(-207.977, -1925.8556, 93.5536, 20.0f, fX, fY, fZ);
             if (Creature* b = m_creature->SummonCreature(asSummonKolkarPositions[i].uiEntry, fX, fY, fZ, 0, TEMPSUMMON_MANUAL_DESPAWN, 0))
             {
                 AllKolkars.push_back(b->GetGUID());
@@ -887,7 +887,7 @@ struct npc_regthar_deathgateAI : public ScriptedAI
                 GuidPhaseOneGuards[i] = a->GetGUID();
                 //a->SetRespawnDelay(30000);
                 a->SetRespawnTime(30000);
-                a->GetRandomPoint(-287.28f, -1874.94f, 92.76f, 5.0f, fX, fY, fZ); //a->GetPositionX(), a->GetPositionY(), a->GetPositionZ()
+                a->GetRandomPoint(-287.28, -1874.94, 92.76, 5.0f, fX, fY, fZ); //a->GetPositionX(), a->GetPositionY(), a->GetPositionZ()
                 //go to random point near -287.28, -1874.94, 92.76 4m radius?
                 a->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
             }
@@ -895,7 +895,7 @@ struct npc_regthar_deathgateAI : public ScriptedAI
         //TODO: off-positions
         for (uint8 i = 0; i < 4; i++)
         {
-            m_creature->GetRandomPoint(-207.977f, -1925.8556f, 93.5536f, 20.0f, fX, fY, fZ);
+            m_creature->GetRandomPoint(-207.977, -1925.8556, 93.5536, 20.0f, fX, fY, fZ);
             if (Creature* b = m_creature->SummonCreature(asSummonDefenderPositions[i].uiEntry, fX, fY, fZ, 0, TEMPSUMMON_MANUAL_DESPAWN, 0))
             {
                 GuidPhaseOneGuards[5 + i] = b->GetGUID();
@@ -909,7 +909,7 @@ struct npc_regthar_deathgateAI : public ScriptedAI
         Creature * a;
         for (uint8 i = 0; i < 4; ++i)
         {
-            m_creature->GetRandomPoint(-287.28f, -1874.94f, 92.76f, 5.0f, fX, fY, fZ);
+            m_creature->GetRandomPoint(-287.28, -1874.94, 92.76, 5.0f, fX, fY, fZ);
             if (a = m_creature->SummonCreature(NPC_DEFENDER, asSummonDefenderPositions[i].fX, asSummonDefenderPositions[i].fY, asSummonDefenderPositions[i].fZ, asSummonDefenderPositions[i].fO, TEMPSUMMON_MANUAL_DESPAWN, 0))
             {
                 GuidPhaseTwoGuards[i] = a->GetGUID();
@@ -1007,13 +1007,13 @@ struct npc_regthar_deathgateAI : public ScriptedAI
                 SecondPhaseGuards();
 
                 //summon  NPC_KROMZAR + 2 adds en deaddespawn.
-                if (Creature* kromzar = m_creature->SummonCreature(NPC_KROMZAR, -288.344f, -1852.846f, 92.497f, 4.64f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000))
+                if (Creature* kromzar = m_creature->SummonCreature(NPC_KROMZAR, -288.344, -1852.846, 92.497, 4.64, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000))
                 {
                     kromzar->JoinCreatureGroup(kromzar, 3, 0, (OPTION_FORMATION_MOVE | OPTION_AGGRO_TOGETHER));
                     kromzar->SetRespawnDelay(120000);
                     for (int i = 0; i < 2; i++)
                     {
-                        if (Creature* c = m_creature->SummonCreature(NPC_KOLKAR_INVADER, -288.344f + i, -1852.846f + i, 92.497f, 4.64f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000))
+                        if (Creature* c = m_creature->SummonCreature(NPC_KOLKAR_INVADER, -288.344 + i, -1852.846 + i, 92.497, 4.64, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000))
                         {
                             c->JoinCreatureGroup(kromzar, 3.0f, (3.0f + i) - kromzar->GetOrientation(), (OPTION_FORMATION_MOVE | OPTION_AGGRO_TOGETHER | OPTION_EVADE_TOGETHER));
                             c->SetRespawnDelay(120000);
@@ -1032,7 +1032,7 @@ struct npc_regthar_deathgateAI : public ScriptedAI
             DoScriptText(YELL_RETREATING, m_creature);
         }
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (eventPhase > 0)
         {
@@ -1102,7 +1102,7 @@ bool GossipSelect_npc_regthar_deathgate(Player* pPlayer, Creature* pCreature, ui
 // if(source->IsPlayer())
 // DoScriptText(SAY_BEWARE, (Creature*)target,(Unit*)source);
 // else
-// sLog.nostalrius("pbm avec  source!!!");
+// sLog.elysium("pbm avec  source!!!");
 // }
 // }
 // return true;
@@ -1155,7 +1155,7 @@ struct npc_kolkar_invaderAI : public ScriptedAI
             return;
         //m_creature->CastSpell( m_creature->GetPositionX() + 10*cos( m_creature->GetOrientation()),  m_creature->GetPositionY() + 10*sin( m_creature->GetOrientation()),  m_creature->GetPositionZ(), SPELL_TORCH, false);
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -1230,7 +1230,7 @@ struct npc_kolkar_stormseerAI : public ScriptedAI
         // m_creature->CastSpell(x, y, z, SPELL_DESTROY_KARANG_S_BANNER_1, false);
         // m_creature->CastSpell( m_creature->GetPositionX() + 10*cos( m_creature->GetOrientation()),  m_creature->GetPositionY() + 10*sin( m_creature->GetOrientation()),  m_creature->GetPositionZ(), SPELL_TORCH, false);
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -1287,7 +1287,7 @@ struct npc_axe_throwerAI : public ScriptedAI
             DoScriptText(urand(0, 1) ? SAY_HORDE : SAY_FOES, m_creature);
     }
     uint32 throwTimer;
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -1324,7 +1324,7 @@ struct npc_warlord_kromzarAI : public ScriptedAI
     {
         m_creature->CastSpell(m_creature, 13965, true); //SPELL_BANNER
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -1345,234 +1345,6 @@ struct npc_warlord_kromzarAI : public ScriptedAI
 CreatureAI* GetAI_npc_warlord_kromzar(Creature* pCreature)
 {
     return new npc_warlord_kromzarAI(pCreature);
-}
-
-/*######
-## npc_razormane_stalker
-######*/
-
-#define SPELL_STEALTH                1784
-#define SPELL_SINISTERSTRIKE         15667
-#define NPC_RAZORMANE_STALKER        3457
-
-struct npc_razormane_stalkerAI : public ScriptedAI
-{
-    npc_razormane_stalkerAI(Creature* pCreature) : ScriptedAI(pCreature) { Reset(); }
-
-    uint32 SinisterStrike_Timer;
-    uint32 SinisterStrike_Counter;
-
-    void Reset() override
-    {
-        SinisterStrike_Timer = 8000;
-        SinisterStrike_Counter = 0;
-        DoCastSpellIfCan(m_creature, SPELL_STEALTH);
-    }
-
-    void UpdateAI(const uint32 diff) override
-    {
-
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        if (SinisterStrike_Timer < diff)
-        {
-            DoCastSpellIfCan(m_creature->getVictim(), SPELL_SINISTERSTRIKE);
-            SinisterStrike_Counter += 1;
-            if (SinisterStrike_Counter == 1) SinisterStrike_Timer = 15000;
-            else if (SinisterStrike_Counter == 2) SinisterStrike_Timer = 12000;
-            else SinisterStrike_Timer = 15000;
-        }
-        else SinisterStrike_Timer -= diff;
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_npc_razormane_stalker(Creature* pCreature)
-{
-    return new npc_razormane_stalkerAI(pCreature);
-}
-
-/*
- * 'Mission: Possible But Not Probable' support:
- * Grand Foreman Puzik Gallywix
- * Mutated Venture Co. Drone
- * Venture Co. Patroller
- * Venture Co. Lookout
- */
-
-enum
-{
-    NPC_MUTATED_VENTURE_CO_DRONE        = 7310,
-    NPC_VENTURE_CO_PATROLLER            = 7308,
-    NPC_VENTURE_CO_LOOKOUT              = 7307,
-    NPC_GRAND_FOREMAN_PUZIK_GALLYWIX    = 7288,
-
-    SPELL_JUGGLER_VEIN_RUPTURE          = 10265,
-    SPELL_LUNG_PUNCTURE                 = 10266,
-    SPELL_SLUSH                         = 10267,
-    SPELL_DECIMATE                      = 10268
-};
-
-struct npc_mission_possible_but_not_probableAI : ScriptedAI
-{
-    explicit npc_mission_possible_but_not_probableAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        npc_mission_possible_but_not_probableAI::Reset();
-    }
-
-    void Reset() override
-    {
-
-    }
-
-    void SpellHit(Unit* /*caster*/, const SpellEntry* pSpell) override
-    {
-        uint32 spellId = 0;
-
-        switch (m_creature->GetEntry())
-        {
-        case NPC_MUTATED_VENTURE_CO_DRONE:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_GARROTE, CF_ROGUE_AMBUSH>())
-                spellId = SPELL_JUGGLER_VEIN_RUPTURE;
-            break;
-        case NPC_VENTURE_CO_PATROLLER:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_RUPTURE>())
-                spellId = SPELL_LUNG_PUNCTURE;
-            break;
-        case NPC_VENTURE_CO_LOOKOUT:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_EVISCERATE>())
-                spellId = SPELL_SLUSH;
-            break;
-        case NPC_GRAND_FOREMAN_PUZIK_GALLYWIX:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_AMBUSH>())
-                spellId = SPELL_DECIMATE;
-            break;
-        default:
-            return;
-        }
-
-        DoCastSpellIfCan(m_creature, spellId);
-    }
-};
-
-CreatureAI* GetAI_npc_mission_possible_but_not_probable(Creature* pCreature)
-{
-    return new npc_mission_possible_but_not_probableAI(pCreature);
-}
-
-/*
- * Sarilus Foulborne
- */
-
-enum
-{
-    SPELL_SARILUS_ELEMENTALS_PASSIVE    = 6488,
-    SPELL_SARILUS_ELEMENTALS            = 6490,
-    SPELL_FEED_SARILUS_PASSIVE          = 6498,
-    SPELL_FROSTBOLT                     = 20806,
-};
-
-struct npc_sarilus_foulborneAI : ScriptedAI
-{
-    explicit npc_sarilus_foulborneAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        npc_sarilus_foulborneAI::Reset();
-    }
-
-    uint32 m_uiElementalsTimer;
-    uint32 m_uiFrostboltTimer;
-
-    void Reset() override
-    {
-        m_uiElementalsTimer = urand(1500, 9000);
-        m_uiFrostboltTimer = urand(3500, 4500);
-    }
-
-    void JustSummoned(Creature* pSummoned) override
-    {
-        pSummoned->CastSpell(pSummoned, SPELL_SARILUS_ELEMENTALS_PASSIVE, true);
-        pSummoned->CastSpell(pSummoned, SPELL_FEED_SARILUS_PASSIVE, true);
-    }
-
-    void UpdateAI(uint32 const uiDiff) override
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        if (m_uiElementalsTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_SARILUS_ELEMENTALS) == CAST_OK)
-                m_uiElementalsTimer = 9000;
-        }
-        else
-            m_uiElementalsTimer -= uiDiff;
-
-        if (m_uiFrostboltTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_FROSTBOLT) == CAST_OK)
-                m_uiFrostboltTimer = urand(3500, 4500);
-        }
-        else
-            m_uiFrostboltTimer -= uiDiff;
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_npc_sarilus_foulborne(Creature* pCreature)
-{
-    return new npc_sarilus_foulborneAI(pCreature);
-}
-
-/*
- * The Principle Source
- */
-
-enum
-{
-    EVENT_THE_PRINCIPLE_SOURCE      = 5246,
-
-    NPC_BURNING_BLADE_TOXICOLOGIST  = 12319
-};
-
-struct Coords
-{
-    uint32 entry;
-    float x, y, z, o;
-};
-
-static const Coords Toxicologist[] =
-{
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 331.52f, -2270.94f, 242.21f, 5.15f },
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 332.09f, -2291.26f, 241.86f, 1.05f },
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 345.97f, -2282.66f, 241.77f, 3.16f },
-};
-
-bool ProcessEventId_event_the_principle_source(uint32 eventId, Object* pSource, Object* /*pTarget*/, bool /*isStart*/)
-{
-    if (eventId != EVENT_THE_PRINCIPLE_SOURCE)
-        return true;
-
-    auto pPlayer = pSource->ToPlayer();
-
-    if (!pPlayer)
-        return true;
-
-    for (uint8 i = 0; i < 3; ++i)
-    {
-        if (auto pToxicologist = pPlayer->SummonCreature(Toxicologist[i].entry,
-            Toxicologist[i].x,
-            Toxicologist[i].y,
-            Toxicologist[i].z,
-            Toxicologist[i].o, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2*MINUTE*IN_MILLISECONDS))
-        {
-            pToxicologist->AI()->AttackStart(pPlayer);
-        }        
-    }
-
-    return true;
 }
 
 void AddSC_the_barrens()
@@ -1661,25 +1433,5 @@ void AddSC_the_barrens()
     newscript = new Script;
     newscript->Name = "npc_warlord_kromzar";
     newscript->GetAI = &GetAI_npc_warlord_kromzar;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_razormane_stalker";
-    newscript->GetAI = &GetAI_npc_razormane_stalker;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_mission_possible_but_not_probable";
-    newscript->GetAI = &GetAI_npc_mission_possible_but_not_probable;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_sarilus_foulborne";
-    newscript->GetAI = &GetAI_npc_sarilus_foulborne;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "event_the_principle_source";
-    newscript->pProcessEventId = &ProcessEventId_event_the_principle_source;
     newscript->RegisterSelf();
 }

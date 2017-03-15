@@ -22,9 +22,8 @@
 
 #include "utf8cpp/utf8.h"
 #include "mersennetwister/MersenneTwister.h"
-
 #include <ace/TSS_T.h>
-#include <ace/OS_NS_arpa_inet.h>
+#include <ace/INET_Addr.h>
 
 typedef ACE_TSS<MTRand> MTRandTSS;
 static MTRandTSS mtRand;
@@ -227,9 +226,9 @@ std::string secsToTimeString(time_t timeInSecs, bool shortText, bool hoursOnly)
         if (shortText)
             ss << "d";
         else if (days == 1)
-            ss << " Day ";
+            ss << " Jour ";
         else
-            ss << " Days ";
+            ss << " Jours ";
     }
     if(hours || hoursOnly)
     {
@@ -237,9 +236,9 @@ std::string secsToTimeString(time_t timeInSecs, bool shortText, bool hoursOnly)
         if (shortText)
             ss << "h";
         else if (hours <= 1)
-            ss << " Hour ";
+            ss << " Heure ";
         else
-            ss << " Hours ";
+            ss << " Heures ";
     }
     if(!hoursOnly)
     {

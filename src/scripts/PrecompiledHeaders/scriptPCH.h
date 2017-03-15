@@ -6,7 +6,7 @@
 #define SC_PRECOMPILED_H
 
 #include "Mail.h"
-#include "Nostalrius.h"
+#include "Elysium.h"
 #include "ScriptMgr.h"
 #include "Object.h"
 #include "ObjectMgr.h"
@@ -17,7 +17,6 @@
 #include "GameObject.h"
 #include "GameEventMgr.h"
 #include "ScriptedAI.h"
-#include "ScriptedPetAI.h"
 #include "ScriptedGameObject.h"
 #include "ScriptedFollowerAI.h"
 #include "ScriptedEscortAI.h"
@@ -34,8 +33,8 @@
 #include "Weather.h"
 #include "TotemAI.h"
 
-// Texte nostalrius (nostalrius_string)
-#define NOST_TEXT(id) (id+2000010000)
+// Texte elysium (elysium_string)
+#define ELYSIUM_TEXT(id) (id+2000010000)
 
 #ifdef _WIN32
 #include <windows.h>

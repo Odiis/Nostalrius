@@ -37,75 +37,67 @@ enum eEscortState
 
 class ChatHandler;
 
-struct MANGOS_DLL_DECL npc_escortAI : ScriptedAI
+struct MANGOS_DLL_DECL npc_escortAI : public ScriptedAI
 {
+    public:
         explicit npc_escortAI(Creature* pCreature);
         ~npc_escortAI() {}
 
-        void Aggro(Unit*) override;
+        virtual void Aggro(Unit*);
 
-        void Reset() override = 0;
-
-        void ResetCreature() override {}
+        virtual void Reset() = 0;
 
         // CreatureAI functions
-        bool IsVisible(Unit*) const override;
+        bool IsVisible(Unit*) const;
 
-        void AttackStart(Unit*) override;
+        void AttackStart(Unit*);
 
-        void EnterCombat(Unit*) override;
+        void EnterCombat(Unit*);
 
-        void MoveInLineOfSight(Unit*) override;
+        void MoveInLineOfSight(Unit*);
 
-        void JustDied(Unit*) override;
+        void JustDied(Unit*);
 
         void setCurrentWP (uint32 wp);
         uint32 getCurrentWP() const { return m_currentWaypointIdx; }
 
-        void JustRespawned() override;
+        void JustRespawned();
 
-        void EnterEvadeMode() override;
+        void EnterEvadeMode();
 
-        void UpdateAI(const uint32) override;               //the "internal" update, calls UpdateEscortAI()
+        void UpdateAI(const uint32);                        //the "internal" update, calls UpdateEscortAI()
         virtual void UpdateEscortAI(const uint32);          //used when it's needed to add code in update (abilities, scripted events, etc)
 
-        void ResetEscort();                                 // Kills the NPC and returns it to the original state
-
-        void MovementInform(uint32, uint32) override;
+        void MovementInform(uint32, uint32);
 
         // EscortAI functions
         //void AddWaypoint(uint32 id, float x, float y, float z, uint32 WaitTimeMs = 0);
 
         virtual void WaypointReached(uint32 uiPointId) = 0;
-        virtual void WaypointStart(uint32 /*uiPointId*/) {}
+        virtual void WaypointStart(uint32 uiPointId) {}
 
-        void Start(bool bRun = false, uint64 uiPlayerGUID = 0, const Quest* pQuest = nullptr, bool bInstantRespawn = false, bool bCanLoopPath = false);
+        void Start(bool bIsActiveAttacker = true /* unused */, bool bRun = false, uint64 uiPlayerGUID = 0, const Quest* pQuest = NULL, bool bInstantRespawn = false, bool bCanLoopPath = false);
         void Stop();
         void SetRun(bool bRun = true);
         void SetEscortPaused(bool uPaused);
 
-        bool HasEscortState(uint32 uiEscortState) const { return m_uiEscortState & uiEscortState; }
+        bool HasEscortState(uint32 uiEscortState) { return (m_uiEscortState & uiEscortState); }
         void SetMaxPlayerDistance(float dist) { m_MaxPlayerDistance = dist;}
-        void SetMaxAssistDistance(float dist) { m_MaxAssistDistance = dist;}
-        void GetAIInformation(ChatHandler& /*reader*/) override;
+        virtual void GetAIInformation(ChatHandler& /*reader*/);
+
+    // protected:
+        Player* GetPlayerForEscort() { return m_creature->GetMap()->GetPlayer(m_uiPlayerGUID); }
+        virtual void JustStartedEscort() {}
 
         void ReturnToCombatStartPosition();
 
-        void AddEscortState(uint32 uiEscortState) { m_uiEscortState |= uiEscortState; }
-        void RemoveEscortState(uint32 uiEscortState) { m_uiEscortState &= ~uiEscortState; }
-
-        // use distinct position from Creature to prevent unnecessary overrides
-        void SetCombatStartPosition(float x, float y, float z) { m_combatStartX = x; m_combatStartY = y; m_combatStartZ = z; }
-        void GetCombatStartPosition(float &x, float &y, float &z) const { x = m_combatStartX; y = m_combatStartY; z = m_combatStartZ; }
-
-    protected:
-        Player* GetPlayerForEscort() const { return m_creature->GetMap()->GetPlayer(m_uiPlayerGUID); }
-        virtual void JustStartedEscort() {}
-
     private:
         bool AssistPlayerInCombat(Unit* pWho);
-        bool IsPlayerOrGroupInRange() const;
+        bool IsPlayerOrGroupInRange();
         void FillPointMovementListForCreature();
+
+        void AddEscortState(uint32 uiEscortState) { m_uiEscortState |= uiEscortState; }
+        void RemoveEscortState(uint32 uiEscortState) { m_uiEscortState &= ~uiEscortState; }
 
         uint64 m_uiPlayerGUID;
         uint32 m_uiWPWaitTimer;
@@ -123,7 +115,5 @@ struct MANGOS_DLL_DECL npc_escortAI : ScriptedAI
         bool m_bCanReturnToStart;                           //if creature can walk same path (loop) without despawn. Not for regular escort quests.
 
         float m_MaxPlayerDistance;
-        float m_MaxAssistDistance;
-        float m_combatStartX, m_combatStartY, m_combatStartZ, m_combatStartO;
 };
 #endif

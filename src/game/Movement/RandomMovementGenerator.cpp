@@ -109,7 +109,7 @@ void RandomMovementGenerator<Creature>::UpdateAsync(Creature &creature, uint32 d
         i_nextMoveTime.Reset(0);  // Expire the timer
         creature.clearUnitState(UNIT_STAT_ROAMING_MOVE);
     }
-    else if (creature.IsNoMovementSpellCasted())
+    else if (creature.IsNonMeleeSpellCasted(false, false, true))
     {
         if (!creature.IsStopped())
             creature.StopMoving();

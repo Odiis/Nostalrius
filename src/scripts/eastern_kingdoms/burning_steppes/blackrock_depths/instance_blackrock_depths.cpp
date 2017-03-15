@@ -16,7 +16,7 @@
 
 /* ScriptData
 SDName: Instance_Blackrock_Depths
-SD%Complete:
+SD%Complete: 20
 SDComment: events: ring of law
 SDCategory: Blackrock Depths
 EndScriptData */
@@ -24,12 +24,63 @@ EndScriptData */
 #include "scriptPCH.h"
 #include "blackrock_depths.h"
 
-struct instance_blackrock_depths : ScriptedInstance
+enum
 {
-    explicit instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap)
+    MAX_ENCOUNTER              = 14,
+
+    NPC_EMPEROR                = 9019,
+    NPC_PRINCESS               = 8929,
+    NPC_PHALANX                = 9502,
+    NPC_HATEREL                = 9034,
+    NPC_ANGERREL               = 9035,
+    NPC_VILEREL                = 9036,
+    NPC_GLOOMREL               = 9037,
+    NPC_SEETHREL               = 9038,
+    NPC_DOOMREL                = 9039,
+    NPC_DOPEREL                = 9040,
+    NPC_RUINEPOIGNE_PROTECTOR  = 8905,
+    NPC_RIBBLY_S_CRONY         = 10043,
+    NPC_ARENA_SPECTATOR        = 8916,
+    //NPC_PANZOR                 = 8923, Ustaag : gérer par la DB
+    NPC_GOLEM_RAVAGE           = 8906,
+    NPC_WRATH_HAMMER_CONSTRUCT = 8907,
+    NPC_GOLEM_LORD_ARGELMACH   = 8983,
+    //NPC_PLUGGER_SPAZZRING      = 9499,
+    NPC_GUZZLING_PATRON        = 9547,
+    NPC_GRIM_PATRON            = 9545,
+    NPC_HAMMERED_PATRON        = 9554,
+
+    NPC_THELDREN               = 16059,
+
+    GO_ARENA1                  = 161525,
+    GO_ARENA2                  = 161522,
+    GO_ARENA3                  = 161524,
+    GO_ARENA4                  = 161523,
+    GO_SHADOW_LOCK             = 161460,
+    GO_SHADOW_MECHANISM        = 161461,
+    GO_SHADOW_GIANT_DOOR       = 157923,
+    GO_SHADOW_DUMMY            = 161516,
+    GO_BAR_KEG_SHOT            = 170607,
+    GO_BAR_KEG_TRAP            = 171941,
+    GO_BAR_DOOR                = 170571,
+    GO_TOMB_ENTER              = 170576,
+    GO_TOMB_EXIT               = 170577,
+    GO_LYCEUM                  = 170558,
+    GO_GOLEM_ROOM_N            = 170573,
+    GO_GOLEM_ROOM_S            = 170574,
+    GO_THRONE_ROOM             = 170575,
+
+    GO_SPECTRAL_CHALICE        = 164869,
+    GO_CHEST_SEVEN             = 169243,
+    GO_SECRET_DOOR             = 174553
+};
+
+struct instance_blackrock_depths : public ScriptedInstance
+{
+    instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap)
     {
-        instance_blackrock_depths::Initialize();
-    }
+        Initialize();
+    };
 
     uint32 m_auiEncounter[MAX_ENCOUNTER];
     std::string strInstData;
@@ -67,12 +118,10 @@ struct instance_blackrock_depths : ScriptedInstance
 
     uint64 m_uiGoMagnusGUID;
 
-    uint64 m_uiRocknotGUID;
-    uint64 m_uiNagmaraGUID;
-
+    // Elysium
     //uint64 m_uiPanzorGUID;
     uint64 m_uiGolemLordArgelmachGUID;
-    uint64 m_uiPluggerSpazzringGUID;
+    //uint64 m_uiPluggerSpazzringGUID;
 
     uint64 m_uiSpectralChaliceGUID;
     uint64 m_uiSevensChestGUID;
@@ -82,33 +131,13 @@ struct instance_blackrock_depths : ScriptedInstance
     uint32 m_uiThunderbrewCount;
     uint32 m_uiRelicCofferDoorCount;
 
+    std::list<uint64> m_lRuinepoigneProtectorsMobGUIDList;
     std::list<uint64> m_lRibblySCronyMobGUIDList;
     std::list<uint64> m_lArenaSpectatorMobGUIDList;
     std::list<uint64> m_lArgelmachProtectorsMobGUIDList;
-    std::list<uint64> m_sBarPatronNpcGuids;
-    std::list<uint64> m_sBarPatrolGuids;
-
-    bool m_bDoorDughalOpened;
-    bool m_bDoorTobiasOpened;
-    bool m_bDoorCrestOpened;
-    bool m_bDoorJazOpened;
-    bool m_bDoorShillOpened;
-    bool m_bDoorSupplyOpened;
+    std::list<uint64> m_lPluggerSpazzringProtectorsMobGUIDList;
 
     bool m_bIsTheldrenInvocated;
-    bool m_bBarHostile;
-
-    uint8 m_uiStolenAles;
-    uint32 m_uiDagranTimer;
-    uint32 m_uiPatronEmoteTimer;
-    uint32 m_uiPatrolTimer;
-
-    ObjectGuid m_uiOgrabisiGUID;
-    ObjectGuid m_uiShillGUID;
-    ObjectGuid m_uiCrestGUID;
-    ObjectGuid m_uiJazGUID;
-    ObjectGuid m_uiGoJailSupplyRoomGUID;
-    ObjectGuid m_uiGoJailSupplyCrateGUID;
 
     void EnableCreature(Creature* pCreature)
     {
@@ -117,7 +146,7 @@ struct instance_blackrock_depths : ScriptedInstance
         pCreature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
     }
 
-    void Initialize() override
+    void Initialize()
     {
         memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
@@ -153,15 +182,12 @@ struct instance_blackrock_depths : ScriptedInstance
         m_uiGoGolemSGUID = 0;
         m_uiGoThroneGUID = 0;
 
-        m_uiOgrabisiGUID = 0;
-        m_uiShillGUID = 0;
-        m_uiCrestGUID = 0;
-        m_uiJazGUID = 0;
-        m_uiGoJailSupplyRoomGUID = 0;
-        m_uiGoJailSupplyCrateGUID = 0;
+        m_uiBarAleCount = 0;
 
+        // Elysium
         //m_uiPanzorGUID = 0;
         m_uiGolemLordArgelmachGUID = 0;
+        //m_uiPluggerSpazzringGUID = 0;
 
         m_uiSpectralChaliceGUID = 0;
         m_uiSevensChestGUID = 0;
@@ -170,35 +196,6 @@ struct instance_blackrock_depths : ScriptedInstance
         m_uiThunderbrewCount = 0;
         m_uiRelicCofferDoorCount = 0;
         m_bIsTheldrenInvocated = false;
-
-        m_uiBarAleCount = 0;
-        m_uiStolenAles  = 0;
-
-        m_uiDagranTimer = 0;
-        m_uiPatronEmoteTimer = 2000;
-        m_uiPatrolTimer = 0;
-
-        m_bBarHostile = false;
-
-        SetOpenedDoor(GO_JAIL_DOOR_DUGHAL, false);
-        SetOpenedDoor(GO_JAIL_DOOR_TOBIAS, false);
-        SetOpenedDoor(GO_JAIL_DOOR_JAZ, false);
-        SetOpenedDoor(GO_JAIL_DOOR_CREST, false);
-        SetOpenedDoor(GO_JAIL_DOOR_SHILL, false);
-        SetOpenedDoor(GO_JAIL_DOOR_SUPPLY, false);
-    }
-
-    void SetOpenedDoor(uint64 m_uiGoEntry, bool opened)
-    {
-        switch (m_uiGoEntry)
-        {
-        case GO_JAIL_DOOR_DUGHAL: m_bDoorDughalOpened = opened; break;
-        case GO_JAIL_DOOR_TOBIAS: m_bDoorTobiasOpened = opened; break;
-        case GO_JAIL_DOOR_CREST:  m_bDoorCrestOpened = opened; break;
-        case GO_JAIL_DOOR_JAZ:    m_bDoorJazOpened = opened; break;
-        case GO_JAIL_DOOR_SHILL:  m_bDoorShillOpened = opened; break;
-        case GO_JAIL_DOOR_SUPPLY: m_bDoorSupplyOpened = opened; break;
-        }
     }
 
     void OnCreatureCreate(Creature* pCreature)
@@ -238,6 +235,9 @@ struct instance_blackrock_depths : ScriptedInstance
             case NPC_THELDREN:
                 m_uiTheldrenGUID = pCreature->GetGUID();
                 break;
+            case NPC_RUINEPOIGNE_PROTECTOR:
+                m_lRuinepoigneProtectorsMobGUIDList.push_back(pCreature->GetGUID());
+                break;
             case NPC_RIBBLY_S_CRONY:
                 m_lRibblySCronyMobGUIDList.push_back(pCreature->GetGUID());
                 break;
@@ -266,37 +266,11 @@ struct instance_blackrock_depths : ScriptedInstance
             case NPC_GOLEM_LORD_ARGELMACH:
                 m_uiGolemLordArgelmachGUID = pCreature->GetGUID();
                 break;
-            case NPC_PLUGGER_SPAZZRING:
-                m_uiPluggerSpazzringGUID = pCreature->GetGUID();
-                break;
+            //case NPC_PLUGGER_SPAZZRING: m_uiPluggerSpazzringGUID = pCreature->GetGUID(); break;
             case NPC_GUZZLING_PATRON:
             case NPC_GRIM_PATRON:
             case NPC_HAMMERED_PATRON:
-                m_sBarPatronNpcGuids.push_back(pCreature->GetGUID());
-                if (GetData(TYPE_PLUGGER) == DONE)
-                {
-                    pCreature->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
-                    pCreature->SetStandState(UNIT_STAND_STATE_STAND);
-                    m_bBarHostile = true;
-                }
-                break;
-            case NPC_PRIVATE_ROCKNOT:
-                m_uiRocknotGUID = pCreature->GetGUID();
-                break;
-            case NPC_MISTRESS_NAGMARA:
-                m_uiNagmaraGUID = pCreature->GetGUID();
-                break;
-            case NPC_OGRABISI:
-                m_uiOgrabisiGUID = pCreature->GetObjectGuid();
-                break;
-            case NPC_SHILL:
-                m_uiShillGUID = pCreature->GetObjectGuid();
-                break;
-            case NPC_CREST:
-                m_uiCrestGUID = pCreature->GetObjectGuid();
-                break;
-            case NPC_JAZ:
-                m_uiJazGUID = pCreature->GetObjectGuid();
+                m_lPluggerSpazzringProtectorsMobGUIDList.push_back(pCreature->GetGUID());
                 break;
         }
     }
@@ -337,9 +311,9 @@ struct instance_blackrock_depths : ScriptedInstance
                 break;
             case GO_BAR_DOOR:
                 m_uiGoBarDoorGUID = pGo->GetGUID();
-                if (GetData(TYPE_ROCKNOT) == DONE)
+                if (GetData(TYPE_BAR) == DONE)
                     pGo->SetGoState(GOState(2));
-                if(GetData(TYPE_NAGMARA) == DONE || GetData(TYPE_PLUGGER) == DONE)
+                if(GetData(TYPE_NAGMARA) == DONE)
                     pGo->SetGoState(GOState(0));
                 break;
             case GO_TOMB_ENTER:
@@ -376,203 +350,6 @@ struct instance_blackrock_depths : ScriptedInstance
                 break;
             case GO_SECRET_DOOR:
                 m_uiGoSecretDoorGUID = pGo->GetGUID();
-                break;
-            case GO_JAIL_DOOR_SUPPLY:
-                m_uiGoJailSupplyRoomGUID = pGo->GetObjectGuid();
-                break;
-            case GO_JAIL_SUPPLY_CRATE:
-                m_uiGoJailSupplyCrateGUID = pGo->GetObjectGuid();
-                break;
-        }
-    }
-
-    void OnCreatureDeath(Creature* pCreature)
-    {
-        switch (pCreature->GetEntry())
-        {
-            case NPC_SHADOWFORGE_SENATOR:
-                // Emperor Dagran Thaurissan performs a random yell upon the death
-                // of Shadowforge Senators in the Throne Room
-                if (Creature* pDagran = instance->GetCreature(GetData64(DATA_EMPEROR)))
-                {
-                    uint32 uiTextId;
-
-                    if (!pDagran->isAlive())
-                        return;
-
-                    if (m_uiDagranTimer > 0)
-                        return;
-
-                    switch (urand(0, 3))
-                    {
-                        case 0: uiTextId = YELL_SENATOR_1; break;
-                        case 1: uiTextId = YELL_SENATOR_2; break;
-                        case 2: uiTextId = YELL_SENATOR_3; break;
-                        case 3: uiTextId = YELL_SENATOR_4; break;
-                    }
-                    DoScriptText(uiTextId, pDagran);
-                    m_uiDagranTimer = 45000;    // set a timer of 45 sec to avoid Emperor Thaurissan to spam yells in case many senators are killed in a short amount of time
-                }
-                break;
-            case NPC_GRIM_PATRON:
-            case NPC_HAMMERED_PATRON:
-            case NPC_GUZZLING_PATRON:
-               HandleBarPatrons(PATRON_HOSTILE);
-               break; 
-        }
-    }
-
-    void HandleBarPatrons(uint8 uiEventType)
-    {
-        switch  (uiEventType)
-        {
-        // case for periodical handle of random emotes
-        case PATRON_EMOTE:
-            if (GetData(TYPE_PLUGGER) == DONE)
-                return;
-
-            for (std::list<uint64>::const_iterator itr = m_sBarPatronNpcGuids.begin(); itr != m_sBarPatronNpcGuids.end(); itr++)
-            {
-                 // About 5% of patrons do emote at a given time
-                // So avoid executing follow up code for the 95% others
-                if (urand(0, 100) < 4)
-                {
-                    // Only three emotes are seen in data: laugh, cheer and exclamation
-                    // the last one appearing the least and the first one appearing the most
-                    // emotes are stored in a table and frequency is handled there
-                    if (Creature* pPatron = instance->GetCreature(*itr))
-                       pPatron->HandleEmote(aPatronsEmotes[urand(0, 5)]);
-                }
-            }
-            return;
-        // case for Rocknot event when breaking the barrel
-        case PATRON_PISSED:
-            // Three texts are said, one less often than the two others
-            // Only by patrons near the broken barrel react to Rocknot's rampage
-            if (GameObject* pGo = instance->GetGameObject(m_uiGoBarKegTrapGUID))
-            {
-                for (std::list<uint64>::const_iterator itr = m_sBarPatronNpcGuids.begin(); itr != m_sBarPatronNpcGuids.end(); itr++)
-                {
-                    if (Creature* pPatron = instance->GetCreature(*itr))
-                    {
-                        if (pPatron->GetPositionZ() > pGo->GetPositionZ() - 1 && pPatron->IsWithinDist2d(pGo->GetPositionX(), pGo->GetPositionY(), 18.0f))
-                        {
-                            uint32 uiTextId = 0;
-                            switch (urand(0, 4))
-                            {
-                                case 0: uiTextId = SAY_PISSED_PATRON_3; break;
-                                case 1:  // case is double to give this text twice the chance of the previous one do be displayed
-                                case 2: uiTextId = SAY_PISSED_PATRON_2; break;
-                                // covers the two remaining cases
-                                default: uiTextId = SAY_PISSED_PATRON_1; break;
-                            }
-                            DoScriptText(uiTextId, pPatron);
-                        }
-                    }
-                }
-            }
-            return;
-        // case when Plugger is killed
-        case PATRON_HOSTILE:
-            if (m_bBarHostile)
-                return;
-
-            m_bBarHostile = true;
-
-            for (std::list<uint64>::const_iterator itr = m_sBarPatronNpcGuids.begin(); itr != m_sBarPatronNpcGuids.end(); itr++)
-            {
-                if (Creature* pPatron = instance->GetCreature(*itr))
-                {
-                    pPatron->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
-                    pPatron->SetStandState(UNIT_STAND_STATE_STAND);
-                    pPatron->HandleEmote(0);
-                    pPatron->SetDefaultMovementType(RANDOM_MOTION_TYPE);
-                    pPatron->SetRespawnRadius(3.0f);
-                    pPatron->GetMotionMaster()->Initialize();
-                }
-            }
-            // Mistress Nagmara and Private Rocknot despawn if the bar turns hostile
-            if (Creature* pRocknot = instance->GetCreature(GetData64(DATA_ROCKNOT)))
-            {
-                if (pRocknot->HasAura(15064)) // don't despawn if Rocknot and Nagmara are kissing under the stairs
-                    return;
-                DoScriptText(SAY_ROCKNOT_DESPAWN, pRocknot);
-                pRocknot->ForcedDespawn();
-            }
-            if (Creature* pNagmara = instance->GetCreature(GetData64(DATA_NAGMARA)))
-            {
-                pNagmara->CastSpell(pNagmara, SPELL_NAGMARA_VANISH, true);
-                pNagmara->ForcedDespawn();
-            }
-            return;
-        }
-    }
-
-    void HandleBarPatrol(uint8 uiStep)
-    {
-        if (GetData(TYPE_PATROL) == DONE)
-            return;
-
-        switch (uiStep)
-        {
-            case 0:
-                if (Creature* pPlugger = instance->GetCreature(GetData64(DATA_PLUGGER)))
-                {
-                    // if relevant, open the bar door
-                    if (GameObject* pGo = instance->GetGameObject(m_uiGoBarDoorGUID))
-                    {
-                        if (pGo->GetGoState() == GO_STATE_READY) // Closed
-                            DoUseDoorOrButton(m_uiGoBarDoorGUID);
-                    }
-
-                    // One Fireguard Destroyer and two Anvilrage Officers are spawned
-                    for (uint8 i = 0; i < 3; ++i)
-                    {
-                        float fX, fY, fZ;
-                        // spawn them behind the bar door
-                        pPlugger->GetRandomPoint(aBarPatrolPositions[0][0], aBarPatrolPositions[0][1], aBarPatrolPositions[0][2], 2.0f, fX, fY, fZ);
-                        if (Creature* pSummoned = pPlugger->SummonCreature(aBarPatrolId[i], fX, fY, fZ, aBarPatrolPositions[0][3], TEMPSUMMON_DEAD_DESPAWN, 0))
-                        {
-                            m_sBarPatrolGuids.push_back(pSummoned->GetGUID());
-                            // move them to the Grim Guzzler
-                            pPlugger->GetRandomPoint(aBarPatrolPositions[1][0], aBarPatrolPositions[1][1], aBarPatrolPositions[1][2], 2.0f, fX, fY, fZ);
-                            pSummoned->GetMotionMaster()->MoveIdle();
-                            pSummoned->GetMotionMaster()->MovePoint(0,fX, fY, fZ);
-                        }
-                    }
-                    // start timer to handle the yells
-                    m_uiPatrolTimer = 5000;
-                    break;
-                }
-            case 1:
-                for (std::list<uint64>::const_iterator itr = m_sBarPatrolGuids.begin(); itr != m_sBarPatrolGuids.end(); itr++)
-                {
-                    if (Creature* pCreature = instance->GetCreature(*itr))
-                    {
-                        if (pCreature->GetEntry() == NPC_ANVILRAGE_OFFICER)
-                        {
-                            DoScriptText(YELL_PATROL_1, pCreature);
-                            SetData(TYPE_PATROL, SPECIAL); // temporary set the status to special before the next yell: event will then be complete
-                            m_uiPatrolTimer = 3000;
-                            break;
-                        }
-                    }
-                }
-                break;
-            case 2:
-                for (std::list<uint64>::const_iterator itr = m_sBarPatrolGuids.begin(); itr != m_sBarPatrolGuids.end(); itr++)
-                {
-                    if (Creature* pCreature = instance->GetCreature(*itr))
-                    {
-                        if (pCreature->GetEntry() == NPC_ANVILRAGE_OFFICER)
-                        {
-                            DoScriptText(YELL_PATROL_2, pCreature);
-                            SetData(TYPE_PATROL, DONE);
-                            m_uiPatrolTimer = 0;
-                            break;
-                        }
-                    }
-                }
                 break;
         }
     }
@@ -632,7 +409,6 @@ struct instance_blackrock_depths : ScriptedInstance
             crea->setFaction(16);
         }
     }
-
     void BeginTheldrenEvent(Player* pPlayer)
     {
         uint32 MobsEntries[4];
@@ -679,31 +455,6 @@ struct instance_blackrock_depths : ScriptedInstance
         DoSummonCreatureAndAttack(16059, pPlayer, 4);
     }
 
-    void ReplacePrincessIfPossible()
-    {
-        Map::PlayerList const& players = instance->GetPlayers();
-        if (players.isEmpty())
-            return;
-
-        bool needsReplacing = true;
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-        {
-            if (Player* pPlayer = itr->getSource())
-            {
-                // if at least one player didn't complete the quest, return false
-                if ((pPlayer->GetTeam() == ALLIANCE && !pPlayer->GetQuestRewardStatus(QUEST_FATE_KINGDOM))
-                        || (pPlayer->GetTeam() == HORDE && !pPlayer->GetQuestRewardStatus(QUEST_ROYAL_RESCUE)))
-                    needsReplacing = false;
-            }
-        }
-
-        if (needsReplacing)
-        {
-            if (Creature* pMoira = instance->GetCreature(GetData64(DATA_PRINCESS)))
-                pMoira->UpdateEntry(NPC_HIGH_PRIESTESS);
-        }
-    }
-
     void SetData(uint32 uiType, uint32 uiData)
     {
         sLog.outDebug("Instance Blackrock Depths: SetData update (Type: %u Data %u)", uiType, uiData);
@@ -727,15 +478,10 @@ struct instance_blackrock_depths : ScriptedInstance
             case TYPE_VAULT:
                 m_auiEncounter[TYPE_VAULT] = uiData;
                 break;
-            case TYPE_ROCKNOT:
-                if (uiData == SPECIAL)
+            case TYPE_BAR:
+                if (uiData == IN_PROGRESS)
                     ++m_uiBarAleCount;
-                else 
-                {
-                    if (uiData == DONE)
-                        HandleBarPatrons(PATRON_PISSED);
-                    m_auiEncounter[2] = uiData;
-                }
+                m_auiEncounter[TYPE_BAR] = uiData;
                 break;
             case TYPE_TOMB_OF_SEVEN:
                 switch (uiData)
@@ -762,9 +508,9 @@ struct instance_blackrock_depths : ScriptedInstance
                 {
                     DoOpenDoor(m_uiGoGolemNGUID);
                     DoOpenDoor(m_uiGoGolemSGUID);
+
                     if (Creature* magnus = instance->GetCreature(m_uiGoMagnusGUID))
                     {
-                        DoScriptText(YELL_MAGMUS, magnus);
                         std::list<Creature*> AnvilrageList;
                         GetCreatureListWithEntryInGrid(AnvilrageList, magnus, 8901, 400.0f);
 
@@ -789,7 +535,6 @@ struct instance_blackrock_depths : ScriptedInstance
                         DoOpenDoor(m_uiGoGolemNGUID);
                         DoOpenDoor(m_uiGoGolemSGUID);
                         DoOpenDoor(m_uiGoThroneGUID);
-                        ReplacePrincessIfPossible();
                         break;
                 }
                 m_auiEncounter[TYPE_IRON_HALL] = uiData;
@@ -807,7 +552,23 @@ struct instance_blackrock_depths : ScriptedInstance
                 {
                     m_uiRelicCofferDoorCount++;
                     if (m_uiRelicCofferDoorCount == 12)
+                    {
+                        for (std::list<uint64>::const_iterator itr = m_lRuinepoigneProtectorsMobGUIDList.begin(); itr != m_lRuinepoigneProtectorsMobGUIDList.end(); itr++)
+                        {
+                            if (Creature* pCreature = instance->GetCreature(*itr))
+                            {
+                                if (pCreature->isAlive() && pCreature->getVictim())
+                                {
+                                    EnableCreature(pCreature);
+                                    if (pCreature->AI())
+                                        pCreature->AI()->AttackStart(pCreature->getVictim());
+                                    if (pCreature->HasAura(10255))
+                                        pCreature->RemoveAurasDueToSpell(10255);
+                                }
+                            }
+                        }
                         m_auiEncounter[TYPE_RELIC_COFFER] = DONE;
+                    }
                 }
                 break;
             case TYPE_DOOMGRIP:
@@ -846,65 +607,28 @@ struct instance_blackrock_depths : ScriptedInstance
                 }
                 m_auiEncounter[DATA_ARGELMACH_AGGRO] = uiData;
                 break;
-            case TYPE_PATROL:
+            case DATA_SPAZZRING_AGGRO:
                 if (uiData == IN_PROGRESS)
-                    HandleBarPatrol(0);
+                {
+                    for (std::list<uint64>::const_iterator itr = m_lPluggerSpazzringProtectorsMobGUIDList.begin(); itr != m_lPluggerSpazzringProtectorsMobGUIDList.end(); itr++)
+                    {
+                        if (Creature* patron = instance->GetCreature(*itr))
+                        {
+                            if (patron->isAlive() && patron->AI())
+                                patron->setFaction(14);
+                        }
+                    }
+                }
                 m_auiEncounter[11] = uiData;
                 break;
+
             case DATA_THELDREN:
                 m_auiEncounter[12] = uiData;
                 break;
             case TYPE_NAGMARA:
                 m_auiEncounter[13] = uiData;
                 break;
-            case TYPE_BRIDGE:
-                m_auiEncounter[14] = uiData;
-                break;
-            case TYPE_PLUGGER:
-                if (uiData == SPECIAL)
-                {
-                    if (Creature* pPlugger = instance->GetCreature(m_uiPluggerSpazzringGUID))
-                    {
-                        ++m_uiStolenAles;
-                        if (m_uiStolenAles == 3)
-                            uiData = IN_PROGRESS;
-                    }
-                }
-                m_auiEncounter[15] = uiData;
-                break;
-            case TYPE_QUEST_JAIL_BREAK:
-                if (uiData == FAIL)
-                {
-                    Map::PlayerList const &PlayerList = instance->GetPlayers();
-
-                    for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
-                    {
-                    Player* pPlayer = itr->getSource();
-                    if (pPlayer && pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE)
-                        pPlayer->SendQuestFailed(QUEST_JAIL_BREAK);
-                    }
-                }
-                m_auiEncounter[16] = uiData;
-                break;
-            case TYPE_JAIL_DUGHAL:
-                m_auiEncounter[17] = uiData;
-                break;
-            case TYPE_JAIL_SUPPLY_ROOM:
-                m_auiEncounter[18] = uiData;
-                break;
-            case TYPE_JAIL_TOBIAS:
-                m_auiEncounter[19] = uiData;
-                break;
-            case GO_JAIL_DOOR_DUGHAL: m_bDoorDughalOpened = uiData; break;
-            case GO_JAIL_DOOR_TOBIAS: m_bDoorTobiasOpened = uiData; break;
-            case GO_JAIL_DOOR_CREST:  m_bDoorCrestOpened  = uiData; break;
-            case GO_JAIL_DOOR_JAZ:    m_bDoorJazOpened    = uiData; break;
-            case GO_JAIL_DOOR_SHILL:  m_bDoorShillOpened  = uiData; break;
-            case GO_JAIL_DOOR_SUPPLY: m_bDoorSupplyOpened = uiData; break;
-            case EVENT_BAR_PATRONS:
-                HandleBarPatrons(uiData);
-                break;
-       }
+        }
 
         if (uiData == DONE)
         {
@@ -914,30 +638,13 @@ struct instance_blackrock_depths : ScriptedInstance
             saveStream << m_auiEncounter[0] << " " << m_auiEncounter[1] << " " << m_auiEncounter[2] << " "
                        << m_auiEncounter[3] << " " << m_auiEncounter[4] << " " << m_auiEncounter[5] << " "
                        << m_auiEncounter[6] << " " << m_auiEncounter[7] << " " << m_auiEncounter[8] << " "
-                       << m_auiEncounter[9] << " " << m_auiEncounter[10] << " " << m_auiEncounter[11] << " "
-                       << m_auiEncounter[12] << " " << m_auiEncounter[13] << " " << m_auiEncounter[14] << " "
-                       << m_auiEncounter[15] << " " << m_auiEncounter[16] << " " << m_auiEncounter[17] << " "
-                       << m_auiEncounter[18] << " " << m_auiEncounter[19];
+                       << m_auiEncounter[9] << " " << m_auiEncounter[10] << " " << m_auiEncounter[11] << " " << m_auiEncounter[12] << " " << m_auiEncounter[13];
 
             strInstData = saveStream.str();
 
             SaveToDB();
             OUT_SAVE_INST_DATA_COMPLETE;
         }
-    }
-
-    bool GetOpenedDoor(uint64 m_uiGoEntry)
-    {
-        switch(m_uiGoEntry)
-        {
-            case GO_JAIL_DOOR_DUGHAL: return m_bDoorDughalOpened;
-            case GO_JAIL_DOOR_TOBIAS: return m_bDoorTobiasOpened;
-            case GO_JAIL_DOOR_CREST:  return m_bDoorCrestOpened;
-            case GO_JAIL_DOOR_JAZ:    return m_bDoorJazOpened;
-            case GO_JAIL_DOOR_SHILL:  return m_bDoorShillOpened;
-            case GO_JAIL_DOOR_SUPPLY: return m_bDoorSupplyOpened;
-        }
-        return false;
     }
 
     uint32 GetData(uint32 uiType)
@@ -948,7 +655,7 @@ struct instance_blackrock_depths : ScriptedInstance
                 return m_auiEncounter[0];
             case TYPE_VAULT:
                 return m_auiEncounter[1];
-            case TYPE_ROCKNOT:
+            case TYPE_BAR:
                 if (m_auiEncounter[2] == IN_PROGRESS && m_uiBarAleCount == 3)
                     return SPECIAL;
                 else
@@ -969,30 +676,12 @@ struct instance_blackrock_depths : ScriptedInstance
                 return m_auiEncounter[9];
             case DATA_ARGELMACH_AGGRO:
                 return m_auiEncounter[10];
-            case TYPE_PATROL:
+            case DATA_SPAZZRING_AGGRO:
                 return m_auiEncounter[11];
             case DATA_THELDREN:
                 return m_auiEncounter[12];
             case TYPE_NAGMARA:
                 return m_auiEncounter[13];
-            case TYPE_BRIDGE:
-                return m_auiEncounter[14];
-            case TYPE_PLUGGER:
-                return m_auiEncounter[15];
-            case TYPE_QUEST_JAIL_BREAK:
-                return m_auiEncounter[16];
-            case TYPE_JAIL_DUGHAL:
-                return m_auiEncounter[17];
-            case TYPE_JAIL_SUPPLY_ROOM:
-                return m_auiEncounter[18];
-            case TYPE_JAIL_TOBIAS:
-                return m_auiEncounter[19];
-            case GO_JAIL_DOOR_DUGHAL: return m_bDoorDughalOpened;
-            case GO_JAIL_DOOR_TOBIAS: return m_bDoorTobiasOpened;
-            case GO_JAIL_DOOR_CREST:  return m_bDoorCrestOpened;
-            case GO_JAIL_DOOR_JAZ:    return m_bDoorJazOpened;
-            case GO_JAIL_DOOR_SHILL:  return m_bDoorShillOpened;
-            case GO_JAIL_DOOR_SUPPLY: return m_bDoorSupplyOpened; 
         }
         return 0;
     }
@@ -1041,71 +730,8 @@ struct instance_blackrock_depths : ScriptedInstance
                 return m_uiSpectralChaliceGUID;
             case DATA_GO_TOMB_EXIT:
                 return m_uiGoTombExitGUID;
-
-            case DATA_ROCKNOT:
-                return m_uiRocknotGUID;
-            case DATA_NAGMARA:
-                return m_uiNagmaraGUID;
-            case DATA_PLUGGER:
-                return m_uiPluggerSpazzringGUID;
-
-            case NPC_OGRABISI:
-                return m_uiOgrabisiGUID;
-            case NPC_SHILL:
-                return m_uiShillGUID;
-            case NPC_CREST:
-                return m_uiCrestGUID;
-            case NPC_JAZ:
-                return m_uiJazGUID;
-            case GO_JAIL_DOOR_SUPPLY:
-                return m_uiGoJailSupplyRoomGUID;
-            case GO_JAIL_SUPPLY_CRATE:
-                return m_uiGoJailSupplyCrateGUID; 
         }
         return 0;
-    }
-
-    void Update(uint32 uiDiff)
-    {
-        if (m_uiDagranTimer)
-        {
-            if (m_uiDagranTimer <= uiDiff)
-                m_uiDagranTimer = 0;
-            else
-                m_uiDagranTimer -= uiDiff;
-        }  
-
-        // Every second some of the patrons will do one random emote if they are not hostile (i.e. Plugger event is not done/in progress)
-        if (m_uiPatronEmoteTimer)
-        {
-            if (m_uiPatronEmoteTimer <= uiDiff)
-            {
-                HandleBarPatrons(PATRON_EMOTE);
-                m_uiPatronEmoteTimer = 1250;
-            }
-            else
-                m_uiPatronEmoteTimer -= uiDiff;
-        }
-
-        if (m_uiPatrolTimer)
-        {
-            if (m_uiPatrolTimer <= uiDiff)
-            {
-                switch(GetData(TYPE_PATROL))
-                {
-                    case IN_PROGRESS:
-                        HandleBarPatrol(1);
-                        break;
-                    case SPECIAL:
-                        HandleBarPatrol(2);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else
-                m_uiPatrolTimer -= uiDiff;
-        }
     }
 
     const char* Save()
@@ -1126,9 +752,7 @@ struct instance_blackrock_depths : ScriptedInstance
         std::istringstream loadStream(in);
         loadStream >> m_auiEncounter[0] >> m_auiEncounter[1] >> m_auiEncounter[2] >> m_auiEncounter[3]
                    >> m_auiEncounter[4] >> m_auiEncounter[5] >> m_auiEncounter[6] >> m_auiEncounter[7]
-                   >> m_auiEncounter[8] >> m_auiEncounter[9] >> m_auiEncounter[10] >> m_auiEncounter[11]
-                   >> m_auiEncounter[12] >> m_auiEncounter[13] >> m_auiEncounter[14] >> m_auiEncounter[15]
-                   >> m_auiEncounter[16] >> m_auiEncounter[17] >> m_auiEncounter[18] >> m_auiEncounter[19];
+                   >> m_auiEncounter[8] >> m_auiEncounter[9] >> m_auiEncounter[10] >> m_auiEncounter[11] >> m_auiEncounter[12] >> m_auiEncounter[13];
 
         for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
             if (m_auiEncounter[i] == IN_PROGRESS)
@@ -1140,14 +764,14 @@ struct instance_blackrock_depths : ScriptedInstance
 
 InstanceData* GetInstanceData_instance_blackrock_depths(Map* pMap)
 {
-	return new instance_blackrock_depths(pMap);
+    return new instance_blackrock_depths(pMap);
 }
 
 void AddSC_instance_blackrock_depths()
 {
-	Script *newscript;
-	newscript = new Script;
-	newscript->Name = "instance_blackrock_depths";
-	newscript->GetInstanceData = &GetInstanceData_instance_blackrock_depths;
-	newscript->RegisterSelf();
+    Script *newscript;
+    newscript = new Script;
+    newscript->Name = "instance_blackrock_depths";
+    newscript->GetInstanceData = &GetInstanceData_instance_blackrock_depths;
+    newscript->RegisterSelf();
 }

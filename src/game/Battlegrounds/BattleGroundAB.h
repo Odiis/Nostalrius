@@ -164,7 +164,7 @@ const uint32 BG_AB_WinMatchHonor[MAX_BATTLEGROUND_BRACKETS] = {41, 68, 113, 189,
 const uint32 BG_AB_GraveyardIds[7] = {895, 894, 893, 897, 896, 898, 899};
 
 // x, y, z, o
-// Nostalrius: Modified to retail 5.4.8 positions.
+// Elysium: Modified to retail 5.4.8 positions.
 const float BG_AB_BuffPositions[BG_AB_NODES_MAX][4] = {
     {1185.566f, 1184.629f, -56.36329f, 2.303831f},         // stables
     {989.939026f, 1008.75f, -42.60327f, 0.8203033f},       // blacksmith

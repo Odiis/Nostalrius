@@ -58,7 +58,7 @@ struct boss_broodlordAI : public ScriptedAI
         m_uiCleaveTimer         = 8000;                     // These times are probably wrong
         m_uiBlastWaveTimer      = 20000;
         m_uiMortalStrikeTimer   = 25000;
-        m_uiKnockAwayTimer      = urand(20000, 25000);
+        m_uiKnockAwayTimer      = urand(25000, 35000);
         m_uiInCombatTimer       = 2000;
     }
 
@@ -184,7 +184,7 @@ struct boss_broodlordAI : public ScriptedAI
         if (m_uiKnockAwayTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_KNOCK_AWAY) == CAST_OK)
-                m_uiKnockAwayTimer = urand(12000, 25000);
+                m_uiKnockAwayTimer = urand(15000, 25000);
         }
         else
             m_uiKnockAwayTimer -= uiDiff;

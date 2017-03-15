@@ -59,7 +59,7 @@ class MANGOS_DLL_SPEC Config
         LockType m_configLock;
 };
 
-// Nostalrius : multithreading lock
+// Elysium : multithreading lock
 #define sConfig (*ACE_Singleton<Config, ACE_Recursive_Thread_Mutex>::instance())
 
 #endif

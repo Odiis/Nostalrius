@@ -276,9 +276,10 @@ struct npc_eris_havenfireAI : public ScriptedAI
         if ((who->GetTypeId() == TYPEID_PLAYER || who->IsPet()) && CleanerSpawn == false && BeginQuete == true)
         {
             if (who->GetGUID() != JoueurGUID || who->IsPet())
-            {   
+            {
                 if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, 3358.1096f, -3049.8063f, 166.226f, 1.87f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
                 {
+                    Crea->MonsterYell("Vous osez gener le combat de cette creature ? La bataille doit etre menee seule ! Vous allez tous payer pour cette intervention !", 0);
                     Crea->SetInCombatWith(who);
                     Crea->GetMotionMaster()->MoveChase(who);
                     BeginQuete = false;
@@ -630,6 +631,7 @@ struct npc_eris_havenfireAI : public ScriptedAI
         {
             if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, 3358.1096f, -3049.8063f, 166.226f, 1.87f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
             {
+                Crea->MonsterYell("Vous osez gener le combat de cette creature ? La bataille doit etre menee seule ! Vous allez payer pour cette intervention !", 0);
                 CleanerSpawn = true;
                 BeginQuete = false;
                 Player* player = GetPlayer();
@@ -815,6 +817,7 @@ struct npc_eris_havenfire_peasantAI : public ScriptedAI
                 {
                     if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, 3358.1096f, -3049.8063f, 166.226f, 1.87f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
                     {
+                        Crea->MonsterYell("Vous osez gener le combat de cette creature ? La bataille doit etre menee seule ! Vous allez payer pour cette intervention !", 0);
                         Crea->AI()->AttackStart(pCaster);
                         pErisEventAI->BeginQuete = false;
                         pErisEventAI->CleanerSpawn = true;
@@ -858,7 +861,7 @@ struct npc_eris_havenfire_peasantAI : public ScriptedAI
         if (!m_creature->IsWalking())
             m_creature->SetWalk(true);
 
-        if (m_uiSayPeasantTimer < uiDiff)
+        if (m_uiSayPeasantTimer < uiDiff && m_creature)
         {
             switch (rand() % 30)
             {
@@ -1097,7 +1100,7 @@ bool QuestAccept_npc_nathanos(Player* pPlayer, Creature* pCreature, const Quest*
 {
     if (pQuest->GetQuestId() == QUEST_THE_SCARLET_ORACLE_DEMETRIA)
     {
-        Creature* demetria = pCreature->SummonCreature(NPC_DEMETRIA, 1629.34f, -5492.59f, 100.728f, 1.08793f, TEMPSUMMON_CORPSE_DESPAWN, 0);
+        Creature* demetria = pCreature->SummonCreature(NPC_DEMETRIA, 1629.34, -5492.59, 100.728, 1.08793, TEMPSUMMON_CORPSE_DESPAWN, 0);
         demetria->SetActiveObjectState(true);
     }
     return true;
@@ -2056,7 +2059,7 @@ void AddSC_eastern_plaguelands()
     newscript->pGossipSelect = &GossipSelect_npc_tirion_fordring;
     newscript->RegisterSelf();
 
-    // Nostalrius -- Rockette
+    // Elysium -- Rockette
 
     newscript = new Script;
     newscript->Name = "npc_eris_havenfire";

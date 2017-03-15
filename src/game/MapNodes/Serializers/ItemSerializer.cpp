@@ -18,5 +18,5 @@ bool Item::WakeUp()
 
 bool Bag::PrepareWakeUp(uint32 low_guid, ItemPrototype const* proto, Player const* owner)
 {
-    return Bag::Create(low_guid, proto->ItemId, owner->GetObjectGuid());
+    return Bag::Create(low_guid, proto->ItemId, owner);
 }

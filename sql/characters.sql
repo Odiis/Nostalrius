@@ -1,6 +1,6 @@
 /*
 SQLyog Ultimate
-MySQL - 5.7.14-log : Database - nost_chars
+MySQL - 5.7.14-log : Database - chars
 *********************************************************************
 */
 
@@ -28,7 +28,7 @@ CREATE TABLE `auction` (
   `startbid` int(11) NOT NULL DEFAULT '0',
   `deposit` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `key_item_guid` (`itemguid`)
+  UNIQUE KEY `item_guid` (`itemguid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 /*Table structure for table `bugreport` */
@@ -60,7 +60,7 @@ CREATE TABLE `bugreports` (
   `reportText` text,
   `serverInformation` text,
   `bugStatus` enum('New','NeedTest','Fixed','Invalid','Duplicate','Confirmed') NOT NULL DEFAULT 'New',
-  KEY `idx_id` (`id`)
+  KEY `id` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 /*Table structure for table `census` */
@@ -179,11 +179,13 @@ DROP TABLE IF EXISTS `character_honor_cp`;
 
 CREATE TABLE `character_honor_cp` (
   `guid` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
-  `victimType` tinyint(3) unsigned NOT NULL DEFAULT '4',
+  `victim_type` tinyint(3) unsigned NOT NULL DEFAULT '4',
   `victim` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Creature / Player Identifier',
-  `cp` float NOT NULL DEFAULT '0',
+  `honor` float NOT NULL DEFAULT '0',
   `date` int(11) unsigned NOT NULL DEFAULT '0',
   `type` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `map` int(11) unsigned DEFAULT '0',
+  `zone` int(11) unsigned DEFAULT '0',
   KEY `idx_guid` (`guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
 
@@ -196,7 +198,7 @@ CREATE TABLE `character_instance` (
   `instance` int(11) unsigned NOT NULL DEFAULT '0',
   `permanent` tinyint(1) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`,`instance`),
-  KEY `idx_instance` (`instance`)
+  KEY `instance` (`instance`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 /*Table structure for table `character_inventory` */
@@ -242,7 +244,7 @@ CREATE TABLE `character_pet` (
   `abdata` longtext,
   `teachspelldata` longtext,
   PRIMARY KEY (`id`),
-  KEY `idx_owner` (`owner`)
+  KEY `owner` (`owner`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Pet System';
 
 /*Table structure for table `character_queststatus` */
@@ -300,10 +302,10 @@ CREATE TABLE `character_social` (
   `friend` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Friend Global Unique Identifier',
   `flags` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT 'Friend Flags',
   PRIMARY KEY (`guid`,`friend`,`flags`),
-  KEY `idx_guid` (`guid`),
-  KEY `idx_friend` (`friend`),
-  KEY `idx_guid_flags` (`guid`,`flags`),
-  KEY `idx_friend_flags` (`friend`,`flags`)
+  KEY `guid` (`guid`),
+  KEY `friend` (`friend`),
+  KEY `guid_flags` (`guid`,`flags`),
+  KEY `friend_flags` (`friend`,`flags`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
 
 /*Table structure for table `character_spell` */
@@ -316,7 +318,7 @@ CREATE TABLE `character_spell` (
   `active` tinyint(3) unsigned NOT NULL DEFAULT '1',
   `disabled` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`,`spell`),
-  KEY `idx_spell` (`spell`)
+  KEY `Idx_spell` (`spell`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
 
 /*Table structure for table `character_spell_cooldown` */
@@ -396,7 +398,7 @@ CREATE TABLE `character_tutorial` (
   `tut6` int(11) unsigned NOT NULL DEFAULT '0',
   `tut7` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`account`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
+) ENGINE=MyISAM AUTO_INCREMENT=828884 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Player System';
 
 /*Table structure for table `characters` */
 
@@ -441,13 +443,14 @@ CREATE TABLE `characters` (
   `zone` int(11) unsigned NOT NULL DEFAULT '0',
   `death_expire_time` bigint(20) unsigned NOT NULL DEFAULT '0',
   `taxi_path` text,
-  `honorRankPoints` float NOT NULL DEFAULT '0',
-  `honorHighestRank` int(11) unsigned NOT NULL DEFAULT '0',
-  `honorStanding` int(11) unsigned NOT NULL DEFAULT '0',
-  `honorLastWeekHK` int(11) unsigned NOT NULL DEFAULT '0',
-  `honorLastWeekCP` float NOT NULL DEFAULT '0',
-  `honorStoredHK` int(11) NOT NULL DEFAULT '0',
-  `honorStoredDK` int(11) NOT NULL DEFAULT '0',
+  `honor_highest_rank` int(11) unsigned NOT NULL DEFAULT '0',
+  `honor_standing` int(11) unsigned NOT NULL DEFAULT '0',
+  `week_honor_rating` int(11) NOT NULL DEFAULT '0',
+  `stored_honor_rating` float NOT NULL DEFAULT '0' COMMENT 'Total (à vie).',
+  `stored_dishonorable_kills` int(11) NOT NULL DEFAULT '0' COMMENT 'Total (à vie).',
+  `stored_honorable_kills` int(11) NOT NULL DEFAULT '0' COMMENT 'Total (à vie).',
+  `lastweek_honorable_kills` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Semaine passée',
+  `lastweek_honor` float NOT NULL DEFAULT '0' COMMENT 'Semaine passée',
   `watchedFaction` int(10) unsigned NOT NULL DEFAULT '0',
   `drunk` smallint(5) unsigned NOT NULL DEFAULT '0',
   `health` int(10) unsigned NOT NULL DEFAULT '0',
@@ -478,7 +481,7 @@ DROP TABLE IF EXISTS `characters_guid_delete`;
 
 CREATE TABLE `characters_guid_delete` (
   `guid` int(11) DEFAULT NULL,
-  UNIQUE KEY `key_guid` (`guid`)
+  UNIQUE KEY `guid` (`guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 /*Table structure for table `characters_item_delete` */
@@ -487,7 +490,7 @@ DROP TABLE IF EXISTS `characters_item_delete`;
 
 CREATE TABLE `characters_item_delete` (
   `entry` int(11) DEFAULT NULL,
-  UNIQUE KEY `key_entry` (`entry`)
+  UNIQUE KEY `entry` (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 /*Table structure for table `corpse` */
@@ -507,9 +510,9 @@ CREATE TABLE `corpse` (
   `instance` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`),
   KEY `idx_type` (`corpse_type`),
-  KEY `idx_instance` (`instance`),
-  KEY `idx_player` (`player`),
-  KEY `idx_time` (`time`)
+  KEY `instance` (`instance`),
+  KEY `Idx_player` (`player`),
+  KEY `Idx_time` (`time`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Death System';
 
 /*Table structure for table `creature_respawn` */
@@ -522,7 +525,7 @@ CREATE TABLE `creature_respawn` (
   `instance` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `map` int(5) unsigned DEFAULT '0',
   PRIMARY KEY (`guid`,`instance`),
-  KEY `idx_instance` (`instance`)
+  KEY `instance` (`instance`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Grid Loading System';
 
 /*Table structure for table `game_event_status` */
@@ -544,7 +547,7 @@ CREATE TABLE `gameobject_respawn` (
   `instance` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `map` int(5) unsigned DEFAULT '0',
   PRIMARY KEY (`guid`,`instance`),
-  KEY `idx_instance` (`instance`)
+  KEY `instance` (`instance`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Grid Loading System';
 
 /*Table structure for table `gm_subsurveys` */
@@ -609,7 +612,7 @@ CREATE TABLE `group_instance` (
   `instance` int(11) unsigned NOT NULL DEFAULT '0',
   `permanent` tinyint(1) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`leaderGuid`,`instance`),
-  KEY `idx_instance` (`instance`)
+  KEY `instance` (`instance`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 /*Table structure for table `group_member` */
@@ -622,7 +625,7 @@ CREATE TABLE `group_member` (
   `assistant` tinyint(1) unsigned NOT NULL,
   `subgroup` smallint(6) unsigned NOT NULL,
   PRIMARY KEY (`groupId`,`memberGuid`),
-  KEY `idx_memberGuid` (`memberGuid`)
+  KEY `Idx_memberGuid` (`memberGuid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Groups';
 
 /*Table structure for table `groups` */
@@ -647,7 +650,7 @@ CREATE TABLE `groups` (
   `icon8` int(11) unsigned NOT NULL,
   `isRaid` tinyint(1) unsigned NOT NULL,
   PRIMARY KEY (`groupId`),
-  UNIQUE KEY `key_leaderGuid` (`leaderGuid`)
+  UNIQUE KEY `leaderGuid` (`leaderGuid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Groups';
 
 /*Table structure for table `guild` */
@@ -682,9 +685,9 @@ CREATE TABLE `guild_eventlog` (
   `NewRank` tinyint(2) NOT NULL COMMENT 'New rank(in case promotion/demotion)',
   `TimeStamp` bigint(20) NOT NULL COMMENT 'Event UNIX time',
   PRIMARY KEY (`guildid`,`LogGuid`),
-  KEY `idx_PlayerGuid1` (`PlayerGuid1`),
-  KEY `idx_PlayerGuid2` (`PlayerGuid2`),
-  KEY `idx_LogGuid` (`LogGuid`)
+  KEY `Idx_PlayerGuid1` (`PlayerGuid1`),
+  KEY `Idx_PlayerGuid2` (`PlayerGuid2`),
+  KEY `Idx_LogGuid` (`LogGuid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Guild Eventlog';
 
 /*Table structure for table `guild_member` */
@@ -697,9 +700,9 @@ CREATE TABLE `guild_member` (
   `rank` tinyint(2) unsigned NOT NULL DEFAULT '0',
   `pnote` varchar(255) NOT NULL DEFAULT '',
   `offnote` varchar(255) NOT NULL DEFAULT '',
-  UNIQUE KEY `key_guid` (`guid`),
-  KEY `idx_guildid` (`guildid`),
-  KEY `idx_guildid_rank` (`guildid`,`rank`)
+  UNIQUE KEY `guid_key` (`guid`),
+  KEY `guildid_key` (`guildid`),
+  KEY `guildid_rank_key` (`guildid`,`rank`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Guild System';
 
 /*Table structure for table `guild_rank` */
@@ -712,7 +715,7 @@ CREATE TABLE `guild_rank` (
   `rname` varchar(255) NOT NULL DEFAULT '',
   `rights` int(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guildid`,`rid`),
-  KEY `idx_rid` (`rid`)
+  KEY `Idx_rid` (`rid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Guild System';
 
 /*Table structure for table `instance` */
@@ -725,8 +728,8 @@ CREATE TABLE `instance` (
   `resettime` bigint(40) NOT NULL DEFAULT '0',
   `data` longtext,
   PRIMARY KEY (`id`),
-  KEY `idx_map` (`map`),
-  KEY `idx_resettime` (`resettime`)
+  KEY `map` (`map`),
+  KEY `resettime` (`resettime`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 /*Table structure for table `instance_reset` */
@@ -758,8 +761,7 @@ CREATE TABLE `item_instance` (
   `durability` smallint(5) unsigned NOT NULL DEFAULT '0',
   `text` int(10) NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`),
-  KEY `idx_owner_guid` (`owner_guid`),
-  KEY `idx_itemEntry` (`itemEntry`)
+  KEY `idx_owner_guid` (`owner_guid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Item System';
 
 /*Table structure for table `item_loot` */
@@ -820,7 +822,7 @@ CREATE TABLE `mail_items` (
   `receiver` int(11) unsigned NOT NULL DEFAULT '0' COMMENT 'Character Global Unique Identifier',
   PRIMARY KEY (`mail_id`,`item_guid`),
   KEY `idx_receiver` (`receiver`),
-  KEY `idx_item_guid` (`item_guid`)
+  KEY `item_guid` (`item_guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 /*Table structure for table `migrations` */
@@ -886,7 +888,7 @@ CREATE TABLE `petition` (
   `petitionguid` int(10) unsigned DEFAULT '0',
   `name` varchar(255) NOT NULL DEFAULT '',
   PRIMARY KEY (`ownerguid`),
-  UNIQUE KEY `key_ownerguid_petitionguid` (`ownerguid`,`petitionguid`)
+  UNIQUE KEY `index_ownerguid_petitionguid` (`ownerguid`,`petitionguid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Guild System';
 
 /*Table structure for table `petition_sign` */
@@ -899,8 +901,8 @@ CREATE TABLE `petition_sign` (
   `playerguid` int(11) unsigned NOT NULL DEFAULT '0',
   `player_account` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`petitionguid`,`playerguid`),
-  KEY `idx_playerguid` (`playerguid`),
-  KEY `idx_ownerguid` (`ownerguid`)
+  KEY `Idx_playerguid` (`playerguid`),
+  KEY `Idx_ownerguid` (`ownerguid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Guild System';
 
 /*Table structure for table `playerbot` */
@@ -919,18 +921,10 @@ CREATE TABLE `playerbot` (
 
 DROP TABLE IF EXISTS `saved_variables`;
 
-CREATE TABLE IF NOT EXISTS `saved_variables` (
-  `key` TINYINT(1) UNSIGNED NOT NULL DEFAULT '0',
-  `cleaning_flags` INT(11) UNSIGNED NOT NULL DEFAULT '0',
-  `lastHonorMaintenanceDay` INT(11) UNSIGNED NOT NULL DEFAULT '0',
-  `nextHonorMaintenanceDay` INT(11) UNSIGNED NOT NULL DEFAULT '0',
-  `honorMaintenanceMarker` TINYINT(1) UNSIGNED NOT NULL DEFAULT '0',
-  PRIMARY KEY (`key`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Variable Saves';
-
-/*Data for the table `saved_variables` */
-
-INSERT INTO `saved_variables`(`key`, `cleaning_flags`, `lastHonorMaintenanceDay`, `nextHonorMaintenanceDay`, `honorMaintenanceMarker`) VALUES (0, 0, 0, 0, 0);
+CREATE TABLE `saved_variables` (
+  `NextMaintenanceDate` int(11) unsigned NOT NULL DEFAULT '0',
+  `cleaning_flags` int(11) unsigned NOT NULL DEFAULT '0'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Variable Saves';
 
 /*Table structure for table `world` */
 
@@ -950,7 +944,7 @@ CREATE TABLE `worldstates` (
   `entry` int(11) DEFAULT NULL,
   `value` int(11) DEFAULT NULL,
   `comment` varchar(255) DEFAULT NULL,
-  UNIQUE KEY `key_entry` (`entry`)
+  UNIQUE KEY `entry` (`entry`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

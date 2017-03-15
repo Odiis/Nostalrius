@@ -14,7 +14,7 @@
 #include <string>
 
 #ifndef G3D_WIN32
-#include <unistd.h> // Nostalrius: pour la fonction usleep.
+#include <unistd.h> // Elysium: pour la fonction usleep.
 #else
 #include <io.h>
 #endif

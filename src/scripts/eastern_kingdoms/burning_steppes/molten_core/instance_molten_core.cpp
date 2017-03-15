@@ -36,12 +36,12 @@ struct sSpawnLocation
     float m_fO;
 };
 
-struct instance_molten_core : ScriptedInstance
+struct instance_molten_core : public ScriptedInstance
 {
-    explicit instance_molten_core(Map* pMap) : ScriptedInstance(pMap)
+    instance_molten_core(Map* pMap) : ScriptedInstance(pMap)
     {
-        instance_molten_core::Initialize();
-    }
+        Initialize();
+    };
 
     uint32 m_auiEncounter[INSTANCE_MC_MAX_ENCOUNTER];
 
@@ -53,7 +53,7 @@ struct instance_molten_core : ScriptedInstance
 
     uint64 GOUseGuidList[7];
 
-    void Initialize() override
+    void Initialize()
     {
         memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
@@ -90,12 +90,12 @@ struct instance_molten_core : ScriptedInstance
         DomoSpawn = NOT_STARTED;
     }
 
-    bool IsEncounterInProgress() const override
+    bool IsEncounterInProgress() const
     {
         return false;
     }
 
-    void OnObjectCreate(GameObject* pGo) override
+    void OnObjectCreate(GameObject* pGo)
     {
         switch (pGo->GetEntry())
         {
@@ -140,34 +140,51 @@ struct instance_molten_core : ScriptedInstance
         }
     }
 
-    void OnCreatureRespawn(Creature* pCreature) override
+    void OnCreatureRespawn(Creature* pCreature)
     {
         switch (pCreature->GetEntry())
         {
-            case NPC_FLAMEWAKER_PRIEST:
+            case 11662:  // Adds Sulfuron
                 if (m_auiEncounter[TYPE_SULFURON] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_CORE_RAGER:
+            case 11672:  // Adds Golemagg
                 if (m_auiEncounter[TYPE_GOLEMAGG] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_FLAMEWAKER:
+            case 11661:  // Adds Gehennas
                 if (m_auiEncounter[TYPE_GEHENNAS] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_FLAMEWAKER_PROTECTOR:
+            case 12119:  // Adds Lucifron
                 if (m_auiEncounter[TYPE_LUCIFRON] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_CORE_HOUND:
-            case NPC_ANCIENT_CORE_HOUND:
+            case 11665:  // Annihilateur de lave
+                if (urand(0, 1))
+                {
+                    pCreature->SetEntry(11668);
+                    pCreature->UpdateEntry(11668);
+                    pCreature->AIM_Initialize();
+                }
+                break;
+            case 11668:  // Seigneur de feu
+                if (urand(0, 1))
+                {
+                    pCreature->SetEntry(11665);
+                    pCreature->UpdateEntry(11665);
+                    pCreature->AIM_Initialize();
+                }
+                break;
+            // "Ancient Core Hounds will no longer respawn after you've killed Magmadar, the second boss in Molten Core."
+            case 11671:  // Chien
+            case 11673:  // Ancien chien
                 if (m_auiEncounter[TYPE_MAGMADAR] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
             case NPC_GARR:
-            case NPC_FIRESWORN:
-            case NPC_LAVA_SURGER:
+            case 12099:  // Adds Garr
+            case 12101: // Surgisseur
                 if (m_auiEncounter[TYPE_GARR] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
@@ -179,26 +196,10 @@ struct instance_molten_core : ScriptedInstance
                 m_auiEncounter[TYPE_RAGNAROS] = DONE;
                 pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_LAVA_ANNIHILATOR:
-                if (urand(0, 1))
-                {
-                    pCreature->SetEntry(NPC_FIRELORD);
-                    pCreature->UpdateEntry(NPC_FIRELORD);
-                }
-                pCreature->AIM_Initialize();
-                break;
-            case NPC_FIRELORD:
-                if (urand(0, 1))
-                {
-                    pCreature->SetEntry(NPC_LAVA_ANNIHILATOR);
-                    pCreature->UpdateEntry(NPC_LAVA_ANNIHILATOR);
-                }
-                pCreature->AIM_Initialize();
-                break;
         }
     }
 
-    void OnCreatureEnterCombat(Creature* pCreature) override
+    void OnCreatureEnterCombat(Creature* pCreature)
     {
         Unit* victim = pCreature->getVictim();
         if (!victim)
@@ -224,7 +225,7 @@ struct instance_molten_core : ScriptedInstance
         }
     }
 
-    void OnCreatureCreate(Creature* pCreature) override
+    void OnCreatureCreate(Creature* pCreature)
     {
         switch (pCreature->GetEntry())
         {
@@ -255,64 +256,56 @@ struct instance_molten_core : ScriptedInstance
             case NPC_RAGNAROS:
                 m_uiRagnarosGUID = pCreature->GetGUID();
                 break;
-            case NPC_FLAMEWAKER_PRIEST:
+            case NPC_FLAMEWAKERPRIEST:  // Adds Sulfuron
                 m_uiFlamewakerPriestGUID = pCreature->GetGUID();
                 if (m_auiEncounter[TYPE_SULFURON] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_CORE_RAGER:
+            case 11672:  // Adds Golemagg
                 if (m_auiEncounter[TYPE_GOLEMAGG] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_FLAMEWAKER:
+            case 11661:  // Adds Gehennas
                 if (m_auiEncounter[TYPE_GEHENNAS] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_FLAMEWAKER_PROTECTOR:
+            case 12119:  // Adds Lucifron
                 if (m_auiEncounter[TYPE_LUCIFRON] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
-            case NPC_LAVA_ANNIHILATOR:
+            case 11665:  // Annihilateur de lave
                 if (rand() % 2)
                 {
-                    pCreature->UpdateEntry(NPC_FIRELORD);
-                    pCreature->SetEntry(NPC_FIRELORD);
+                    pCreature->UpdateEntry(11668);
+                    pCreature->SetEntry(11668);
                     pCreature->AIM_Initialize();
                 }
                 break;
-            case NPC_FIRELORD:
+            case 11668:  // Seigneur de feu
                 if (rand() % 2)
                 {
-                    pCreature->UpdateEntry(NPC_LAVA_ANNIHILATOR);
-                    pCreature->SetEntry(NPC_LAVA_ANNIHILATOR);
+                    pCreature->UpdateEntry(11665);
+                    pCreature->SetEntry(11665);
                     pCreature->AIM_Initialize();
                 }
                 break;
-            case NPC_CORE_HOUND:
-            case NPC_ANCIENT_CORE_HOUND:
+            case 11671:  // Chien
+            case 11673:  // Ancien chien
                 if (m_auiEncounter[TYPE_MAGMADAR] == DONE)
                     pCreature->AddObjectToRemoveList();
                 break;
             case NPC_GARR:
                 m_uiGarrGUID = pCreature->GetGUID();
-                m_mNpcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
                 break;
-            case NPC_FIRESWORN:
-            case NPC_LAVA_SURGER:
+            case 12099:  // Adds Garr
+            case 12101: // Surgisseur
                 if (m_auiEncounter[TYPE_GARR] == DONE)
                     pCreature->AddObjectToRemoveList();
-                break;
-            case NPC_LAVA_SPAWN:
-                // prevent exponential lava spawn creation in case of evade bug
-                std::list<Creature*> LavaSpawnList;
-                GetCreatureListWithEntryInGrid(LavaSpawnList, pCreature, NPC_LAVA_SPAWN, 100.0f);
-                if (LavaSpawnList.size() > MAX_LAVA_SPAWNS)
-                    pCreature->ForcedDespawn();
                 break;
         }
     }
 
-    void SetData(uint32 uiType, uint32 uiData) override
+    void SetData(uint32 uiType, uint32 uiData)
     {
         switch (uiType)
         {
@@ -368,7 +361,7 @@ struct instance_molten_core : ScriptedInstance
         }
     }
 
-    const char* Save() override
+    const char* Save()
     {
         std::ostringstream saveStream;
         saveStream << m_auiEncounter[0] << " " << m_auiEncounter[1] << " " << m_auiEncounter[2] << " "
@@ -383,7 +376,7 @@ struct instance_molten_core : ScriptedInstance
         return strInstData->c_str();
     }
 
-    uint32 GetData(uint32 uiType) override
+    uint32 GetData(uint32 uiType)
     {
         switch (uiType)
         {
@@ -418,7 +411,7 @@ struct instance_molten_core : ScriptedInstance
         return 0;
     }
 
-    uint64 GetData64(uint32 uiData) override
+    uint64 GetData64(uint32 uiData)
     {
         switch (uiData)
         {
@@ -435,7 +428,7 @@ struct instance_molten_core : ScriptedInstance
         return 0;
     }
 
-    void Update(uint32 uiDiff) override
+    void Update(uint32 uiDiff)
     {
         if (RemoveTimer < uiDiff)
         {
@@ -445,7 +438,7 @@ struct instance_molten_core : ScriptedInstance
         else RemoveTimer -= uiDiff;
 
         Map::PlayerList const &liste = instance->GetPlayers();
-        if (liste.getFirst() != nullptr)
+        if (liste.getFirst() != NULL)
         {
             for (int i = 0; i < 7; i++)
             {
@@ -517,7 +510,7 @@ struct instance_molten_core : ScriptedInstance
         }
     }
 
-    void Load(const char* chrIn) override
+    void Load(const char* chrIn)
     {
         if (!chrIn)
         {
@@ -618,7 +611,7 @@ bool GOHello_go_rune_MC(Player* pPlayer, GameObject* pGo)
                         Rune->Delete();
                 }
                 else
-                    return true;
+                    true;
                 break;
             case 176956:                                    //Magmadar
                 if (pInstance->GetData(TYPE_MAGMADAR) == DONE)
@@ -629,7 +622,7 @@ bool GOHello_go_rune_MC(Player* pPlayer, GameObject* pGo)
                         Rune->Delete();
                 }
                 else
-                    return true;
+                    true;
                 break;
             case 176957:                                    //Gehennas
                 if (pInstance->GetData(TYPE_GEHENNAS) == DONE)
@@ -640,7 +633,7 @@ bool GOHello_go_rune_MC(Player* pPlayer, GameObject* pGo)
                         Rune->Delete();
                 }
                 else
-                    return true;
+                    true;
                 break;
         }
 

@@ -39,7 +39,6 @@ enum
     SAY_HALFLIFE                = -1469029,
     SAY_KILLTARGET              = -1469030,
     SAY_NEFARIUS_CORRUPT_1      = -1469006,                 // When he corrupts Vaelastrasz
-    SAY_NEFARIUS_CORRUPT_2      = -1469037,                 
     // Spells
     // ------
 
@@ -80,16 +79,13 @@ enum
     FACTION_BLACK_DRAGON        = 103,
     FACTION_FRIENDLY            = 35,
 
-    MODEL_INVISIBLE             = 11686,
-
-    GOSSIP_TEXT_VAEL_1          = 7156,
-    GOSSIP_TEXT_VAEL_2          = 7256
+    MODEL_INVISIBLE             = 11686
 };
 
 // Coords used to spawn Nefarius at the throne
 static const float aNefariusSpawnLoc[4] = { -7466.16f, -1040.80f, 412.053f, 2.14675f};
 
-#define GOSSIP_ITEM_VAEL_1         "I cannot, Vaelastrasz! Surely something can be done to heal you!"
+#define GOSSIP_ITEM_VAEL_1         "I cannot Vaelastrasz ! Surely something can be done to heal you!"
 #define GOSSIP_ITEM_VAEL_2         "Vaelastrasz, no!!!"
 
 struct boss_vaelAI : public ScriptedAI
@@ -152,8 +148,6 @@ struct boss_vaelAI : public ScriptedAI
         m_nefariusGuid.Clear();
 
         m_bEngaged = false;
-
-        m_creature->SetHealthPercent(30.0f);
     }
 
     void BeginSpeach(Unit* target)
@@ -184,6 +178,8 @@ struct boss_vaelAI : public ScriptedAI
 
     void Aggro(Unit* /*pWho*/)
     {
+        m_creature->SetHealth(int(m_creature->GetMaxHealth()*.3));
+
         if (!m_bCastedEssenceOfTheRed)
         {
             DoCastSpellIfCan(m_creature, SPELL_ESSENCE_OF_THE_RED);
@@ -255,12 +251,7 @@ struct boss_vaelAI : public ScriptedAI
                         }
                         DoScriptText(SAY_NEFARIUS_CORRUPT_1, pNefarius);
                     }
-                    m_uiIntroTimer = 15750;
-                    break;
-                case 2:
-                    if (Creature* pNefarius = m_creature->GetMap()->GetCreature(m_nefariusGuid))
-                        DoScriptText(SAY_NEFARIUS_CORRUPT_2, pNefarius);
-                    m_uiSelectableTimer = 8250;
+                    m_uiSelectableTimer = 12000;
                     m_bCastedbanishment = true;
                     m_pInstance->SetData(TYPE_VAELASTRASZ, SPECIAL);
                     m_uiIntroTimer = 0;
@@ -438,7 +429,7 @@ bool GossipSelect_boss_vael(Player* pPlayer, Creature* pCreature, uint32 uiSende
     {
         case GOSSIP_ACTION_INFO_DEF+1:
             pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_VAEL_2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
-            pPlayer->SEND_GOSSIP_MENU(GOSSIP_TEXT_VAEL_2, pCreature->GetObjectGuid());
+            pPlayer->SEND_GOSSIP_MENU(130210, pCreature->GetObjectGuid());
             break;
         case GOSSIP_ACTION_INFO_DEF+2: // Fight Time
             pPlayer->CLOSE_GOSSIP_MENU();
@@ -456,7 +447,7 @@ bool GossipHello_boss_vael(Player* pPlayer, Creature* pCreature)
         pPlayer->PrepareQuestMenu(pCreature->GetObjectGuid());
 
     pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_VAEL_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-    pPlayer->SEND_GOSSIP_MENU(GOSSIP_TEXT_VAEL_1, pCreature->GetObjectGuid());
+    pPlayer->SEND_GOSSIP_MENU(130200, pCreature->GetObjectGuid());
 
     return true;
 }
@@ -504,18 +495,8 @@ struct npc_death_talon_CaptainAI : public ScriptedAI
         m_uiMarkFlamesTimer         = 6000;
         m_uiCommandingShoutTimer    = urand(12000, 25000);
         m_uiCleaveTimer             = urand(4000, 8000);
-        DoCastSpellIfCan(m_creature, SPELL_AURA_FLAMES, CAST_AURA_NOT_PRESENT);
+
         SetAuraFlames(false);
-    }
-
-    void MoveInLineOfSight(Unit *pUnit)
-    {
-        if (!pUnit || m_creature->getVictim())
-            return;
-
-        if (pUnit->IsPlayer() && m_creature->GetDistance2d(pUnit) < 29.0f && m_creature->IsWithinLOSInMap(pUnit)
-          && pUnit->isTargetableForAttack() && pUnit->isInAccessablePlaceFor(m_creature))
-            AttackStart(pUnit);
     }
 
     void Aggro(Unit* /*pWho*/)
@@ -591,7 +572,7 @@ struct npc_death_talon_CaptainAI : public ScriptedAI
         }
         else
             m_uiMarkFlamesTimer -= uiDiff;
-        
+
         if (m_uiMarkDetonationTimer < uiDiff)
         {
             if (Unit* pUnit = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
@@ -615,75 +596,6 @@ CreatureAI* GetAI_npc_death_talon_Captain(Creature* pCreature)
     return new npc_death_talon_CaptainAI(pCreature);
 }
 
-/**************************
-*** Death Talon Seether ***
-***************************/
-
-enum
-{
-    SPELL_FRENZY         = 22428,
-    SPELL_FLAME_BUFFET   = 22433,
-
-    EMOTE_FRENZY         = -1000001
-};
-
-struct npc_death_talon_SeetherAI : public ScriptedAI
-{
-    npc_death_talon_SeetherAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        Reset();
-    }
-
-    uint32 m_uiFlameBuffetTimer;
-    uint32 m_uiFrenzyTimer;
-    bool m_bEngaged;
-
-    void Reset()
-    {
-        m_uiFlameBuffetTimer = urand(5000, 10000);
-        m_uiFrenzyTimer     = 15000;
-        m_bEngaged          = false;
-    }
-
-    void UpdateAI(const uint32 uiDiff)
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        if (m_uiFrenzyTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_FRENZY) == CAST_OK)
-            {
-                DoScriptText(EMOTE_FRENZY, m_creature);
-                m_uiFrenzyTimer = 15000;
-            }
-        }
-        else m_uiFrenzyTimer -= uiDiff;
-
-        if (!m_bEngaged)
-        {
-            if (m_creature->IsWithinMeleeRange(m_creature->getVictim()))
-                m_bEngaged = true;
-        }
-        else
-        {
-            if (m_uiFlameBuffetTimer < uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_FLAME_BUFFET) == CAST_OK)
-                    m_uiFlameBuffetTimer = urand(8000, 12000);
-            }
-            else m_uiFlameBuffetTimer -= uiDiff;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_npc_death_talon_Seether(Creature* pCreature)
-{
-    return new npc_death_talon_SeetherAI(pCreature);
-}
-
 void AddSC_boss_vael()
 {
     Script* pNewScript;
@@ -698,10 +610,5 @@ void AddSC_boss_vael()
     pNewScript = new Script;
     pNewScript->Name = "npc_death_talon_Captain";
     pNewScript->GetAI = &GetAI_npc_death_talon_Captain;
-    pNewScript->RegisterSelf();
-
-    pNewScript = new Script;
-    pNewScript->Name = "npc_death_talon_Seether";
-    pNewScript->GetAI = &GetAI_npc_death_talon_Seether;
     pNewScript->RegisterSelf();
 }

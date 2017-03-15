@@ -43,7 +43,7 @@ class HostileRefManager : public RefManager<Unit, ThreatManager>
         // use for buffs and healing threat functionality
         void threatAssist(Unit *pVictim, float threat, SpellEntry const *threatSpell = 0, bool pSingleTarget=false);
 
-        // Nostalrius
+        // Elysium
         void addTempThreat(float threat, bool apply);
 
         void addThreatPercent(int32 pValue);

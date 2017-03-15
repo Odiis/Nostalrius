@@ -180,7 +180,7 @@ void WorldSession::HandleCreatureQueryOpcode(WorldPacket & recv_data)
         data << uint8(0) << uint8(0) << uint8(0);           // name2, name3, name4, always empty
         data << SubName;
         data << uint32(ci->type_flags);                     // flags
-        data << uint32(ci->type); // Nostalrius : fix pets des chasseurs non consideres comme betes.
+        data << uint32(ci->type); // Elysium : fix pets des chasseurs non consideres comme betes.
 
         data << uint32(ci->family);                         // CreatureFamily.dbc
         data << uint32(ci->rank);                           // Creature Rank (elite, boss, etc)
@@ -276,9 +276,9 @@ void WorldSession::HandleCorpseQueryOpcode(WorldPacket & /*recv_data*/)
     if (corpsemapid != _player->GetMapId())
     {
         // search entrance map for proper show entrance
-        if (MapEntry const* temp = sMapStorage.LookupEntry<MapEntry>(mapid))
+        if (InstanceTemplate const* temp = sObjectMgr.GetInstanceTemplate(mapid))
         {
-            if (temp->IsDungeon() && temp->ghostEntranceMap >= 0)
+            if (temp->ghostEntranceMap >= 0)
             {
                 // if corpse map have entrance
                 if (TerrainInfo const* entranceMap = sTerrainMgr.LoadTerrain(temp->ghostEntranceMap))

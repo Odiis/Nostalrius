@@ -1,7 +1,7 @@
 #include "scriptPCH.h"
 #include "stratholme.h"
 
-#define TEXTE_PORTE_SERVICE "Intruders at the service gate! Baron Rivendare must be warned!"
+#define TEXTE_PORTE_SERVICE "Des intrus à la Porte de service ! Le baron Vaillefendre doit Ãªtre averti !"
 
 #define SPELL_DRAININGBLOW      16793
 #define SPELL_CROWDPUMMEL       10887
@@ -49,9 +49,9 @@ struct boss_magistrate_barthilasAI : public ScriptedAI
     {
         if (emote == 1000 && m_mvt_id == 0)
         {
-            float xDest = 3668.3f;
-            float yDest = -3607.4f;
-            float zDest = 137.2f;
+            float xDest = 3668.3;
+            float yDest = -3607.4;
+            float zDest = 137.2;
             float x = xDest - m_creature->GetPositionX();
             float y = yDest - m_creature->GetPositionY();
             float speed = m_creature->GetSpeed(MOVE_RUN) * 0.001f;
@@ -88,10 +88,10 @@ struct boss_magistrate_barthilasAI : public ScriptedAI
                 {
                     float xDest = 3725.5;
                     float yDest = -3600;
-                    float zDest = 142.4f;
-                    float xOrigine = 3668.3f;
-                    float yOrigine = -3607.4f;
-                    float zOrigine = 137.2f;
+                    float zDest = 142.4;
+                    float xOrigine = 3668.3;
+                    float yOrigine = -3607.4;
+                    float zOrigine = 137.2;
                     float x = xDest - xOrigine;
                     float y = yDest - yOrigine;
                     float speed = m_creature->GetSpeed(MOVE_RUN) * 0.001f;
@@ -104,7 +104,7 @@ struct boss_magistrate_barthilasAI : public ScriptedAI
                 }
                 else
                 {
-                    m_creature->GetMap()->CreatureRelocation(m_creature, 4066.3f, -3534.5f, 122.6f, 2.48137f);
+                    m_creature->GetMap()->CreatureRelocation(m_creature, 4066.3, -3534.5, 122.6, 2.48137);
                     m_mvt_timer = 0;
                     m_mvt_id = -1;
                 }

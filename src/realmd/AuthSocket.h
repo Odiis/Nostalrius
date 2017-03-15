@@ -31,21 +31,6 @@
 
 #include "BufferedSocket.h"
 
-struct PINData
-{
-    uint8 salt[16];
-    uint8 hash[20];
-};
-
-enum LockFlag
-{
-    NONE            = 0x00,
-    IP_LOCK         = 0x01,
-    FIXED_PIN       = 0x02,
-    TOTP            = 0x04,
-    ALWAYS_ENFORCE  = 0x08
-};
-
 /// Handle login commands
 class AuthSocket: public BufferedSocket
 {
@@ -58,9 +43,7 @@ class AuthSocket: public BufferedSocket
         void OnAccept();
         void OnRead();
         void SendProof(Sha1Hash sha);
-        void LoadRealmlist(ByteBuffer &pkt);
-        bool VerifyPinData(uint32 pin, const PINData& clientData);
-        uint32 GenerateTotpPin(const std::string& secret, int interval);
+        void LoadRealmlist(ByteBuffer &pkt, uint32 acctid);
 
         bool _HandleLogonChallenge();
         bool _HandleLogonProof();
@@ -76,42 +59,16 @@ class AuthSocket: public BufferedSocket
         void _SetVSFields(const std::string& rI);
 
     private:
-        enum eStatus
-        {
-            STATUS_CHALLENGE,
-            STATUS_LOGON_PROOF,
-            STATUS_RECON_PROOF,
-            STATUS_PATCH,      // unused in CMaNGOS
-            STATUS_AUTHED,
-            STATUS_CLOSED
-        };
 
         BigNumber N, s, g, v;
         BigNumber b, B;
         BigNumber K;
         BigNumber _reconnectProof;
 
-        bool _authed, promptPin;
-
-        eStatus _status;
+        bool _authed;
 
         std::string _login;
         std::string _safelogin;
-        std::string securityInfo;
-
-        BigNumber serverSecuritySalt;
-        LockFlag lockFlags;
-        uint32 gridSeed;
-
-        static constexpr uint32 Win = 'Win';
-        static constexpr uint32 OSX = 'OSX';
-
-        static constexpr uint32 X86 = 'x86';
-
-        uint32 _os;
-        uint32 _platform;
-        uint32 _accountId;
-        uint32 _lastRealmListRequest;
 
         // Since GetLocaleByName() is _NOT_ bijective, we have to store the locale as a string. Otherwise we can't differ
         // between enUS and enGB, which is important for the patch system

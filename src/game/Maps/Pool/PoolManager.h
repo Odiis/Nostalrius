@@ -38,14 +38,13 @@ enum PoolFlags
 
 struct PoolTemplateData
 {
-    PoolTemplateData() : mapEntry(nullptr), MaxLimit(0), PoolFlags(0), InstanceId(0) {}
+    PoolTemplateData() : mapEntry(NULL), MaxLimit(0), PoolFlags(0) {}
 
     MapEntry const* mapEntry;                               // Map id used for pool creature/gameobject spams. In case non-instanceable map
                                                             // it can be not unique but base at sharing same pool system dynamic data in this case this is not important.
                                                             // NULL is no spawns by some reason
     uint32  MaxLimit;
     uint32  PoolFlags;
-    uint32  InstanceId;
     std::string description;
 
     // helpers

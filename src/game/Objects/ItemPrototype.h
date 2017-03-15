@@ -391,8 +391,10 @@ inline uint8 ItemSubClassToDurabilityMultiplierId(uint32 ItemClass, uint32 ItemS
 
 enum ItemExtraFlags
 {
-    ITEM_EXTRA_REAL_TIME_DURATION = 0x01,		// if set and have Duration time, then offline time included in counting, if not set then counted only in game time
-    ITEM_EXTRA_ALL = 0x01						// all used flags, used for check DB data (mask all above flags)
+    ITEM_EXTRA_NON_CONSUMABLE     = 0x01,                   // use as additional flag to spellcharges_N negative values, item not expire at no chanrges
+    ITEM_EXTRA_REAL_TIME_DURATION = 0x02,                   // if set and have Duration time, then offline time included in counting, if not set then counted only in game time
+
+    ITEM_EXTRA_ALL                = 0x03                    // all used flags, used for check DB data (mask all above flags)
 };
 
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
@@ -524,8 +526,6 @@ struct ItemPrototype
 
     bool IsPotion() const { return Class==ITEM_CLASS_CONSUMABLE && SubClass==ITEM_SUBCLASS_POTION; }
     bool IsConjuredConsumable() const { return Class == ITEM_CLASS_CONSUMABLE && (Flags & ITEM_FLAG_CONJURED); }
-    bool IsWeapon() const { return Class == ITEM_CLASS_WEAPON; }
-    bool IsRangedWeapon() const { return IsWeapon() && (InventoryType == INVTYPE_RANGED || InventoryType == INVTYPE_THROWN || InventoryType == INVTYPE_RANGEDRIGHT); }
 };
 
 // GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform

@@ -513,7 +513,7 @@ bool Database::RollbackTransaction()
 bool Database::CheckRequiredMigrations(const char **migrations)
 {
     std::set<std::string> appliedMigrations;
-
+	
     QueryResult *result = Query("SELECT * FROM `migrations`");
 
     if (result)
@@ -522,7 +522,6 @@ bool Database::CheckRequiredMigrations(const char **migrations)
         {
             appliedMigrations.insert(result->Fetch()[0].GetString());
         } while (result->NextRow());
-        delete result;
     }
 
     std::set<std::string> missingMigrations;
@@ -545,7 +544,6 @@ bool Database::CheckRequiredMigrations(const char **migrations)
         return false;
 
     std::string dbName = result->Fetch()[0].GetString();
-    delete result;
 
     if (!missingMigrations.empty())
     {

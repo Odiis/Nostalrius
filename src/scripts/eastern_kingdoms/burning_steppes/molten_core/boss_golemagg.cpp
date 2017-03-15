@@ -21,10 +21,6 @@ SDComment: Timers need to be confirmed, Golemagg's Trust need to be checked
 SDCategory: Molten Core
 EndScriptData */
 
-/*
-    Golemagg and his adds should evade if dogs are pulled too far away from Golemagg
-*/
-
 #include "scriptPCH.h"
 #include "molten_core.h"
 

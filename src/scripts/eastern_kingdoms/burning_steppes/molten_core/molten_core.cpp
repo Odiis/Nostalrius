@@ -28,9 +28,16 @@ EndContentData */
 #include "scriptPCH.h"
 #include "molten_core.h"
 
-/*######
-## mob_firewalker
-######*/
+#define SPELL_CONE_OF_FIRE          19630
+#define SPELL_BITE                  19771
+
+//Random Debuff (each hound has only one of these)
+#define SPELL_GROUND_STOMP          19364
+#define SPELL_ANCIENT_DREAD         19365
+#define SPELL_CAUTERIZING_FLAMES    19366
+#define SPELL_WITHERING_HEAT        19367
+#define SPELL_ANCIENT_DESPAIR       19369
+#define SPELL_ANCIENT_HYSTERIA      19372
 
 enum
 {
@@ -115,26 +122,6 @@ CreatureAI* GetAI_Firewalker(Creature* pCreature)
     return new FirewalkerAI(pCreature);
 }
 
-
-/*######
-## mob_ancient_core_hound
-######*/
-
-enum 
-{
-    SPELL_CONE_OF_FIRE          = 19630,
-    SPELL_VICIOUS_BITE          = 19319,
-    SPELL_BITE                  = 19771,
-
-    //Random Debuff (each hound has only one of these)
-    SPELL_GROUND_STOMP          = 19364,
-    SPELL_ANCIENT_DREAD         = 19365,
-    SPELL_CAUTERIZING_FLAMES    = 19366,
-    SPELL_WITHERING_HEAT        = 19367,
-    SPELL_ANCIENT_DESPAIR       = 19369,
-    SPELL_ANCIENT_HYSTERIA      = 19372
-};
-
 struct mob_ancient_core_houndAI : public ScriptedAI
 {
     mob_ancient_core_houndAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -143,10 +130,10 @@ struct mob_ancient_core_houndAI : public ScriptedAI
         Reset();
     }
 
-    uint32 m_uiConeOfFireTimer;
-    uint32 m_uiRandomDebuffTimer;
-    uint32 m_uiBiteTimer;
+    uint32 SouffleTimer;
+    uint32 DebuffTimer;
     uint32 RandDebuff;
+    uint32 BiteTimer;
 
     ScriptedInstance* m_pInstance;
 
@@ -173,75 +160,50 @@ struct mob_ancient_core_houndAI : public ScriptedAI
                 RandDebuff = SPELL_ANCIENT_HYSTERIA;
                 break;
         }
-        m_uiConeOfFireTimer   = urand(4000, 7000);
-        m_uiRandomDebuffTimer = urand(12000, 15000);
-        m_uiBiteTimer         = 4000;
-        
-        m_creature->SetNoCallAssistance(true);
+        SouffleTimer = 10000;
+        DebuffTimer = 15000;
+        BiteTimer = 4000;
     }
 
     void JustDied(Unit* pKiller)
     {
-        if (m_pInstance && m_pInstance->GetData(TYPE_MAGMADAR) == DONE)
-        {
-            m_creature->SetRespawnTime(7 * DAY);
-            m_creature->SaveRespawnTime();
-        }
     }
-
-    /*
-    void MoveInLineOfSight(Unit *pWho) override
-    {        
-        if (!m_creature->isInCombat())
-        {
-            if (pWho->IsPlayer() && m_creature->IsWithinDistInMap(pWho, 20.0f) && pWho->isTargetableForAttack())
-            {
-                // allow Soothe Animal to lower aggro range
-                if (m_creature->HasAuraType(SPELL_AURA_MOD_DETECT_RANGE) && !m_creature->IsWithinDistInMap(pWho, 10.0f))
-                    return;
-
-                pWho->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
-                m_creature->AI()->AttackStart(pWho);
-            }
-        }
-    }
-    */
 
     void UpdateAI(const uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        if (m_uiConeOfFireTimer < uiDiff)
+        if (SouffleTimer < uiDiff)
         {
             m_creature->CastSpell(m_creature, SPELL_CONE_OF_FIRE, false);
-            m_uiConeOfFireTimer = urand(6000, 8000);
+            SouffleTimer = 7000;
         }
-        else m_uiConeOfFireTimer -= uiDiff;
+        else SouffleTimer -= uiDiff;
 
-        if (m_uiRandomDebuffTimer < uiDiff)
+        if (DebuffTimer < uiDiff)
         {
-            if (DoCastSpellIfCan(m_creature, RandDebuff) == CAST_OK)
-                m_uiRandomDebuffTimer = urand(14000, 24000);;
+            m_creature->CastSpell(m_creature, RandDebuff, false);
+            DebuffTimer = 24000;
         }
-        else m_uiRandomDebuffTimer -= uiDiff;
+        else DebuffTimer -= uiDiff;
 
-        if (m_uiBiteTimer < uiDiff)
+        if (BiteTimer < uiDiff)
         {
             if (m_creature->IsWithinMeleeRange(m_creature->getVictim()))
             {
                 m_creature->CastSpell(m_creature->getVictim(), SPELL_BITE, false);
-                m_uiBiteTimer = 6000;
+                BiteTimer = 6000;
             }
         }
-        else m_uiBiteTimer -= uiDiff;
+        else BiteTimer -= uiDiff;
 
         if (m_creature->isAttackReady())
         {
             //If we are within range melee the target
             if (m_creature->IsWithinMeleeRange(m_creature->getVictim()))
             {
-                m_creature->CastSpell(m_creature->getVictim(), SPELL_VICIOUS_BITE, true);
+                m_creature->CastSpell(m_creature->getVictim(), 19319, true);
                 m_creature->resetAttackTimer();
             }
         }
@@ -253,257 +215,34 @@ CreatureAI* GetAI_mob_ancient_core_hound(Creature* pCreature)
     return new mob_ancient_core_houndAI(pCreature);
 }
 
-
-/*######
-## mob_core_hound
-######*/
-
-enum
+// Chiens du magma
+/*
+UPDATE creature_template SET ScriptName="mob_chien_magma" WHERE entry=11671;
+*/
+struct mob_chien_magmaAI : public ScriptedAI
 {
-    SPELL_SERRATED_BITE     = 19771,
-    SPELL_FIRE_NOVA_VISUAL  = 19823,
-};
-
-struct mob_core_houndAI : public ScriptedAI
-{
-    mob_core_houndAI(Creature* pCreature) : ScriptedAI(pCreature)
+    mob_chien_magmaAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        m_uiCheckOtherDeathTimer = 0;
+        bWasDead = false;
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;
-
-    uint32 m_uiSerratedBiteTimer;
-    uint32 m_uiCastTimer;
-    uint32 m_uiResurrectTimer;
-
-    bool m_bDead;
-    bool m_bResurrectionOkay;
-
-    void ResurrectSelf()
-    {
-        m_creature->SetHealth(m_creature->GetMaxHealth());
-        m_creature->SetStandState(UNIT_STAND_STATE_STAND);
-        m_creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-        m_creature->AttackStop();
-        
-        m_bDead = false;
-    }
-
-    void FeignDeath()
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        m_creature->MonsterTextEmote("Core Hound collapses and begins to smolder.");
-        m_creature->SetHealth(0);
-        m_creature->RemoveAllAuras();
-        m_creature->GetMotionMaster()->Clear();
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
-        m_creature->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-        m_uiResurrectTimer = 10000;
-        m_bDead = true;
-    }
-    
-    void Kill_Self()
-    {
-        m_creature->DealDamage(m_creature, 1, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
-        m_creature->ForcedDespawn();
-    }
-
-    void Reset() override
-    {
-        m_uiSerratedBiteTimer = urand(4000, 7000);
-        m_uiResurrectTimer = 10000;
-
-        ResurrectSelf();
-    }
-
-    void Aggro(Unit* pWho) override
-    {
-        m_creature->SetInCombatWithZone();
-    }
-
-    void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) override
-    {
-        if (m_creature->GetHealth() < uiDamage)
-        {
-            // time to fake death
-            uiDamage = 0;
-
-            if (!m_bDead)
-                FeignDeath();
-            return;
-       }
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        // Return since we have no target
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim() || !m_pInstance)
-            return;
-
-        // Resurrect pack if not died during 10 seconds
-        if (m_bDead)
-        {
-            if (m_uiResurrectTimer < uiDiff)
-            {
-                m_bResurrectionOkay = false;
-
-                std::list<Creature*> m_CoreHoundList;
-                GetCreatureListWithEntryInGrid(m_CoreHoundList, m_creature, NPC_CORE_HOUND, 100.0f);
-                for (std::list<Creature*>::const_iterator itr = m_CoreHoundList.begin(); itr != m_CoreHoundList.end(); ++itr)
-                {
-                    if ((*itr) && (*itr)->isInCombat())
-                    {
-                        if ((*itr)->GetHealth() > 0)
-                            m_bResurrectionOkay = true;
-                    }
-                }
-            
-                if (m_bResurrectionOkay)
-                {
-                    ResurrectSelf();
-                    DoCastSpellIfCan(m_creature, SPELL_FIRE_NOVA_VISUAL, CAST_TRIGGERED);
-                    m_creature->MonsterTextEmote("Core Hound reignites from the heat of another Core Hound!");
-                }
-                else
-                    Kill_Self();
-            }
-            else
-                m_uiResurrectTimer -= uiDiff;
-                
-            return;
-        }
-
-        //Serrated Bite
-        if (m_uiSerratedBiteTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature->getVictim(),SPELL_SERRATED_BITE) == CAST_OK)
-                m_uiSerratedBiteTimer = urand(4000, 7000);
-        }
-        else
-            m_uiSerratedBiteTimer -= uiDiff;
-
-        if (!m_bDead)
-            DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_mob_core_hound(Creature* pCreature)
-{
-    return new mob_core_houndAI(pCreature);
-}
-
-/*######
-## mob_firelord
-######*/
-
-enum
-{
-    SPELL_INCINERATE_AURA   = 19396,
-    SPELL_INCINERATE        = 19397,
-    SPELL_LAVASPAWN         = 19569,
-    SPELL_SOULBURN          = 19393
-};
-
-struct mob_firelordAI : public ScriptedAI
-{
-    mob_firelordAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    uint32 m_uiSummonLavaSpawnTimer;
-    uint32 m_uiSoulBurnTimer;
-
-    void Reset() override
-    {
-        m_uiSummonLavaSpawnTimer  = urand(7500, 12500);
-        m_uiSoulBurnTimer         = urand(4000, 6000);
-    }
-
-    void Aggro(Unit* pWho) override
-    {
-        DoCastSpellIfCan(m_creature, SPELL_INCINERATE_AURA, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
-    }
-    
-    void JustSummoned(Creature* pSummoned) override
-    {
-        pSummoned->AI()->AttackStart(m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0));
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        // Return since we have no target
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        //Summon Lava Spawn
-        if (m_uiSummonLavaSpawnTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_LAVASPAWN) == CAST_OK)
-                m_uiSummonLavaSpawnTimer = urand(15000, 20000);
-        }
-        else m_uiSummonLavaSpawnTimer -= uiDiff;
-
-        // Soul Burn
-        if (m_uiSoulBurnTimer < uiDiff)
-        {
-            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
-            {
-                if (DoCastSpellIfCan(pTarget, SPELL_SOULBURN, CAST_TRIGGERED) == CAST_OK)
-                    m_uiSoulBurnTimer = urand(3000, 4000);
-            }
-        }
-        else m_uiSoulBurnTimer -= uiDiff;
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_mob_firelord(Creature* pCreature)
-{
-    return new mob_firelordAI(pCreature);
-}
-
-/*######
-## mob_lava_surger
-######*/
-
-enum
-{
-    SPELL_SURGE            = 19196
-};
-
-struct mob_lava_surgerAI : public ScriptedAI
-{
-    mob_lava_surgerAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    uint32 m_uiSurgeTimer;
-    ScriptedInstance* m_pInstance;
+    uint32 m_uiCheckOtherDeathTimer;
+    uint32 m_uiMorsureTimer;
+    bool bWasDead;
 
     void Reset()
     {
-        m_uiSurgeTimer = urand(1000, 2000);
+        m_uiCheckOtherDeathTimer = 10000;
+        m_uiMorsureTimer = urand(5000, 10000);
     }
 
     void JustDied(Unit* pKiller)
     {
-        if (m_pInstance && m_pInstance->GetData(TYPE_GARR) == DONE)
-        {
-            m_creature->SetRespawnTime(7 * DAY);
-            m_creature->SaveRespawnTime();
-        }
+        m_uiCheckOtherDeathTimer = 10000;
+        bWasDead = true;
+        //m_creature->MonsterTextEmote("?Chien du magma commence à fondre?.", false);
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -511,31 +250,109 @@ struct mob_lava_surgerAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        if (m_creature->HasAuraType(SPELL_AURA_MOD_STUN))     // don't update CDs while Banished
+        bWasDead = false;
+        if (m_uiMorsureTimer < uiDiff)
+        {
+            if (m_creature->IsWithinMeleeRange(m_creature->getVictim()))
+            {
+                DoCastSpellIfCan(m_creature->getVictim(), 19771);
+                m_uiMorsureTimer = urand(10000, 15000);
+            }
+        }
+        else
+            m_uiMorsureTimer -= uiDiff;
+
+        DoMeleeAttackIfReady();
+    }
+
+    void UpdateAI_corpse(const uint32 uiDiff)
+    {
+        if (!bWasDead)
             return;
 
-        // Surge Timer
-        if (m_uiSurgeTimer < uiDiff)
+        if (m_uiCheckOtherDeathTimer < uiDiff)
         {
-            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_FARTHEST, 0, SPELL_SURGE, SELECT_FLAG_PLAYER | SELECT_FLAG_IN_LOS))
+            bWasDead = false;
+            // Si la creature la plus proche vivante est en combat -> Respawn
+            if (Creature* pCreature = m_creature->FindNearestCreature(m_creature->GetEntry(), 50.0f, true))
             {
-                if (m_creature->GetDistance2d(pTarget) > 7.0f)
+                if (pCreature->isInCombat())
                 {
-                    if (DoCastSpellIfCan(pTarget, SPELL_SURGE) == CAST_OK)
-                        m_uiSurgeTimer = urand(5000, 6000);
+                    m_creature->SetDeathState(ALIVE);
+                    m_creature->SetHealthPercent(100.0f);
+                    if (Unit* pVictim = pCreature->getVictim())
+                        AttackStart(pVictim);
                 }
             }
         }
         else
-            m_uiSurgeTimer -= uiDiff;
+            m_uiCheckOtherDeathTimer -= uiDiff;
+    }
+};
+
+CreatureAI* GetAI_mob_chien_magma(Creature* pCreature)
+{
+    return new mob_chien_magmaAI(pCreature);
+}
+
+struct npc_surgisseur_laveAI : public ScriptedAI
+{
+    npc_surgisseur_laveAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        Reset();
+    }
+
+    uint32 CheckTimer;
+    ScriptedInstance* m_pInstance;
+
+    void Reset()
+    {
+        CheckTimer = 10000;
+    }
+
+    void JustDied(Unit* pKiller)
+    {
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        bool Ban = m_creature->GetFirstAuraBySpellIconAndVisual(96, 1305);
+
+        if (Ban == false)
+        {
+            if (CheckTimer < uiDiff)
+            {
+                CheckTimer = urand(5000, 6000);
+                Map::PlayerList const &liste = m_creature->GetMap()->GetPlayers();
+                for (Map::PlayerList::const_iterator i = liste.begin(); i != liste.end(); ++i)
+                {
+                    if (i->getSource()->isAlive() && i->getSource()->isInCombat())
+                    {
+                        if (m_creature->GetDistance2d(i->getSource()) > 8.0f && m_creature->GetDistance2d(i->getSource()) < 40.0f && m_creature->IsWithinLOSInMap(i->getSource()))
+                        {
+                            m_creature->CastSpell(i->getSource(), 19196, false);
+                            m_creature->Relocate(i->getSource()->GetPositionX(), i->getSource()->GetPositionY(), i->getSource()->GetPositionZ());
+                            m_creature->MonsterMove(i->getSource()->GetPositionX(), i->getSource()->GetPositionY(), i->getSource()->GetPositionZ());
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+                CheckTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
 };
 
-CreatureAI* GetAI_mob_lava_surger(Creature* pCreature)
+CreatureAI* GetAI_npc_surgisseur_lave(Creature* pCreature)
 {
-    return new mob_lava_surgerAI(pCreature);
+    return new npc_surgisseur_laveAI(pCreature);
 }
 
 void AddSC_molten_core()
@@ -553,17 +370,12 @@ void AddSC_molten_core()
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "mob_core_hound";
-    newscript->GetAI = &GetAI_mob_core_hound;
+    newscript->Name = "mob_chien_magma";
+    newscript->GetAI = &GetAI_mob_chien_magma;
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "mob_lava_surger";
-    newscript->GetAI = &GetAI_mob_lava_surger;
-	newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "mob_firelord";
-	newscript->GetAI = &GetAI_mob_firelord;
+    newscript->Name = "npc_surgisseur_lave";
+    newscript->GetAI = &GetAI_npc_surgisseur_lave;
     newscript->RegisterSelf();
 }

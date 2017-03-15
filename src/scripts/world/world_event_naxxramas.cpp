@@ -1,5 +1,5 @@
 /*
-Script NOSTALRIUS - World event Naxxramas
+Script ELYSIUM - World event Naxxramas
 Tout ce qui concerne les pop exterieurs de necropoles.
 */
 
@@ -84,16 +84,16 @@ enum
     NECROPOLIS_ATTACK_TIMER             = 4 * 60 * 60,
     DELAY_ELITE_RESPAWN                 = 1 * 60 * 60, // 1heure
 #endif
-    LANG_CULTIST_ENGINEER_OPTION        = NOST_TEXT(120),
-    LANG_SURE_OPTION                    = NOST_TEXT(121),
-    LANG_VICTORIES_COUNT_OPTION         = NOST_TEXT(127),
-    LANG_TANARIS_ATTACKED_OPTION        = NOST_TEXT(128),
-    LANG_AZSHARA_ATTACKED_OPTION        = NOST_TEXT(129),
-    LANG_EP_ATTACKED_OPTION             = NOST_TEXT(130),
-    LANG_WINTERSPRING_ATTACKED_OPTION   = NOST_TEXT(131),
-    LANG_BL_ATTACKED_OPTION             = NOST_TEXT(132),
-    LANG_BS_ATTACKED_OPTION             = NOST_TEXT(133),
-    LANG_NO_ATTACK_OPTION               = NOST_TEXT(134),
+    LANG_CULTIST_ENGINEER_OPTION        = ELYSIUM_TEXT(120),
+    LANG_SURE_OPTION                    = ELYSIUM_TEXT(121),
+    LANG_VICTORIES_COUNT_OPTION         = ELYSIUM_TEXT(127),
+    LANG_TANARIS_ATTACKED_OPTION        = ELYSIUM_TEXT(128),
+    LANG_AZSHARA_ATTACKED_OPTION        = ELYSIUM_TEXT(129),
+    LANG_EP_ATTACKED_OPTION             = ELYSIUM_TEXT(130),
+    LANG_WINTERSPRING_ATTACKED_OPTION   = ELYSIUM_TEXT(131),
+    LANG_BL_ATTACKED_OPTION             = ELYSIUM_TEXT(132),
+    LANG_BS_ATTACKED_OPTION             = ELYSIUM_TEXT(133),
+    LANG_NO_ATTACK_OPTION               = ELYSIUM_TEXT(134),
 
     LANG_CULTIST_ENGINEER_MENU          = 20100,
     LANG_ARGENT_DAWN_GOSSIP             = 20101,
@@ -307,14 +307,14 @@ public:
         me->SetVisible(true);
         _animationTimer = 1000;
         _checkPylonsTimer = 5000; // On laisse 5sec pour que les pylones spawn
-        sLog.nostalrius("[NAXX] Necropolis %u zone %u enabled", me->GetGUIDLow(), _zone);
+        sLog.elysium("[NAXX] Necropolis %u zone %u enabled", me->GetGUIDLow(), _zone);
     }
 
     void Disable()
     {
         me->SetVisible(false);
         UpdateVisibility(false);
-        sLog.nostalrius("[NAXX] Necropolis %u zone %u disabled", me->GetGUIDLow(), _zone);
+        sLog.elysium("[NAXX] Necropolis %u zone %u disabled", me->GetGUIDLow(), _zone);
     }
 
     bool OnUse(Unit* pylon)
@@ -436,7 +436,7 @@ struct NecropolisPylonAI : public ScriptedAI, public NecropolisRelatedObject
         JustDied(NULL);
         if (sObjectMgr.GetSavedVariable(VARIABLE_NAXX_ELITE_PYLON) == m_creature->GetGUIDLow())
         {
-            sLog.nostalrius("[NAXX] Elite despawned by pylon disable");
+            sLog.elysium("[NAXX] Elite despawned by pylon disable");
             sObjectMgr.SetSavedVariable(VARIABLE_NAXX_ELITE_PYLON, 0, true);
         }
     }
@@ -1009,7 +1009,7 @@ struct NecropolisRelayAI : public ScriptedAI
         m_creature->CastSpell(m_creature, SPELL_COMMUNICATION_NAXXRAMAS, true);
     }
     // On transmet le GUID de la necropole
-    void InformGuid(const ObjectGuid necropolis, uint32 type = 0)
+    void InformGuid(ObjectGuid necropolis, uint32 type = 0)
     {
         _necropolisGuid = necropolis;
     }

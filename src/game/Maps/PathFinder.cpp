@@ -344,11 +344,6 @@ void PathInfo::BuildPolyPath(const Vector3 &startPos, const Vector3 &endPos)
         // free and invalidate old path data
         clear();
 
-        unsigned int const threadId = ACE_Based::Thread::currentId();
-
-        if (threadId != m_navMeshQuery->m_owningThread)
-            sLog.outError("CRASH: We are using a dtNavMeshQuery from thread %u which belongs to thread %u!", threadId, m_navMeshQuery->m_owningThread);
-
         dtStatus dtResult = m_navMeshQuery->findPath(
                                 startPoly,          // start polygon
                                 endPoly,            // end polygon
@@ -551,7 +546,7 @@ void PathInfo::FillTargetAllowedFlags(Unit* target)
         m_targetAllowedFlags |= NAV_STEEP_SLOPES;
 }
 
-bool PathInfo::HaveTiles(const Vector3& p) const
+bool PathInfo::HaveTiles(const Vector3 p) const
 {
     if (m_transport)
         return true;
@@ -595,7 +590,7 @@ uint32 PathInfo::fixupCorridor(dtPolyRef* path, const uint32 npath, const uint32
     // Adjust beginning of the buffer to include the visited.
     uint32 req = nvisited - furthestVisited;
     uint32 orig = uint32(furthestPath + 1) < npath ? furthestPath + 1 : npath;
-    uint32 size = npath > orig ? npath - orig : 0;
+    uint32 size = npath - orig > 0 ? npath - orig : 0;
     if (req + size > maxPath)
         size = maxPath - req;
 
@@ -848,7 +843,7 @@ dtStatus PathInfo::findSmoothPath(const float* startPos, const float* endPos,
         // Store results.
         if (nsmoothPath < maxSmoothPathSize)
         {
-            // Nostalrius: do we need to store this point ? Don't use 10 points to make a straight line: 2 are enough !
+            // Elysium: do we need to store this point ? Don't use 10 points to make a straight line: 2 are enough !
             // We eventually remove the last one
             if (simplifyPath && nsmoothPath >= 2 && nSkippedPoints >= 0)
             {
@@ -879,7 +874,7 @@ dtStatus PathInfo::findSmoothPath(const float* startPos, const float* endPos,
     return nsmoothPath < MAX_POINT_PATH_LENGTH ? DT_SUCCESS : DT_FAILURE;
 }
 
-// Nostalrius
+// Elysium
 bool PathInfo::UpdateForCaster(Unit* pTarget, float castRange)
 {
     // If already in range and LOS

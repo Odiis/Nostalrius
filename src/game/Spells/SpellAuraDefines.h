@@ -222,7 +222,7 @@ enum AuraType
     SPELL_AURA_MOD_RATING = 189,
     SPELL_AURA_MOD_FACTION_REPUTATION_GAIN = 190,
     SPELL_AURA_USE_NORMAL_MOVEMENT_SPEED = 191,
-    // Nostalrius
+    // Elysium
     SPELL_AURA_AURA_SPELL = 192, // Ajoute les auras d'un sort tant que cet aura est actif.
     TOTAL_AURAS=193
 };

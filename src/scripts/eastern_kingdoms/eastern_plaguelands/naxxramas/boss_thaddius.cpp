@@ -71,9 +71,3 @@ enum
     //generic
     C_TESLA_COIL                  = 16218                   //the coils (emotes "Tesla Coil overloads!")
 };
-
-
-void AddSC_boss_thaddius()
-{
-
-}

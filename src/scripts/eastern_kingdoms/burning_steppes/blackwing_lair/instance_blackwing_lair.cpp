@@ -911,7 +911,6 @@ struct go_engin_suppressionAI: public GameObjectAI
         {
             me->SetGoState(GO_STATE_ACTIVE);
             m_bActive = false;
-            m_uiCheckTimer = urand(4000, 6000);
             return true;
         }
         else
@@ -947,7 +946,7 @@ struct go_engin_suppressionAI: public GameObjectAI
                 ApplyAura();
             else
             {
-                if (!urand(0, 4))
+                if (!urand(0, 5))
                 {
                     RestoreGo();
                     m_uiCheckTimer = urand(3000, 4000);
@@ -986,9 +985,6 @@ bool AreaTrigger_at_enter_vael_room(Player *pPlayer, const AreaTriggerEntry* pAt
 {
     if (pAt->id == AT_ENTER_VAEL_ROOM)
     {
-        if (pPlayer->isGameMaster())
-            return false;
-
         if (ScriptedInstance* pInstance = (ScriptedInstance*)pPlayer->GetMap()->GetInstanceData())
         {
             if (pInstance->GetData(TYPE_VAEL_EVENT) != DONE)
@@ -1052,13 +1048,6 @@ struct npc_death_talonAI : public ScriptedAI
     {
         m_uiBroodPower = RandomPower();
         m_uiSchoolSensibility = RandomSensibility();
-    }
-
-    void Aggro(Unit* /*pWho*/)
-    {
-        // aggro Master Elementalist with the pull
-        if (!m_bIsOverSeer)
-            m_creature->CallForHelp(15.0f);
     }
 
     uint32 RandomPower()
@@ -1171,7 +1160,6 @@ struct npc_blackwing_technicianAI : public ScriptedAI
 
     uint32 m_uiPoisonBottleTimer;
     uint32 m_uiAggroSyncTimer;
-    uint32 m_uiEmoteTimer;
     bool m_bVaelGob;
     bool m_bAdded;
     blackwing_technicians_helper *m_pTechnicianHelper;
@@ -1185,8 +1173,6 @@ struct npc_blackwing_technicianAI : public ScriptedAI
         }
         m_uiPoisonBottleTimer = 2000;
         m_uiAggroSyncTimer = 5000;
-        if (!m_bVaelGob)
-            m_uiEmoteTimer = urand(0, 1) ? 1000 : 3000;
     }
 
     void MoveInLineOfSight(Unit* pWho)
@@ -1219,16 +1205,6 @@ struct npc_blackwing_technicianAI : public ScriptedAI
     {
         if (m_bVaelGob && m_creature->GetPositionZ() >= 430.0f)
             m_creature->DeleteLater();
-
-        if (m_uiEmoteTimer)
-        {
-            if (m_uiEmoteTimer <= uiDiff)
-            {
-                m_creature->HandleEmote(133);
-                m_uiEmoteTimer = 0;
-            }
-            else m_uiEmoteTimer -= uiDiff;
-        }
 
         if (/*!m_creature->SelectHostileTarget() || */!m_creature->getVictim())
             return;
@@ -1288,12 +1264,10 @@ struct CorruptedWhelpAI : public ScriptedAI
     {
     }
 
-    /*
     void Aggro(Unit* pWho)
     {
         m_creature->SetInCombatWithZone();
     }
-    */
 
     void UpdateAI(const uint32 uiDiff)
     {

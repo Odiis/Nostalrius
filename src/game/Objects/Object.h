@@ -41,8 +41,8 @@
 
 #define DEFAULT_WORLD_OBJECT_SIZE   0.388999998569489f      // currently used (correctly?) for any non Unit world objects. This is actually the bounding_radius, like player/creature from creature_model_data
 #define DEFAULT_OBJECT_SCALE        1.0f                    // player/item scale as default, npc/go from database, pets from dbc
-#define DEFAULT_TAUREN_MALE_SCALE   1.35f                   // Tauren Male Player Scale by default
-#define DEFAULT_TAUREN_FEMALE_SCALE 1.25f                   // Tauren Female Player Scale by default
+#define DEFAULT_TAUREN_MALE_SCALE   1.35f
+#define DEFAULT_TAUREN_FEMALE_SCALE 1.25f
 
 #define MAX_STEALTH_DETECT_RANGE    45.0f
 
@@ -113,7 +113,7 @@ class WorldUpdateCounter
 
             return WorldTimer::getMSTimeDiff(m_tmStart, WorldTimer::tickTime());
         }
-        uint32 timeElapsed(uint32 now) const
+        uint32 timeElapsed(uint32 now)
         {
             if (!m_tmStart)
                 return 0;
@@ -133,8 +133,6 @@ enum ObjectSpawnFlags
     SPAWN_FLAG_DISABLED             = 0x02,
     SPAWN_FLAG_RANDOM_RESPAWN_TIME  = 0x04,
     SPAWN_FLAG_DYNAMIC_RESPAWN_TIME = 0x08,
-    SPAWN_FLAG_FORCE_DYNAMIC_ELITE  = 0x10, // creature only
-    SPAWN_FLAG_EVADE_OUT_HOME_AREA  = 0x20, // creature only
 };
 
 // [-ZERO] Need check and update
@@ -154,7 +152,7 @@ enum MovementFlags
     //MOVEFLAG_ONTRANSPORT        = 0x00000200, // ??
     MOVEFLAG_LEVITATING         = 0x00000400, // ?? Semble ne pas fonctionner
     MOVEFLAG_FIXED_Z            = 0x00000800, // Hauteur fixee. Sauter => Defiler sur toute la map
-    MOVEFLAG_ROOT               = 0x00001000, // Fix Nostalrius
+    MOVEFLAG_ROOT               = 0x00001000, // Fix Elysium
     MOVEFLAG_JUMPING            = 0x00002000,
     MOVEFLAG_FALLINGFAR         = 0x00004000,
     // Fin TC
@@ -170,9 +168,8 @@ enum MovementFlags
     MOVEFLAG_WATERWALKING       = 0x10000000,               // prevent unit from falling through water
     MOVEFLAG_SAFE_FALL          = 0x20000000,               // active rogue safe fall spell (passive)
     MOVEFLAG_HOVER              = 0x40000000,
-    MOVEFLAG_INTERNAL           = 0x80000000,
 
-    // Nostalrius : ne peut etre present avec MOVEFLAG_ROOT (freez client sinon)
+    // Elysium : ne peut etre present avec MOVEFLAG_ROOT (freez client sinon)
     MOVEFLAG_MASK_MOVING        =
         MOVEFLAG_FORWARD | MOVEFLAG_BACKWARD | MOVEFLAG_STRAFE_LEFT | MOVEFLAG_STRAFE_RIGHT |
         MOVEFLAG_PITCH_UP | MOVEFLAG_PITCH_DOWN | MOVEFLAG_JUMPING | MOVEFLAG_FALLINGFAR |
@@ -200,7 +197,7 @@ class MovementInfo
         // Read/Write methods
         void Read(ByteBuffer &data);
         void Write(ByteBuffer &data) const;
-        void CorrectData(Unit* mover = nullptr);
+        void CorrectData(Unit* mover = NULL);
 
         // Movement flags manipulations
         void AddMovementFlag(int f) { moveFlags |= f; }
@@ -310,7 +307,7 @@ class MANGOS_DLL_SPEC Object
         }
 
         ObjectGuid const& GetObjectGuid() const { return GetGuidValue(OBJECT_FIELD_GUID); }
-        const uint64& GetGUID() const { return GetUInt64Value(OBJECT_FIELD_GUID); } // Conserve par Nostalrius
+        const uint64& GetGUID() const { return GetUInt64Value(OBJECT_FIELD_GUID); } // Conserve par Elysium
         uint32 GetGUIDLow() const { return GetObjectGuid().GetCounter(); }
         PackedGuid const& GetPackGUID() const { return m_PackGUID; }
         std::string GetGuidStr() const { return GetObjectGuid().GetString(); }
@@ -326,7 +323,7 @@ class MANGOS_DLL_SPEC Object
         void SetObjectScale(float newScale);
 
         uint8 GetTypeId() const { return m_objectTypeId; }
-        // Fonctions nostalrius :
+        // Fonctions elysium :
         bool IsCreature() const { return m_objectTypeId == TYPEID_UNIT;   }
         bool IsPlayer()   const { return m_objectTypeId == TYPEID_PLAYER; }
         bool IsGameObject()   const { return m_objectTypeId == TYPEID_GAMEOBJECT; }
@@ -541,22 +538,21 @@ class MANGOS_DLL_SPEC Object
 
         void InitValues() { _InitValues(); }
 
-        // Nostalrius
+        // Elysium
         bool IsDeleted() const { return _deleted; }
 
         // Convertions
-        Unit* ToUnit()
+        inline Unit* ToUnit()
         {
             if (GetTypeId() == TYPEID_UNIT || GetTypeId() == TYPEID_PLAYER)
                 return (Unit*)this;
-            return nullptr;
+            return NULL;
         }
-
-        Unit const* ToUnit() const
+        inline Unit const* ToUnit() const
         {
             if (GetTypeId() == TYPEID_UNIT || GetTypeId() == TYPEID_PLAYER)
                 return (Unit const*)this;
-            return nullptr;
+            return NULL;
         }
         #define DO_CONVERT(fnctn, type, typeid) \
         inline type* fnctn()\
@@ -640,13 +636,12 @@ class MANGOS_DLL_SPEC WorldObject : public Object
                 explicit UpdateHelper(WorldObject * obj) : m_obj(obj) {}
                 ~UpdateHelper() { }
 
-                void Update(uint32 time_diff)
+                inline void Update(uint32 time_diff)
                 {
                     m_obj->Update( m_obj->m_updateTracker.timeElapsed(), time_diff);
                     m_obj->m_updateTracker.Reset();
                 }
-
-                void UpdateRealTime(uint32 now, uint32 time_diff)
+                inline void UpdateRealTime(uint32 now, uint32 time_diff)
                 {
                     m_obj->Update( m_obj->m_updateTracker.timeElapsed(now), time_diff);
                     m_obj->m_updateTracker.ResetTo(now);
@@ -673,21 +668,21 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         float GetPositionX( ) const { return m_position.x; }
         float GetPositionY( ) const { return m_position.y; }
         float GetPositionZ( ) const { return m_position.z; }
-        virtual void GetSafePosition(float &x, float &y, float &z, Transport* onTransport = nullptr) const { GetPosition(x, y, z, onTransport); }
-        void GetPosition( float &x, float &y, float &z, Transport* onTransport = nullptr) const;
+        virtual void GetSafePosition(float &x, float &y, float &z, Transport* onTransport = NULL) const { GetPosition(x, y, z, onTransport); }
+        void GetPosition( float &x, float &y, float &z, Transport* onTransport = NULL) const;
         void GetPosition( WorldLocation &loc ) const
             { loc.mapid = m_mapId; GetPosition(loc.coord_x, loc.coord_y, loc.coord_z); loc.orientation = GetOrientation(); }
         float GetOrientation( ) const { return m_position.o; }
         void GetNearPoint2D( float &x, float &y, float distance, float absAngle) const;
         void GetNearPoint(WorldObject const* searcher, float &x, float &y, float &z, float searcher_bounding_radius, float distance2d, float absAngle) const;
-        void GetClosePoint(float &x, float &y, float &z, float bounding_radius, float distance2d = 0, float angle = 0, const WorldObject* obj = nullptr ) const
+        void GetClosePoint(float &x, float &y, float &z, float bounding_radius, float distance2d = 0, float angle = 0, const WorldObject* obj = NULL ) const
         {
             // angle calculated from current orientation
             GetNearPoint(obj, x, y, z, bounding_radius, distance2d, GetOrientation() + angle);
         }
         void GetContactPoint( const WorldObject* obj, float &x, float &y, float &z, float distance2d = CONTACT_DISTANCE) const
         {
-            // Nostalrius: On est deja au contact !
+            // Elysium: On est deja au contact !
             if (GetDistance2d(obj) < distance2d)
             {
                 obj->GetPosition(x, y, z);
@@ -755,7 +750,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         float GetAngle( const WorldObject* obj ) const;
         float GetAngle( const float x, const float y ) const;
-        bool HasInArc(const float arcangle, const WorldObject* obj, float offset = 0.0f) const;
+        bool HasInArc( const float arcangle, const WorldObject* obj ) const;
         bool HasInArc(const float arcangle, const float x, const float y) const;
         bool isInFrontInMap(WorldObject const* target,float distance, float arc = M_PI) const;
         bool isInBackInMap(WorldObject const* target, float distance, float arc = M_PI) const;
@@ -797,34 +792,32 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         // Send to players
         virtual void SendMessageToSet(WorldPacket *data, bool self);
         // Send to players who have object at client
-        void SendObjectMessageToSet(WorldPacket *data, bool self, WorldObject* except = nullptr);
-        void SendMovementMessageToSet(WorldPacket data, bool self, WorldObject* except = nullptr);
-
+        void SendObjectMessageToSet(WorldPacket *data, bool self, WorldObject* except = NULL);
         virtual void SendMessageToSetInRange(WorldPacket *data, float dist, bool self);
         void SendMessageToSetExcept(WorldPacket *data, Player const* skipped_receiver);
         void DirectSendPublicValueUpdate(uint32 index);
 
         void PMonsterSay(const char* text, ...);
-        void PMonsterSay(int32 text, ...) const;
+        void PMonsterSay(int32 text, ...);
         void PMonsterYell(const char* text, ...);
-        void PMonsterYell(int32 text, ...) const;
+        void PMonsterYell(int32 text, ...);
 
-        void MonsterSay(const char* text, uint32 language = 0, Unit* target = nullptr);
-        void MonsterYell(const char* text, uint32 language = 0, Unit* target = nullptr);
-        void MonsterTextEmote(const char* text, Unit* target = nullptr, bool IsBossEmote = false);
-        void MonsterWhisper(const char* text, Unit* target = nullptr, bool IsBossWhisper = false) const;
-        void MonsterSay(int32 textId, uint32 language = 0, Unit* target = nullptr) const;
-        void MonsterYell(int32 textId, uint32 language = 0, Unit* target = nullptr) const;
-        void MonsterTextEmote(int32 textId, Unit* target = nullptr, bool IsBossEmote = false) const;
-        void MonsterWhisper(int32 textId, Unit* receiver, bool IsBossWhisper = false) const;
-        void MonsterYellToZone(int32 textId, uint32 language = 0, Unit* target = nullptr) const;
+        void MonsterSay(const char* text, uint32 language = 0, Unit* target = NULL);
+        void MonsterYell(const char* text, uint32 language = 0, Unit* target = NULL);
+        void MonsterTextEmote(const char* text, Unit* target = NULL, bool IsBossEmote = false);
+        void MonsterWhisper(const char* text, Unit* target = NULL, bool IsBossWhisper = false);
+        void MonsterSay(int32 textId, uint32 language = 0, Unit* target = NULL);
+        void MonsterYell(int32 textId, uint32 language = 0, Unit* target = NULL);
+        void MonsterTextEmote(int32 textId, Unit* target = NULL, bool IsBossEmote = false);
+        void MonsterWhisper(int32 textId, Unit* receiver, bool IsBossWhisper = false);
+        void MonsterYellToZone(int32 textId, uint32 language = 0, Unit* target = NULL);
         static void BuildMonsterChat(WorldPacket *data, ObjectGuid senderGuid, uint8 msgtype, char const* text, uint32 language, char const* name, ObjectGuid targetGuid, char const* targetName);
 
-        void PlayDistanceSound(uint32 sound_id, Player* target = nullptr);
-        void PlayDirectSound(uint32 sound_id, Player* target = nullptr);
+        void PlayDistanceSound(uint32 sound_id, Player* target = NULL);
+        void PlayDirectSound(uint32 sound_id, Player* target = NULL);
 
         void SendObjectDeSpawnAnim(ObjectGuid guid);
-        void SendGameObjectCustomAnim(ObjectGuid guid, uint32 animId = 0);
+        void SendGameObjectCustomAnim(ObjectGuid guid);
 
         virtual bool IsHostileTo(Unit const* unit) const =0;
         virtual bool IsFriendlyTo(Unit const* unit) const =0;
@@ -850,7 +843,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         Map * FindMap() const { return m_currMap; }
 
         //used to check all object's GetMap() calls when object is not in world!
-        void ResetMap() { m_currMap = nullptr; }
+        void ResetMap() { m_currMap = NULL; }
 
         //obtain terrain data for map where this object belong...
         TerrainInfo const* GetTerrain() const;
@@ -858,9 +851,9 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void SetZoneScript();
         ZoneScript* GetZoneScript() const { return m_zoneScript; }
 
-        void AddToClientUpdateList() override;
-        void RemoveFromClientUpdateList() override;
-        void BuildUpdateData(UpdateDataMapType &) override;
+        void AddToClientUpdateList();
+        void RemoveFromClientUpdateList();
+        void BuildUpdateData(UpdateDataMapType &);
 
         Creature* SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype = TEMPSUMMON_DEAD_DESPAWN,uint32 despwtime = 25000, bool asActiveObject = false);
         GameObject* SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0 = 0.0f, float rotation1 = 0.0f, float rotation2 = 0.0f, float rotation3 = 0.0f, uint32 respawnTime = 25000, bool attach = true);
@@ -883,7 +876,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         // WorldMask
         uint32 worldMask;
         virtual void SetWorldMask(uint32 newMask);
-        uint32 GetWorldMask() const { return worldMask; }
+        uint32 GetWorldMask(){ return worldMask; }
         // Visibilite
         bool CanSeeInWorld(WorldObject const* other)  const;
         bool CanSeeInWorld(uint32 otherPhase)  const;

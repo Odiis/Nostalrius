@@ -45,7 +45,8 @@ MangosSocket<SessionType, SocketName, Crypt>::MangosSocket() :
 template <typename SessionType, typename SocketName, typename Crypt>
 MangosSocket<SessionType, SocketName, Crypt>::~MangosSocket(void)
 {
-    delete m_RecvWPct;
+    if (m_RecvWPct)
+        delete m_RecvWPct;
 
     if (m_OutBuffer)
         m_OutBuffer->release();

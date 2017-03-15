@@ -208,11 +208,9 @@ enum LocaleConstant
     LOCALE_zhTW = 5,
     LOCALE_esES = 6,
     LOCALE_esMX = 7,
-    LOCALE_ruRU = 8
 };
 
-#define MAX_DBC_LOCALE 8
-#define MAX_LOCALE 9
+#define MAX_LOCALE 8
 
 LocaleConstant GetLocaleByName(const std::string& name);
 

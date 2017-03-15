@@ -113,7 +113,7 @@ public PathMovementBase<Creature, WaypointPath const*>
 
         ShortTimeTracker i_nextMoveTime;
         bool m_isArrivalDone;
-        bool m_repeating;
+        bool m_repeating; // Ivina < Elysium > : added repeat option
         uint32 m_lastReachedWaypoint;
 };
 

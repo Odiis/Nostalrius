@@ -2,7 +2,7 @@
  * Warlock.cpp
  *
  *  Created on: 23 janv. 2015
- *      Author: Daemon
+ *      1.12
  */
 
 #include "TestPCH.h"

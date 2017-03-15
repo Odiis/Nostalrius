@@ -83,9 +83,7 @@ instance_blackrock_spire::instance_blackrock_spire(Map* pMap) : ScriptedInstance
     m_uiEmberseerRune07GUID(0),
 
     m_uiUBRSDoor_Timer(0),
-    m_uiUBRSDoor_Step(0),
-
-    m_bBannokSpawned(false)
+    m_uiUBRSDoor_Step(0)
 
 {
     Initialize();
@@ -252,21 +250,6 @@ void instance_blackrock_spire::OnCreatureCreate(Creature* pCreature)
             break;
         case NPC_ROOKERY_HATCHER:
             pCreature->SetInCombatWithZone();
-            break;
-
-        case NPC_FIREBRAND_GRUNT:
-            // 14.26% chance to spawn Bannok Grimaxe instead of one of his 3 placeholders
-            switch (pCreature->GetGUIDLow())
-            {
-                case 44020:
-                case 43764:
-                case 44327:
-                    if (!m_bBannokSpawned && urand(0,99) < 5)
-                    {
-                        pCreature->UpdateEntry(NPC_BANNOK_GRIMAXE);
-                        m_bBannokSpawned = true;
-                    }
-            }
             break;
     }
 }

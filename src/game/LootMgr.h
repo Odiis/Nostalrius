@@ -280,17 +280,13 @@ struct Loot
         m_LootValidatorRefManager.insertFirst(pLootValidatorRef);
     }
 
-    // void clear()
-    void clear(bool clearQuestItems = true)
+    // void clear();
+    void clear()
     {
-	if (clearQuestItems)
-	{
-            for (QuestItemMap::const_iterator itr = m_playerQuestItems.begin(); itr != m_playerQuestItems.end(); ++itr)
-                delete itr->second;
-            m_playerQuestItems.clear();
+        for (QuestItemMap::const_iterator itr = m_playerQuestItems.begin(); itr != m_playerQuestItems.end(); ++itr)
+            delete itr->second;
+        m_playerQuestItems.clear();
 
-            m_questItems.clear();
-	}
         for (QuestItemMap::const_iterator itr = m_playerFFAItems.begin(); itr != m_playerFFAItems.end(); ++itr)
             delete itr->second;
         m_playerFFAItems.clear();
@@ -301,6 +297,7 @@ struct Loot
 
         m_playersLooting.clear();
         items.clear();
+        m_questItems.clear();
         gold = 0;
         unlootedCount = 0;
         m_LootValidatorRefManager.clearReferences();
@@ -308,11 +305,6 @@ struct Loot
         _allowedLooters.clear();
         _personal = true;
         _groupTeam = TEAM_CROSSFACTION;
-    }
-
-    void leaveOnlyQuestItems()
-    {
-	   clear(false);
     }
 
     bool empty() const { return items.empty() && gold == 0; }
@@ -338,8 +330,7 @@ struct Loot
     // TrinityCore
     bool hasItemFor(Player* player) const;
     bool hasOverThresholdItem() const;
-    bool IsAllowedLooter(ObjectGuid guid, bool doPersonalCheck = true) const;
-    bool IsOriginalLooter(ObjectGuid guid) { return IsAllowedLooter(guid, false); }
+    bool IsAllowedLooter(ObjectGuid guid) const;
 
     void FillNotNormalLootFor(Player* player);
 

@@ -256,7 +256,7 @@ void PlayerControlledAI::UpdateAI(const uint32 uiDiff)
             return;
 
         // Unit* victim = controller->getVictim();
-        // Ivina <Nostalrius> : choisit la cible au hasard et pas toujours la cible du controleur.
+        // Ivina <Elysium> : choisit la cible au hasard et pas toujours la cible du controleur.
         victim = Ccontroller ? Ccontroller->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0) : me->SelectNearestTarget(50.0f);
         if (Unit* v2 = me->getVictim())
             if (me->canAttack(v2, false))
@@ -272,7 +272,7 @@ void PlayerControlledAI::UpdateAI(const uint32 uiDiff)
             return;
         }
 
-        if (!victim || (victim == me)) // Ivina <Nostalrius> : eviter de se prendre pour cible
+        if (!victim || (victim == me)) // Ivina <Elysium> : eviter de se prendre pour cible
             return;
 
         UpdateTarget(victim);

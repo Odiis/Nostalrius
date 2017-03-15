@@ -22,7 +22,7 @@
 
 #include "Platform/Define.h"
 
-// Nostalrius : pour SD0.
+// Elysium : pour SD0.
 #define barGoLink BarGoLink
 
 class MANGOS_DLL_SPEC BarGoLink

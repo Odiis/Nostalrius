@@ -5,7 +5,6 @@ file(GLOB_RECURSE SCRIPTS_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp *.h)
 
 # Used in game ScriptMgr, not need here
 list(REMOVE_ITEM SCRIPTS_SRCS ScriptLoader.cpp)
-list(REMOVE_ITEM SCRIPTS_SRCS ScriptLoader_noscripts.cpp)
 list(REMOVE_ITEM SCRIPTS_SRCS ScriptLoader.h)
 
 foreach(SRC ${SCRIPTS_SRCS})
@@ -22,7 +21,6 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
   ${CMAKE_SOURCE_DIR}/src/shared
   ${CMAKE_SOURCE_DIR}/src/framework
-  ${CMAKE_SOURCE_DIR}/src/framework/Network
   ${CMAKE_SOURCE_DIR}/src/game
   ${CMAKE_SOURCE_DIR}/src/game/AI
   ${CMAKE_SOURCE_DIR}/src/game/Anticheat

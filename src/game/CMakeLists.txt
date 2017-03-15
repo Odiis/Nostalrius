@@ -17,23 +17,11 @@
 
 file(GLOB_RECURSE game_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.h *.cpp)
 
-if(WIN32)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /D__ACE_INLINE__")
-endif()
-
 # Used in game ScriptMgr
-if(SCRIPTS)
-  list(APPEND game_SRCS
-      ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader.cpp
-      ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader.h
-  )
-else()
-  list(APPEND game_SRCS
-      ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader_noscripts.cpp
-      ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader.h
-  )
-endif()
-
+list(APPEND game_SRCS
+    ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/scripts/ScriptLoader.h
+)
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -58,7 +46,6 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/Movement/spline
   ${CMAKE_CURRENT_SOURCE_DIR}/Objects
   ${CMAKE_CURRENT_SOURCE_DIR}/OutdoorPvP
-  ${CMAKE_CURRENT_SOURCE_DIR}/PacketBroadcast
   ${CMAKE_CURRENT_SOURCE_DIR}/PlayerBots
   ${CMAKE_CURRENT_SOURCE_DIR}/Protocol
   ${CMAKE_CURRENT_SOURCE_DIR}/Spells
@@ -113,10 +100,6 @@ source_group("Tool"
 
 source_group("References"
   REGULAR_EXPRESSION Reference|RefManager|ThreatManager
-)
-
-source_group("Anticheat"
-  REGULAR_EXPRESSION Anticheat
 )
 
 if(PCH)

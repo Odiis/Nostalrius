@@ -42,7 +42,6 @@ class Creature;
 class Player;
 class Unit;
 class GmTicket;
-struct ItemPrototype;
 
 enum CommandFlags
 {
@@ -88,12 +87,12 @@ class MANGOS_DLL_SPEC ChatHandler
 
         static void FillMessageData( WorldPacket *data, WorldSession* session, uint8 type, uint32 language, ObjectGuid targetGuid, const char* message)
         {
-            FillMessageData( data, session, type, language, nullptr, targetGuid, message, nullptr);
+            FillMessageData( data, session, type, language, NULL, targetGuid, message, NULL);
         }
 
         static void FillMessageData( WorldPacket *data, WorldSession* session, uint8 type, uint32 language, const char* message)
         {
-            FillMessageData( data, session, type, language, nullptr, ObjectGuid(), message, nullptr);
+            FillMessageData( data, session, type, language, NULL, ObjectGuid(), message, NULL);
         }
 
         void FillSystemMessageData( WorldPacket *data, const char* message )
@@ -101,7 +100,7 @@ class MANGOS_DLL_SPEC ChatHandler
             FillMessageData( data, m_session, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, ObjectGuid(), message );
         }
 
-        static char* LineFromMessage(char*& pos) { char* start = strtok(pos,"\n"); pos = nullptr; return start; }
+        static char* LineFromMessage(char*& pos) { char* start = strtok(pos,"\n"); pos = NULL; return start; }
 
         // function with different implementation for chat/console
         virtual const char *GetMangosString(int32 entry) const;
@@ -122,12 +121,11 @@ class MANGOS_DLL_SPEC ChatHandler
 
         std::string playerLink(std::string const& name) const { return m_session ? "|cffffffff|Hplayer:"+name+"|h["+name+"]|h|r" : name; }
         std::string GetNameLink(Player* chr) const;
-        std::string GetItemLink(ItemPrototype const* pItem) const;
 
         GameObject* GetGameObjectWithGuid(uint32 lowguid,uint32 entry);
         WorldSession* GetSession() { return m_session; }
     protected:
-        explicit ChatHandler() : m_session(nullptr), sentErrorMessage(false), m_cluster_is_master(true), m_cluster_is_node(true) {}      // for CLI subclass
+        explicit ChatHandler() : m_session(NULL), sentErrorMessage(false), m_cluster_is_master(true), m_cluster_is_node(true) {}      // for CLI subclass
 
         bool hasStringAbbr(const char* name, const char* part);
 
@@ -152,12 +150,13 @@ class MANGOS_DLL_SPEC ChatHandler
         void ExecuteCommand(const char* text);
         bool ShowHelpForCommand(ChatCommand *table, const char* cmd);
         bool ShowHelpForSubCommands(ChatCommand *table, char const* cmd);
-        ChatCommandSearchResult FindCommand(ChatCommand* table, char const*& text, ChatCommand*& command, ChatCommand** parentCommand = nullptr, std::string* cmdNamePtr = nullptr, bool allAvailable = false, bool exactlyName = false);
+        ChatCommandSearchResult FindCommand(ChatCommand* table, char const*& text, ChatCommand*& command, ChatCommand** parentCommand = NULL, std::string* cmdNamePtr = NULL, bool allAvailable = false, bool exactlyName = false);
 
         void CheckIntegrity(ChatCommand *table, ChatCommand *parentCommand);
         void FillFullCommandsName(ChatCommand* table, std::string prefix);
         ChatCommand* getCommandTable();
 
+        // ==== Elysium
         bool HandleGodCommand(char *);
         bool HandleGMOptionsCommand(char *);
         bool HandleAnticheatCommand(char *);
@@ -182,12 +181,6 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleDebugExp(char* );
         bool HandleVideoTurn(char* );
         bool HandleDebugLootTableCommand(char*);
-        bool HandleServiceDeleteCharacters(char* args);
-
-        bool HandleSpamerMute(char* args);
-        bool HandleSpamerUnmute(char* args);
-        bool HandleSpamerList(char* args);
-        bool HandleWhisperRestrictionCommand(char* args);
 
         // Packet dump
         bool HandleReplayPlayCommand(char *);
@@ -225,7 +218,10 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleBotReloadCommand(char * args);
         bool HandleBotStopCommand(char * args);
         bool HandleBotStartCommand(char * args);
-
+        // Gestion de l'honneur
+        bool HandleFlushHonorCommand(char * args); // Effectue la maintenance
+        bool HandleHonorDebugScoresCommand(char*args);
+        bool HandleHonorSetRPCommand(char*args);
         // spell_disabled
         bool HandleReloadSpellDisabledCommand(char *args);
         // AutoBroadCast
@@ -254,14 +250,14 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleWorldUpdateCommand(char *args);
         bool HandleWorldTestCommand(char *args);
         bool HandleWorldDetailCommand(char *args);
-        // Managing saved variables
+        // Gestion des variables sauvegardees
         bool HandleVariableCommand(char* args);
         bool HandleReloadVariablesCommand(char* args);
         // Deplacement
         bool HandleGoForwardCommand(char* args);
         bool HandleGoUpCommand(char* args);
         bool HandleGoRelativeCommand(char* args);
-        // Other
+        // Autre ...
         bool HandlePossessCommand(char* args);
         bool HandleDebugForceUpdateCommand(char *args);
         bool HandleGameObjectTempAddCommand(char *args);
@@ -296,34 +292,20 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleSpellEffectsCommand(char *args);
         bool HandleSpellInfosCommand(char *args);
         bool HandleSpellSearchCommand(char *args);
-        // Other
+        // Autre ...
         bool HandleFreezCommand(char *args);
         bool HandleSpellIconFixCommand(char *args);
         bool HandleUnitStatCommand(char *args);
         bool HandleDebugControlCommand(char *args);
         // Reload
-        bool HandleReloadCreatureTemplate(char* args);
-        bool HandleReloadItemTemplate(char* args);
-        bool HandleReloadMapTemplate(char* args);
-        bool HandleReloadGameObjectTemplate(char* args);
-        bool HandleReloadExplorationBaseXp(char* args);
-        bool HandleReloadPetNameGeneration(char* args);
-        bool HandleReloadCreatureOnKillReputation(char* args);
-        bool HandleReloadGameWeather(char* args);
-        bool HandleReloadFactionChangeReputations(char* args);
-        bool HandleReloadFactionChangeSpells(char* args);
-        bool HandleReloadFactionChangeItems(char* args);
-        bool HandleReloadFactionChangeQuests(char* args);
-        bool HandleReloadFactionChangeMounts(char* args);
-        bool HandleReloadCreatureModelInfo(char* args);
-        bool HandleReloadNostalriusStrings(char* args);
-        bool HandleReloadIPBanList(char* args);
-        bool HandleReloadAccountBanList(char* args);
+        #define RELOAD_TABLE_COMMAND(tbl, func, protoName) bool protoName(char *args);
+        #include "LightCmds.h"
         bool HandleReloadCreatureCommand(char* args);
         bool HandleReloadGameObjectCommand(char* args);
         // Channel
         bool HandleChannelJoinCommand(char* );
         bool HandleChannelLeaveCommand(char* );
+        // FIN des commandes Elysium
 
         bool HandleAccountCommand(char* args);
         bool HandleAccountCharactersCommand(char* args);
@@ -368,7 +350,6 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleCharacterLevelCommand(char* args);
         bool HandleCharacterRenameCommand(char* args);
         bool HandleCharacterReputationCommand(char* args);
-        bool HandleCharacterHasItemCommand(char* args);
 
         bool HandleDebugAnimCommand(char* args);
         bool HandleDebugBattlegroundCommand(char* args);
@@ -403,8 +384,6 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleEventListCommand(char* args);
         bool HandleEventStartCommand(char* args);
         bool HandleEventStopCommand(char* args);
-        bool HandleEventEnableCommand(char* args);
-        bool HandleEventDisableCommand(char* args);
         bool HandleEventInfoCommand(char* args);
 
         bool HandleGameObjectAddCommand(char* args);
@@ -448,9 +427,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleHonorShow(char* args);
         bool HandleHonorAddCommand(char* args);
         bool HandleHonorAddKillCommand(char* args);
-        bool HandleHonorDebugScoresCommand(char*args);
-        bool HandleHonorSetRPCommand(char*args);
-        bool HandleHonorResetCommand(char*args);
+        bool HandleHonorUpdateCommand(char* args);
 
         bool HandleInstanceListBindsCommand(char* args);
         bool HandleInstanceUnbindCommand(char* args);
@@ -459,9 +436,6 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleInstanceSwitchCommand(char* args);
         bool HandleInstanceContinentsCommand(char* args);
         bool HandleInstancePerfInfosCommand(char* args);
-        bool HandleInstanceBindingMode(char* args);
-        bool HandlePBCastStatsCommand(char* args);
-        bool HandlePBCastSetThreadsCommand(char* args);
 
         bool HandleLearnCommand(char* args);
         bool HandleLearnAllCommand(char* args);
@@ -814,47 +788,47 @@ class MANGOS_DLL_SPEC ChatHandler
         bool  ExtractOptFloat(char** args, float& val, float defVal);
         char* ExtractQuotedArg(char** args, bool asis = false);
                                                             // string with " or [] or ' around
-        char* ExtractLiteralArg(char** args, char const* lit = nullptr);
+        char* ExtractLiteralArg(char** args, char const* lit = NULL);
                                                             // literal string (until whitespace and not started from "['|), any or 'lit' if provided
         char* ExtractQuotedOrLiteralArg(char** args, bool asis = false);
         bool  ExtractOnOff(char** args, bool& value);
-        char* ExtractLinkArg(char** args, char const* const* linkTypes = nullptr, int* foundIdx = nullptr, char** keyPair = nullptr, char** somethingPair = nullptr);
+        char* ExtractLinkArg(char** args, char const* const* linkTypes = NULL, int* foundIdx = NULL, char** keyPair = NULL, char** somethingPair = NULL);
                                                             // shift-link like arg (with aditional info if need)
         char* ExtractArg(char** args, bool asis = false);   // any name/number/quote/shift-link strings
         char* ExtractOptNotLastArg(char** args);            // extract name/number/quote/shift-link arg only if more data in args for parse
 
-        char* ExtractKeyFromLink(char** text, char const* linkType, char** something1 = nullptr);
-        char* ExtractKeyFromLink(char** text, char const* const* linkTypes, int* found_idx = nullptr, char** something1 = nullptr);
+        char* ExtractKeyFromLink(char** text, char const* linkType, char** something1 = NULL);
+        char* ExtractKeyFromLink(char** text, char const* const* linkTypes, int* found_idx = NULL, char** something1 = NULL);
         bool  ExtractUint32KeyFromLink(char** text, char const* linkType, uint32& value);
 
-        uint32 ExtractAccountId(char** args, std::string* accountName = nullptr, Player** targetIfNullArg = nullptr);
+        uint32 ExtractAccountId(char** args, std::string* accountName = NULL, Player** targetIfNullArg = NULL);
         uint32 ExtractSpellIdFromLink(char** text);
         ObjectGuid ExtractGuidFromLink(char** text);
         GameTele const* ExtractGameTeleFromLink(char** text);
         bool   ExtractLocationFromLink(char** text, uint32& mapid, float& x, float& y, float& z);
-        bool   ExtractRaceMask(char** text, uint32& raceMask, char const** maskName = nullptr);
+        bool   ExtractRaceMask(char** text, uint32& raceMask, char const** maskName = NULL);
         std::string ExtractPlayerNameFromLink(char** text);
-        bool ExtractPlayerTarget(char** args, Player** player, ObjectGuid* player_guid = nullptr, std::string* player_name = nullptr);
+        bool ExtractPlayerTarget(char** args, Player** player, ObjectGuid* player_guid = NULL, std::string* player_name = NULL);
                                                             // select by arg (name/link) or in-game selection online/offline player
 
         // Utility methods for commands
-        bool ShowAccountListHelper(QueryResult* result, uint32* limit = nullptr, bool title = true, bool error = true);
-        void ShowFactionListHelper(FactionEntry const * factionEntry, LocaleConstant loc, FactionState const* repState = nullptr, Player * target = nullptr );
-        void ShowItemListHelper(uint32 itemId, int loc_idx, Player* target = nullptr);
-        void ShowQuestListHelper(uint32 questId, int32 loc_idx, Player* target = nullptr);
-        bool ShowPlayerListHelper(QueryResult* result, uint32* limit = nullptr, bool title = true, bool error = true);
+        bool ShowAccountListHelper(QueryResult* result, uint32* limit = NULL, bool title = true, bool error = true);
+        void ShowFactionListHelper(FactionEntry const * factionEntry, LocaleConstant loc, FactionState const* repState = NULL, Player * target = NULL );
+        void ShowItemListHelper(uint32 itemId, int loc_idx, Player* target = NULL);
+        void ShowQuestListHelper(uint32 questId, int32 loc_idx, Player* target = NULL);
+        bool ShowPlayerListHelper(QueryResult* result, uint32* limit = NULL, bool title = true, bool error = true);
         void ShowSpellListHelper(Player* target, SpellEntry const* spellInfo, LocaleConstant loc);
         void ShowPoolListHelper(uint16 pool_id);
         void ShowTriggerListHelper(AreaTriggerEntry const * atEntry);
         void ShowTriggerTargetListHelper(uint32 id, AreaTrigger const* at, bool subpart = false);
-        bool LookupPlayerSearchCommand(QueryResult* result, uint32* limit = nullptr);
+        bool LookupPlayerSearchCommand(QueryResult* result, uint32* limit = NULL);
         bool HandleBanListHelper(QueryResult* result);
         bool HandleBanHelper(BanMode mode, char* args);
         bool HandleBanInfoHelper(uint32 accountid, char const* accountname);
         bool HandleUnBanHelper(BanMode mode, char* args);
         void HandleCharacterLevel(Player* player, ObjectGuid player_guid, uint32 oldlevel, uint32 newlevel);
         void HandleLearnSkillRecipesHelper(Player* player,uint32 skill_id);
-        bool HandleGoHelper(Player* _player, uint32 mapid, float x, float y, float const* zPtr = nullptr, float const* ortPtr = nullptr);
+        bool HandleGoHelper(Player* _player, uint32 mapid, float x, float y, float const* zPtr = NULL, float const* ortPtr = NULL);
         bool HandleGetValueHelper(Object* target, uint32 field, char* typeStr);
         bool HandlerDebugModValueHelper(Object* target, uint32 field, char* typeStr, char* valStr);
         bool HandleSetValueHelper(Object* target, uint32 field, char* typeStr, char* valStr);

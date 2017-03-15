@@ -70,8 +70,10 @@ GameObject::GameObject() : WorldObject(),
 
 GameObject::~GameObject()
 {
-    delete i_AI;
-    delete m_model;
+    if (i_AI)
+        delete i_AI;
+    if (m_model)
+        delete m_model;
 }
 
 void GameObject::AddToWorld()
@@ -245,7 +247,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 case GAMEOBJECT_TYPE_TRAP:
                 {
                     // Arming Time for GAMEOBJECT_TYPE_TRAP (6)
-                    /* Ivina < Nostalrius > : toujours appliquer le startDelay. Retirer le delai de la DB si jamais un piege n'en a pas. */
+                    /* Ivina < Elysium > : toujours appliquer le startDelay. Retirer le delai de la DB si jamais un piege n'en a pas. */
                     // Unit* owner = GetOwner();
                     // if (owner && ((Player*)owner)->isInCombat())
                     if (GetGOInfo()->trap.startDelay)
@@ -265,12 +267,8 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                             SetGoState(GO_STATE_ACTIVE);
                             // SetUInt32Value(GAMEOBJECT_FLAGS, GO_FLAG_NODESPAWN);
 
-			    
-			    
                             SendForcedObjectUpdate();
 
-			    // Play splash sound
-			    PlayDistanceSound(3355);
                             SendGameObjectCustomAnim(GetObjectGuid());
                         }
 
@@ -451,7 +449,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
         {
             switch (GetGoType())
             {
-                case GAMEOBJECT_TYPE_DOOR: // Ustaag <Nostalrius>
+                case GAMEOBJECT_TYPE_DOOR: // Ustaag <Elysium>
                 {
                     if ((m_cooldownTime < time(NULL)) && (GetGOInfo()->GetAutoCloseTime() != 0))
                         ResetDoorOrButton();
@@ -459,7 +457,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 }
                 case GAMEOBJECT_TYPE_BUTTON:
                 {
-                    if ((m_cooldownTime < time(NULL)) && (GetGOInfo()->GetAutoCloseTime() != 0))  // Ustaag <Nostalrius>
+                    if ((m_cooldownTime < time(NULL)) && (GetGOInfo()->GetAutoCloseTime() != 0))  // Ustaag <Elysium>
                         //if (m_respawnDelayTime && (m_cooldownTime < time(NULL)))
                         ResetDoorOrButton();
                     break;
@@ -574,7 +572,7 @@ void GameObject::JustDespawnedWaitingRespawn()
         sPoolMgr.GetPoolGameObjects(poolid).DespawnObject(state, guidLow); // Calls 'AddObjectToRemoveList', so the object is deleted. Do not use any class method / attribute!
         if (!IsDeleted())
         {
-            sLog.nostalrius("[Pool #%u] %s is not deleted but should be", poolid, GetGuidStr().c_str());
+            sLog.elysium("[Pool #%u] %s is not deleted but should be", poolid, GetGuidStr().c_str());
             AddObjectToRemoveList();
         }
         sPoolMgr.UpdatePool<GameObject>(state, poolid, 0);
@@ -765,7 +763,7 @@ struct GameObjectRespawnDeleteWorker
 {
     explicit GameObjectRespawnDeleteWorker(uint32 guid) : i_guid(guid) {}
 
-    void operator()(MapPersistentState* state) const
+    void operator()(MapPersistentState* state)
     {
         state->SaveGORespawnTime(i_guid, 0);
     }
@@ -774,7 +772,7 @@ struct GameObjectRespawnDeleteWorker
 };
 
 
-void GameObject::DeleteFromDB() const
+void GameObject::DeleteFromDB()
 {
     if (!HasStaticDBSpawnData())
     {
@@ -783,7 +781,7 @@ void GameObject::DeleteFromDB() const
     }
 
     GameObjectRespawnDeleteWorker worker(GetGUIDLow());
-    sMapPersistentStateMgr.DoForAllStatesWithMapId(GetMapId(), GetInstanceId(), worker);
+    sMapPersistentStateMgr.DoForAllStatesWithMapId(GetMapId(), worker);
 
     sObjectMgr.DeleteGOData(GetGUIDLow());
     WorldDatabase.PExecuteLog("DELETE FROM gameobject WHERE guid = '%u'", GetGUIDLow());
@@ -922,9 +920,12 @@ bool GameObject::ActivateToQuest(Player *pTarget) const
             QuestRelationsMapBounds bounds = sObjectMgr.GetGOQuestRelationsMapBounds(GetEntry());
 
             for (QuestRelationsMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
-                if (const Quest* qInfo = sObjectMgr.GetQuestTemplate(itr->second))
-                    if (pTarget->CanTakeQuest(qInfo, false))
-                        return true;
+            {
+                const Quest *qInfo = sObjectMgr.GetQuestTemplate(itr->second);
+
+                if (pTarget->CanTakeQuest(qInfo, false))
+                    return true;
+            }
 
             bounds = sObjectMgr.GetGOQuestInvolvedRelationsMapBounds(GetEntry());
 
@@ -1098,7 +1099,7 @@ void GameObject::Use(Unit* user)
     uint32 spellId = 0;
     bool triggered = false;
 
-    // Nostalrius : Compatible avec les Unit comme caster.
+    // Elysium : Compatible avec les Unit comme caster.
     if (AI() && AI()->OnUse(user))
         return;
 
@@ -1127,11 +1128,6 @@ void GameObject::Use(Unit* user)
         }
         case GAMEOBJECT_TYPE_BUTTON:                        // 1
         {
-            // add LOS requirement for Lever objects, like the ones inside sm cath/armory entrance
-            if (GetDisplayId() == 295)
-                if (!user->IsWithinLOSInMap(this, false))
-                    return;
-
             //buttons never really despawn, only reset to default state/flags
             UseDoorOrButton();
 
@@ -1197,9 +1193,6 @@ void GameObject::Use(Unit* user)
                 return;
 
             if (user->GetTypeId() != TYPEID_PLAYER)
-                return;
-            
-            if (!user->IsWithinLOSInMap(this, false))
                 return;
 
             Player* player = (Player*)user;

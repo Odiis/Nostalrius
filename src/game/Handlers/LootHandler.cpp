@@ -142,7 +142,7 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket & recv_data)
         Item * newitem = player->StoreNewItem(dest, item->itemid, true, item->randomPropertyId);
         if (!newitem)
         {
-            sLog.nostalrius("Unable to store loot item #%u from %s !", item->itemid, lguid.GetString().c_str());
+            sLog.elysium("Unable to store loot item #%u from %s !", item->itemid, lguid.GetString().c_str());
             return;
         }
 

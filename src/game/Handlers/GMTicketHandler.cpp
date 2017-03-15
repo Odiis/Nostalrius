@@ -127,7 +127,7 @@ void WorldSession::HandleGMTicketCreateOpcode(WorldPacket& recvData)
         {
             ChatHandler(this).SendSysMessage("Game Masters do not handle bug reports.");
             ChatHandler(this).SendSysMessage("Please use our bugtracker and provide sources if possible.");
-            ChatHandler(this).SendSysMessage("https://elysium-project.org/bugtracker");
+            ChatHandler(this).SendSysMessage("http://elysium-project.org/");
             return;
         }
 

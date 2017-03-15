@@ -77,7 +77,8 @@ bool GossipSelect_npc_astor_hadren(Player* pPlayer, Creature* pCreature, uint32 
         case GOSSIP_ACTION_INFO_DEF + 2:
             pPlayer->CLOSE_GOSSIP_MENU();
             pCreature->setFaction(21);
-            ((npc_astor_hadrenAI*)pCreature->AI())->AttackStart(pPlayer);
+            if (pPlayer)
+                ((npc_astor_hadrenAI*)pCreature->AI())->AttackStart(pPlayer);
             break;
     }
     return true;
@@ -211,7 +212,7 @@ bool QuestAccept_npc_deathstalker_erland(Player* pPlayer, Creature* pCreature, c
         DoScriptText(SAY_START_1, pCreature);
 
         if (npc_deathstalker_erlandAI* pEscortAI = dynamic_cast<npc_deathstalker_erlandAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -260,22 +261,22 @@ struct SpawnPoint
 
 SpawnPoint SpawnPoints[] =
 {
-    { -397.45f, 1509.56f, 18.87f, 4.73f },
-    { -398.35f, 1510.75f, 18.87f, 4.76f },
-    { -396.41f, 1511.06f, 18.87f, 4.74f }
+    { -397.45f, 1509.56f, 18.87f, 4.73f},
+    { -398.35f, 1510.75f, 18.87f, 4.76f},
+    { -396.41f, 1511.06f, 18.87f, 4.74f}
 };
 
-static float m_afMoveCoords[] = { -410.69f, 1498.04f, 19.77f };
+static float m_afMoveCoords[] = { -410.69f, 1498.04f, 19.77f};
 
-struct npc_deathstalker_faerleiaAI : ScriptedAI
+struct npc_deathstalker_faerleiaAI : public ScriptedAI
 {
-    explicit npc_deathstalker_faerleiaAI(Creature* pCreature) : ScriptedAI(pCreature)
+    npc_deathstalker_faerleiaAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        npc_deathstalker_faerleiaAI::Reset();
+        Reset();
         m_bEventStarted = false;
     }
 
-    void Reset() override
+    void Reset()
     {
     }
 
@@ -287,8 +288,8 @@ struct npc_deathstalker_faerleiaAI : ScriptedAI
 
     void StartEvent(uint64 uiPlayerGUID)
     {
-        if (m_bEventStarted) return;
-
+        if (m_bEventStarted)
+            return;
         m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
 
         m_uiPlayerGUID  = uiPlayerGUID;
@@ -302,50 +303,29 @@ struct npc_deathstalker_faerleiaAI : ScriptedAI
     {
         m_uiPlayerGUID = 0;
         m_bEventStarted = false;
-    }
-
-    void JustRespawned() override
-    {
         m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* pKiller)
     {
-        if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_uiPlayerGUID))
+        if (Player* pPlayer = (m_creature->GetMap()->GetPlayer(m_uiPlayerGUID)))
             pPlayer->SendQuestFailed(QUEST_PYREWOOD_AMBUSH);
 
         FinishEvent();
     }
 
-    void JustSummoned(Creature* pSummoned) override
+    void JustSummoned(Creature* pSummoned)
     {
-        if (!m_bEventStarted) return;
-
         ++m_uiSummonCount;
 
         // put them on correct waypoints later on
         float fX, fY, fZ;
-        bool found = false;
-
-        for (uint8 i = 0; i < 10; ++i)
-        {
-            if (pSummoned->GetRandomPoint(m_afMoveCoords[0], m_afMoveCoords[1], m_afMoveCoords[2], 4.0f, fX, fY, fZ))
-            {
-                found = true;
-                break;
-            }
-        }
-        
-        if (found)
-            pSummoned->GetMotionMaster()->MovePoint(99, fX, fY, fZ, MOVE_PATHFINDING);
-        else
-            pSummoned->GetMotionMaster()->MovePoint(99, m_afMoveCoords[0], m_afMoveCoords[1], m_afMoveCoords[2], MOVE_PATHFINDING);
+        pSummoned->GetRandomPoint(m_afMoveCoords[0], m_afMoveCoords[1], m_afMoveCoords[2], 10.0f, fX, fY, fZ);
+        pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ, 1);
     }
 
-    void SummonedCreatureJustDied(Creature* /*pKilled*/) override
+    void SummonedCreatureJustDied(Creature* pKilled)
     {
-        if (!m_bEventStarted) return;
-
         --m_uiSummonCount;
 
         if (!m_uiSummonCount)
@@ -365,7 +345,7 @@ struct npc_deathstalker_faerleiaAI : ScriptedAI
         }
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(const uint32 uiDiff)
     {
         if (m_bEventStarted && !m_uiSummonCount)
         {
@@ -374,24 +354,24 @@ struct npc_deathstalker_faerleiaAI : ScriptedAI
                 switch (m_uiWaveCount)
                 {
                     case 0:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_SMITHERS,  SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_SMITHERS,  SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer = 10000;
                         break;
                     case 1:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_THATHER,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HENDRICKS, SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_THATHER,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HENDRICKS, SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer = 10000;
                         break;
                     case 2:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_WILHELM,   SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HARTIN,    SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HIGARTH,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_WILHELM,   SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HARTIN,    SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HIGARTH,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer  = 8000;
                         break;
                     case 3:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_COOPER,    SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_BRUNSWICK, SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
-                        m_creature->SummonCreature(NPC_LORD_MAYOR_MORRISON,  SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_COOPER,    SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_BRUNSWICK, SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_LORD_MAYOR_MORRISON,  SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 20000);
                         break;
                 }
 
@@ -414,7 +394,7 @@ bool QuestAccept_npc_deathstalker_faerleia(Player* pPlayer, Creature* pCreature,
     {
         DoScriptText(SAY_START, pCreature, pPlayer);
 
-        if (auto pFaerleiaAI = dynamic_cast<npc_deathstalker_faerleiaAI*>(pCreature->AI()))
+        if (npc_deathstalker_faerleiaAI* pFaerleiaAI = dynamic_cast<npc_deathstalker_faerleiaAI*>(pCreature->AI()))
             pFaerleiaAI->StartEvent(pPlayer->GetGUID());
     }
     return true;
@@ -424,55 +404,6 @@ CreatureAI* GetAI_npc_deathstalker_faerleia(Creature* pCreature)
 {
     return new npc_deathstalker_faerleiaAI(pCreature);
 }
-
-/*
- * Pyrewood Council support
- */
-
-enum
-{
-    NPC_FAERLEIA        = 2058
-};
-
-struct npc_councilmanAI : ScriptedAI
-{
-    explicit npc_councilmanAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        npc_councilmanAI::Reset();
-    }
-
-    void Reset() override
-    {
-
-    }
-
-    void MovementInform(uint32 uiType, uint32 uiPointId) override
-    {
-        if (uiType != POINT_MOTION_TYPE) return;
-
-        if (uiPointId == 99)
-        {
-            if (auto pFaerleia = m_creature->FindNearestCreature(NPC_FAERLEIA, 30.0f))
-                m_creature->AddThreat(pFaerleia);
-        }
-    }
-
-    void EnterEvadeMode() override
-    {
-        // should happen only if all players and questgiver are dead
-        // thus nothing to do in world any longer
-        m_creature->ForcedDespawn();
-    }
-};
-
-CreatureAI* GetAI_npc_councilman(Creature* pCreature)
-{
-    return new npc_councilmanAI(pCreature);
-}
-
-/*
- *
- */
 
 enum
 {
@@ -691,7 +622,6 @@ struct npc_human_worgenAI : public ScriptedAI
             case PYREWOOD_LEATHERWORKER:
                 break;
         }
-
         DoMeleeAttackIfReady();
     }
 };
@@ -701,69 +631,6 @@ CreatureAI* GetAI_npc_human_worgen(Creature *_creature)
     return new npc_human_worgenAI(_creature);
 }
 
-/*
- * Dusty Spellbooks
- */
-
-enum
-{
-    NPC_MOONRAGE_DARKRUNNER     = 1770,
-
-    QUEST_ARUGAL_FOLLY          = 422,
-};
-
-#define DARKRUNNER_SAY "The Sons of Arugal will rise against all who challenge the power of the Moonrage!"
-
-struct go_dusty_spellbooksAI : GameObjectAI
-{
-    explicit go_dusty_spellbooksAI(GameObject* pGo) : GameObjectAI(pGo)
-    {
-        m_bJustUsed = false;
-        m_uiJustUsedTimer = 0;
-    }
-
-    bool m_bJustUsed;
-    uint32 m_uiJustUsedTimer;
-
-    bool OnUse(Unit* pCaster) override
-    {
-        auto pPlayer = pCaster->ToPlayer();
-
-        if (!pPlayer) return true;
-
-        if (!(pPlayer->GetQuestStatus(QUEST_ARUGAL_FOLLY) == QUEST_STATUS_INCOMPLETE)) return true;
-
-        if (!m_bJustUsed)
-        {
-            if (auto pCreature = me->SummonCreature(NPC_MOONRAGE_DARKRUNNER, 875.38f, 1232.43f, 52.6f, 3.16f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 90000))
-            {
-                pCreature->MonsterSay(DARKRUNNER_SAY);
-                pCreature->AddThreat(pCaster);
-                m_bJustUsed = true;
-                m_uiJustUsedTimer = 1000;
-            }            
-        }
-
-        return true;
-    }
-
-    void UpdateAI(uint32 const uiDiff) override
-    {
-        if (!m_bJustUsed) return;
-
-        if (m_uiJustUsedTimer < uiDiff)
-        {
-            m_bJustUsed = false;
-        }
-        else
-            m_uiJustUsedTimer -= uiDiff;
-    }
-};
-
-GameObjectAI* GetAI_go_dusty_spellbooks(GameObject* pGo)
-{
-    return new go_dusty_spellbooksAI(pGo);
-}
 
 void AddSC_silverpine_forest()
 {
@@ -791,15 +658,5 @@ void AddSC_silverpine_forest()
     newscript->Name = "npc_deathstalker_faerleia";
     newscript->GetAI = &GetAI_npc_deathstalker_faerleia;
     newscript->pQuestAcceptNPC = &QuestAccept_npc_deathstalker_faerleia;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_councilman";
-    newscript->GetAI = &GetAI_npc_councilman;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_dusty_spellbooks";
-    newscript->GOGetAI = &GetAI_go_dusty_spellbooks;
     newscript->RegisterSelf();
 }

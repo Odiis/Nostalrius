@@ -275,7 +275,7 @@ uint32 BattleGroundQueue::GetAverageQueueWaitTime(GroupQueueInfo* ginfo, BattleG
         return 0;
 }
 
-// Ivina <Nostalrius> : log player inscription to bg queue.
+// Ivina <Elysium> : log player inscription to bg queue.
 void BattleGroundQueue::LogQueueInscription(Player *plr, BattleGroundTypeId BgTypeId, uint32 uiAction)
 {
     std::string sPName = plr->GetName();
@@ -1006,7 +1006,7 @@ void BattleGroundMgr::BuildPvpLogDataPacket(WorldPacket *data, BattleGround *bg)
 
         Player *plr = ObjectAccessor::FindPlayerNotInWorld(itr->first);
 
-        *data << uint32(plr ? plr->GetHonorMgr().GetRank().rank : 4);
+        *data << uint32(plr ? plr->GetHonorRankInfo().rank : 4);
         *data << uint32(itr->second->KillingBlows);
         *data << uint32(itr->second->HonorableKills);
         *data << uint32(itr->second->Deaths);
@@ -1290,8 +1290,8 @@ void BattleGroundMgr::CreateInitialBattleGrounds()
         uint32 mapId = GetBattleGrounMapIdByTypeId(bgTypeID);
         char const* name;
 
-        if (MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(mapId))
-            name = mapEntry->name;
+        if (MapEntry const* mapEntry = sMapStore.LookupEntry(mapId))
+            name = mapEntry->name[sWorld.GetDefaultDbcLocale()];
         else
         {
             sLog.outErrorDb("Table `battleground_template` for id %u associated with nonexistent map id %u.", bgTypeID, mapId);

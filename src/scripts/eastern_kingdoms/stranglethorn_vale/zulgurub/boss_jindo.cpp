@@ -36,7 +36,7 @@ EndScriptData */
 #define SPELL_HEAL                      24311               //Totems are not working right. Right heal spell ID is 24311 but this spell is not casting...
 
 //Shade of Jindo Spell
-//#define SPELL_SHADOWSHOCK               19460 // Nostalrius :
+//#define SPELL_SHADOWSHOCK               19460 // Elysium :
 /*
 et qui envoient de temps à autre
 un choc d’ombre de 800-1000 dégâts (ce qui est
@@ -190,7 +190,7 @@ struct boss_jindoAI : public ScriptedAI
                 bool PlayerDead = false;
                 bool AuraRemoved = false;
 
-                uint32 var = 0;
+                int var = 0;
                 for (std::list<uint64>::const_iterator itr = BrainWashedPlayerGuid.begin(); itr != BrainWashedPlayerGuid.end(); itr++)
                 {
                     if (Player* pTarget = m_creature->GetMap()->GetPlayer((*itr)))

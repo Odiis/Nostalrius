@@ -45,38 +45,38 @@ enum
 };
 
 // North
-#define SPAWN_X1 -7530.4072f
-#define SPAWN_Y1 -1062.4177f
-#define SPAWN_Z1 407.2f
+#define SPAWN_X1 -7530.4072
+#define SPAWN_Y1 -1062.4177
+#define SPAWN_Z1 407.2
 // South
-#define SPAWN_X2 -7659.7128f
-#define SPAWN_Y2 -1043.3569f
-#define SPAWN_Z2 407.2f
+#define SPAWN_X2 -7659.7128
+#define SPAWN_Y2 -1043.3569
+#define SPAWN_Z2 407.2
 // Eeast
-#define SPAWN_X3 -7607.4643f
-#define SPAWN_Y3 -1116.4702f
-#define SPAWN_Z3 407.2f
+#define SPAWN_X3 -7607.4643
+#define SPAWN_Y3 -1116.4702
+#define SPAWN_Z3 407.2
 // West
-#define SPAWN_X4 -7584.3247f
-#define SPAWN_Y4 -990.5787f
-#define SPAWN_Z4 407.2f
+#define SPAWN_X4 -7584.3247
+#define SPAWN_Y4 -990.5787
+#define SPAWN_Z4 407.2
 
 // North
-#define SPAWN_X1_BIS -7547.8886f
-#define SPAWN_Y1_BIS -1041.3544f
-#define SPAWN_Z1_BIS 407.206f
+#define SPAWN_X1_BIS -7547.8886
+#define SPAWN_Y1_BIS -1041.3544
+#define SPAWN_Z1_BIS 407.206
 // South
-#define SPAWN_X2_BIS -7643.7973f
-#define SPAWN_Y2_BIS -1065.2515f
-#define SPAWN_Z2_BIS 407.207f
+#define SPAWN_X2_BIS -7643.7973
+#define SPAWN_Y2_BIS -1065.2515
+#define SPAWN_Z2_BIS 407.207
 // Eeast
-#define SPAWN_X3_BIS -7623.4433f
-#define SPAWN_Y3_BIS -1094.6033f
-#define SPAWN_Z3_BIS 407.206f
+#define SPAWN_X3_BIS -7623.4433
+#define SPAWN_Y3_BIS -1094.6033
+#define SPAWN_Z3_BIS 407.206
 // West 
-#define SPAWN_X4_BIS -7567.9516f
-#define SPAWN_Y4_BIS -1012.5256f
-#define SPAWN_Z4_BIS 407.206f
+#define SPAWN_X4_BIS -7567.9516
+#define SPAWN_Y4_BIS -1012.5256
+#define SPAWN_Z4_BIS 407.206
 
 #define DEBUG_RAZOR(...) //sLog.outString("[MC/Razor] "__VA_ARGS__)
 #define DEBUG_EMOTE(s)  //m_creature->MonsterTextEmote(s, NULL);
@@ -100,8 +100,6 @@ struct boss_razorgoreAI : public ScriptedAI
     uint32 m_uiInitTimer;
     bool m_uiInit;
 
-    uint32 m_uiEvadeTroopsTimer;
-
     void Reset()
     {
         SetCombatMovement(true);
@@ -110,8 +108,6 @@ struct boss_razorgoreAI : public ScriptedAI
         m_uiConflagrationTimer  = 12000;
         m_uiFireballVolleyTimer = 7000;
         m_uiInitTimer = 5000;
-
-        m_uiEvadeTroopsTimer = 5000;
     }
 
     void SpellHitTarget(Unit* pTarget, const SpellEntry* pSpell)
@@ -121,6 +117,11 @@ struct boss_razorgoreAI : public ScriptedAI
 
         if (pSpell->Id == SPELL_WARSTOMP)
             m_creature->getThreatManager().modifyThreatPercent(pTarget, -30);
+        if (pSpell->Id == SPELL_CONFLAGRATION)
+        {
+            if (SpellAuraHolder* holder = pTarget->GetSpellAuraHolder(SPELL_CONFLAGRATION))
+                holder->SetTargetSecondaryThreatFocus(true);
+        }
     }
 
     void Aggro(Unit* /*pWho*/)
@@ -152,6 +153,8 @@ struct boss_razorgoreAI : public ScriptedAI
 
         m_creature->Respawn();
         SituationInitiale();
+
+        DoScriptText(SAY_DEATH, m_creature);
     }
 
     void JustDied(Unit* /*pKiller*/)
@@ -234,20 +237,6 @@ struct boss_razorgoreAI : public ScriptedAI
         DEBUG_RAZOR("Situation initiale");
     }
 
-    void EvadeTroops()
-    {
-        std::list<Creature*> lCreatureNear;
-        GetCreatureListWithEntryInGrid(lCreatureNear, m_creature, BLACKWING_LEGGIONAIRE, 250.0f);
-        GetCreatureListWithEntryInGrid(lCreatureNear, m_creature, BLACKWING_MAGE, 250.0f);
-        GetCreatureListWithEntryInGrid(lCreatureNear, m_creature, DEATH_TALON_DRAGONSPAWN, 250.0f);
-
-        for (std::list<Creature*>::iterator it = lCreatureNear.begin(); it != lCreatureNear.end(); ++it)
-        {
-            if ((*it)->isAlive())
-                (*it)->AI()->EnterEvadeMode();
-        }
-    }
-
     void UpdateAI(const uint32 uiDiff)
     {
         if (m_creature->hasUnitState(UNIT_STAT_CONTROLLED))
@@ -268,21 +257,6 @@ struct boss_razorgoreAI : public ScriptedAI
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
-
-        if (m_pInstance->GetData64(DATA_EGG) == DONE)
-        {
-            // backup Evade Troops call, in case mages are re-aggroed by their in-flight Fireballs
-            if (m_uiEvadeTroopsTimer)
-            {
-                if (m_uiEvadeTroopsTimer <= uiDiff)
-                {
-                    EvadeTroops();
-                    m_uiEvadeTroopsTimer = 0;
-                }
-                else
-                    m_uiEvadeTroopsTimer -= uiDiff;
-            }
-        }
 
         if (m_uiCleaveTimer < uiDiff)
         {
@@ -308,7 +282,7 @@ struct boss_razorgoreAI : public ScriptedAI
         {
             DEBUG_EMOTE("FB");
             if (DoCastSpellIfCan(m_creature, SPELL_FIREBALL_VOLLEY) == CAST_OK)
-                m_uiFireballVolleyTimer = urand(15000, 20000);
+                m_uiFireballVolleyTimer = urand(20000, 30000);
         }
         else
             m_uiFireballVolleyTimer -= uiDiff;
@@ -378,8 +352,8 @@ struct trigger_orb_of_commandAI : public ScriptedAI
         {
             if ((*it)->isAlive())
             {
-                (*it)->SetHomePosition(-7555.55f, -1025.16f, 408.4914f, 0.65f);
-                (*it)->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PACIFIED | UNIT_FLAG_SILENCED);
+                (*it)->SetHomePosition(-7550.027832f, -1012.246826f, 408.501221f, 0.621668f);
+                (*it)->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PACIFIED | UNIT_FLAG_SILENCED);
                 (*it)->AI()->EnterEvadeMode();
             }
         }

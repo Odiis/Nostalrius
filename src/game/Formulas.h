@@ -23,6 +23,13 @@
 #include "World.h"
 #include "ObjectMgr.h"
 
+struct HonorScores
+{
+    float FX[15];
+    float FY[15];
+    float BRK[14];
+};
+
 namespace MaNGOS
 {
     namespace Honor
@@ -31,6 +38,51 @@ namespace MaNGOS
         {
             return (float)ceil(count*(-0.53177f + 0.59357f * exp((level +23.54042f) / 26.07859f )));
         }
+        float MaximumRpAtLevel(uint32 level);
+
+        // set passed rank info to default
+        void InitRankInfo(HonorRankInfo &prk);
+
+        HonorRankInfo CalculateRankInfo(HonorRankInfo prk);
+
+        //What is Player's rank... private, scout...
+        HonorRankInfo CalculateHonorRank(float honor_points);
+
+        HonorScores GenerateScores(HonorStandingList& standingList);
+
+        float CalculateRpEarning(float CP,HonorScores sc);
+
+        inline float CalculateRpDecay(float rpEarning,float RP)
+        {
+            float Decay = floor( (0.2f * RP) + 0.5f);
+            float Delta = rpEarning - Decay;
+            if (Delta < 0) {
+               Delta = Delta / 2;
+            }
+            if (Delta < -2500) {
+               Delta = -2500;
+            }
+            return RP + Delta;
+        }
+
+        inline float DishonorableKillPoints(int level)
+        {
+            float result = 10;
+            if(level >= 30 && level <= 35)
+                result = result + 1.5 * (level - 29);
+            if(level >= 36 && level <= 41)
+                result = result + 9 + 2 * (level - 35);
+            if(level >= 42 && level <= 50)
+                result = result + 21 + 3.2 * (level - 41);
+            if(level >= 51)
+                result = result + 50 + 4 * (level - 50);
+            if(result > 100)
+                return 100.0;
+            else
+                return result;
+        }
+
+        float HonorableKillPoints( Player *killer, Player *victim, uint32 groupsize);
     }
 
 
@@ -40,23 +92,23 @@ namespace MaNGOS
 
         inline uint32 GetGrayLevel(uint32 pl_level)
         {
-            if (pl_level <= 5)
+            if( pl_level <= 5 )
                 return 0;
-            else if (pl_level <= 39)
-                return pl_level - 5 - pl_level / 10;
+            else if( pl_level <= 39 )
+                return pl_level - 5 - pl_level/10;
             else
-                return pl_level - 1 - pl_level / 5;
+                return pl_level - 1 - pl_level/5;
         }
 
         inline XPColorChar GetColorCode(uint32 pl_level, uint32 mob_level)
         {
-            if (mob_level >= pl_level + 5)
+            if( mob_level >= pl_level + 5 )
                 return RED;
-            else if (mob_level >= pl_level + 3)
+            else if( mob_level >= pl_level + 3 )
                 return ORANGE;
-            else if (mob_level >= pl_level - 2)
+            else if( mob_level >= pl_level - 2 )
                 return YELLOW;
-            else if (mob_level > GetGrayLevel(pl_level))
+            else if( mob_level > GetGrayLevel(pl_level) )
                 return GREEN;
             else
                 return GRAY;
@@ -64,17 +116,17 @@ namespace MaNGOS
 
         inline uint32 GetZeroDifference(uint32 pl_level)
         {
-            if (pl_level < 8)  return 5;
-            if (pl_level < 10) return 6;
-            if (pl_level < 12) return 7;
-            if (pl_level < 16) return 8;
-            if (pl_level < 20) return 9;
-            if (pl_level < 30) return 11;
-            if (pl_level < 40) return 12;
-            if (pl_level < 45) return 13;
-            if (pl_level < 50) return 14;
-            if (pl_level < 55) return 15;
-            if (pl_level < 60) return 16;
+            if( pl_level < 8 )  return 5;
+            if( pl_level < 10 ) return 6;
+            if( pl_level < 12 ) return 7;
+            if( pl_level < 16 ) return 8;
+            if( pl_level < 20 ) return 9;
+            if( pl_level < 30 ) return 11;
+            if( pl_level < 40 ) return 12;
+            if( pl_level < 45 ) return 13;
+            if( pl_level < 50 ) return 14;
+            if( pl_level < 55 ) return 15;
+            if( pl_level < 60 ) return 16;
             return 17;
         }
 
@@ -85,7 +137,7 @@ namespace MaNGOS
                 uint32 nLevelDiff = victim_level - pl_level;
                 if (nLevelDiff > 4)
                     nLevelDiff = 4;
-                return 1.0f + 0.05f * nLevelDiff;
+                return 1.0f + 0.05f*nLevelDiff;
             }
             else
             {
@@ -93,7 +145,7 @@ namespace MaNGOS
                 if (victim_level > gray_level)
                 {
                     uint32 ZD = GetZeroDifference(pl_level);
-                    return (ZD + victim_level - pl_level) / float(ZD);
+                    return (ZD + victim_level - pl_level)/float(ZD);
                 }
             }
             return 0;
@@ -101,15 +153,14 @@ namespace MaNGOS
         inline uint32 BaseGain(uint32 pl_level, uint32 mob_level)
         {
             const uint32 nBaseExp = 45;
-            return (pl_level * 5 + nBaseExp) * BaseGainLevelFactor(pl_level, mob_level);
+            return (pl_level*5 + nBaseExp) * BaseGainLevelFactor(pl_level, mob_level);
         }
 
         inline uint32 Gain(Player *pl, Unit *u)
         {
             if (u->GetTypeId()==TYPEID_UNIT && (
                 u->GetUInt32Value(UNIT_CREATED_BY_SPELL) ||
-                (((Creature*)u)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL) ||
-                u->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NO_KILL_REWARD)))
+                (((Creature*)u)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL) ))
                 return 0;
 
             uint32 xp_gain= BaseGain(pl->getLevel(), u->getLevel());
@@ -130,8 +181,7 @@ namespace MaNGOS
         {
             if(u->GetTypeId()==TYPEID_UNIT && (
                 u->GetUInt32Value(UNIT_CREATED_BY_SPELL) ||
-                (((Creature*)u)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL) ||
-                u->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NO_KILL_REWARD)))
+                (((Creature*)u)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL) ))
                 return 0;
 
             uint32 xp_gain= BaseGain(pet->getLevel(), u->getLevel());

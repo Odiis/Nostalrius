@@ -196,9 +196,9 @@ struct instance_ruins_of_ahnqiraj : public ScriptedInstance
                 {
                     GameObject *pAQDoor = pCreature->SummonGameObject(176149,
                                           -8526,
-                                          1507.4f,
+                                          1507.4,
                                           49,
-                                          4.20662f, 0, 0, 0.861534f, -0.5077f, -1, false);
+                                          4.20662, 0, 0, 0.861534, -0.5077, -1, false);
 
                     p_doorGuid = pAQDoor->GetObjectGuid();
                     m_bIsAQDoorOn = true;
@@ -539,7 +539,7 @@ struct instance_ruins_of_ahnqiraj : public ScriptedInstance
         OUT_LOAD_INST_DATA_COMPLETE;
     }
 
-    void Update(uint32 uiDiff)
+    void Update(const uint32 uiDiff)
     {
         if (m_bRajaxxEventIsToReset)
         {
@@ -561,10 +561,10 @@ struct instance_ruins_of_ahnqiraj : public ScriptedInstance
         CreatureGroup* group = creature->GetCreatureGroup();
         if (!group)
         {
-//sLog.nostalrius("no group");
+//sLog.elysium("no group");
             return 0;
         }
-//sLog.nostalrius("group leader : %u",group->GetLeaderGuid().GetEntry());
+//sLog.elysium("group leader : %u",group->GetLeaderGuid().GetEntry());
         switch (group->GetLeaderGuid().GetEntry())
         {
             case NPC_CAPTAIN_QEEZ:

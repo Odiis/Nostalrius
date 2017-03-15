@@ -55,8 +55,7 @@
 #include "InstanceData.h"
 #include "DBCStores.h"
 #include "CreatureEventAIMgr.h"
-#include "QuestDef.h"
-#include "Anticheat.h"
+
 
 bool ChatHandler::HandleReloadAllCommand(char* /*args*/)
 {
@@ -1983,7 +1982,7 @@ bool ChatHandler::HandleAddItemCommand(char* args)
     //Subtract
     if (count < 0)
     {
-        // Is the item actually?
+        // Elysium : A-t-on effectivement l'item ?
         if (!plTarget->HasItemCount(itemId, -count, true))
         {
             PSendSysMessage("Le joueur a l'objet %ux%u. Ne peut en retirer %u. Banque inclue.", itemId, plTarget->GetItemCount(itemId, true), -count);
@@ -2054,7 +2053,7 @@ bool ChatHandler::HandleAddItemSetCommand(char* args)
     DETAIL_LOG(GetMangosString(LANG_ADDITEMSET), itemsetId);
 
     bool found = false;
-    for (uint32 id = 0; id < sItemStorage.GetMaxEntry(); id++)
+    for (uint32 id = 0; id < sItemStorage.MaxEntry; id++)
     {
         ItemPrototype const *pProto = sItemStorage.LookupEntry<ItemPrototype>(id);
         if (!pProto)
@@ -2468,7 +2467,7 @@ bool ChatHandler::HandleLookupItemCommand(char* args)
     uint32 counter = 0;
 
     // Search in `item_template`
-    for (uint32 id = 0; id < sItemStorage.GetMaxEntry(); id++)
+    for (uint32 id = 0; id < sItemStorage.MaxEntry; id++)
     {
         ItemPrototype const *pProto = sItemStorage.LookupEntry<ItemPrototype >(id);
         if (!pProto)
@@ -2541,7 +2540,7 @@ bool ChatHandler::HandleLookupItemSetCommand(char* args)
             if (!Utf8FitTo(name, wnamepart))
             {
                 loc = 0;
-                for (; loc < MAX_DBC_LOCALE; ++loc)
+                for (; loc < MAX_LOCALE; ++loc)
                 {
                     if (loc == GetSessionDbcLocale())
                         continue;
@@ -2555,7 +2554,7 @@ bool ChatHandler::HandleLookupItemSetCommand(char* args)
                 }
             }
 
-            if (loc < MAX_DBC_LOCALE)
+            if (loc < MAX_LOCALE)
             {
                 // send item set in "id - [namedlink locale]" format
                 if (m_session)
@@ -2604,7 +2603,7 @@ bool ChatHandler::HandleLookupSkillCommand(char* args)
             if (!Utf8FitTo(name, wnamepart))
             {
                 loc = 0;
-                for (; loc < MAX_DBC_LOCALE; ++loc)
+                for (; loc < MAX_LOCALE; ++loc)
                 {
                     if (loc == GetSessionDbcLocale())
                         continue;
@@ -2618,7 +2617,7 @@ bool ChatHandler::HandleLookupSkillCommand(char* args)
                 }
             }
 
-            if (loc < MAX_DBC_LOCALE)
+            if (loc < MAX_LOCALE)
             {
                 char valStr[50] = "";
                 char const* knownStr = "";
@@ -2729,7 +2728,7 @@ bool ChatHandler::HandleLookupSpellCommand(char* args)
             if (!Utf8FitTo(name, wnamepart))
             {
                 loc = 0;
-                for (; loc < MAX_DBC_LOCALE; ++loc)
+                for (; loc < MAX_LOCALE; ++loc)
                 {
                     if (loc == GetSessionDbcLocale())
                         continue;
@@ -2743,7 +2742,7 @@ bool ChatHandler::HandleLookupSpellCommand(char* args)
                 }
             }
 
-            if (loc < MAX_DBC_LOCALE)
+            if (loc < MAX_LOCALE)
             {
                 ShowSpellListHelper(target, spellInfo, LocaleConstant(loc));
                 ++counter;
@@ -2870,7 +2869,7 @@ bool ChatHandler::HandleLookupCreatureCommand(char* args)
 
     uint32 counter = 0;
 
-    for (uint32 id = 0; id < sCreatureStorage.GetMaxEntry(); ++id)
+    for (uint32 id = 0; id < sCreatureStorage.MaxEntry; ++id)
     {
         CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo> (id);
         if (!cInfo)
@@ -2935,12 +2934,16 @@ bool ChatHandler::HandleLookupObjectCommand(char* args)
 
     uint32 counter = 0;
 
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (uint32 id = 0; id < sGOStorage.MaxEntry; id++)
     {
+        GameObjectInfo const* gInfo = sGOStorage.LookupEntry<GameObjectInfo>(id);
+        if (!gInfo)
+            continue;
+
         int loc_idx = GetSessionDbLocaleIndex();
         if (loc_idx >= 0)
         {
-            GameObjectLocale const *gl = sObjectMgr.GetGameObjectLocale(itr->id);
+            GameObjectLocale const *gl = sObjectMgr.GetGameObjectLocale(id);
             if (gl)
             {
                 if ((int32)gl->Name.size() > loc_idx && !gl->Name[loc_idx].empty())
@@ -2950,9 +2953,9 @@ bool ChatHandler::HandleLookupObjectCommand(char* args)
                     if (Utf8FitTo(name, wnamepart))
                     {
                         if (m_session)
-                            PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, itr->id, itr->id, name.c_str());
+                            PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, id, id, name.c_str());
                         else
-                            PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, itr->id, name.c_str());
+                            PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, id, name.c_str());
                         ++counter;
                         continue;
                     }
@@ -2960,16 +2963,16 @@ bool ChatHandler::HandleLookupObjectCommand(char* args)
             }
         }
 
-        std::string name = itr->name;
+        std::string name = gInfo->name;
         if (name.empty())
             continue;
 
         if (Utf8FitTo(name, wnamepart))
         {
             if (m_session)
-                PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, itr->id, itr->id, name.c_str());
+                PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, id, id, name.c_str());
             else
-                PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, itr->id, name.c_str());
+                PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, id, name.c_str());
             ++counter;
         }
     }
@@ -3010,7 +3013,7 @@ bool ChatHandler::HandleLookupTaxiNodeCommand(char * args)
             if (!Utf8FitTo(name, wnamepart))
             {
                 loc = 0;
-                for (; loc < MAX_DBC_LOCALE; ++loc)
+                for (; loc < MAX_LOCALE; ++loc)
                 {
                     if (loc == GetSessionDbcLocale())
                         continue;
@@ -3024,7 +3027,7 @@ bool ChatHandler::HandleLookupTaxiNodeCommand(char * args)
                 }
             }
 
-            if (loc < MAX_DBC_LOCALE)
+            if (loc < MAX_LOCALE)
             {
                 // send taxinode in "id - [name] (Map:m X:x Y:y Z:z)" format
                 if (m_session)
@@ -3466,8 +3469,8 @@ bool ChatHandler::HandleLinkGraveCommand(char* args)
 
     uint32 zoneId = player->GetZoneId();
 
-    const auto *areaEntry = AreaEntry::GetById(zoneId);
-    if (!areaEntry || !areaEntry->IsZone())
+    AreaTableEntry const *areaEntry = GetAreaEntryByAreaID(zoneId);
+    if (!areaEntry || areaEntry->zone != 0)
     {
         PSendSysMessage(LANG_COMMAND_GRAVEYARDWRONGZONE, g_id, zoneId);
         SetSentErrorMessage(true);
@@ -3906,7 +3909,7 @@ bool ChatHandler::HandleShowAreaCommand(char* args)
         return false;
     }
 
-    int area = AreaEntry::GetFlagById(atoi(args));
+    int area = GetAreaFlagByAreaID(atoi(args));
     int offset = area / 32;
     uint32 val = (uint32)(1 << (area % 32));
 
@@ -3937,7 +3940,7 @@ bool ChatHandler::HandleHideAreaCommand(char* args)
         return false;
     }
 
-    int area = AreaEntry::GetFlagById(atoi(args));
+    int area = GetAreaFlagByAreaID(atoi(args));
     int offset = area / 32;
     uint32 val = (uint32)(1 << (area % 32));
 
@@ -4224,7 +4227,7 @@ bool ChatHandler::HandleResetHonorCommand(char* args)
     if (!ExtractPlayerTarget(&args, &target))
         return false;
 
-    target->GetHonorMgr().Reset();
+    target->ResetHonor();
     return true;
 }
 
@@ -4511,7 +4514,7 @@ bool ChatHandler::HandleQuestAddCommand(char* args)
     }
 
     // check item starting quest (it can work incorrectly if added without item in inventory)
-    for (uint32 id = 0; id < sItemStorage.GetMaxEntry(); ++id)
+    for (uint32 id = 0; id < sItemStorage.MaxEntry; ++id)
     {
         ItemPrototype const *pProto = sItemStorage.LookupEntry<ItemPrototype>(id);
         if (!pProto)
@@ -4600,41 +4603,26 @@ bool ChatHandler::HandleQuestStatusCommand(char* args)
     uint32 entry;
     if (!ExtractUint32KeyFromLink(&args, "Hquest", entry))
         return false;
-    
-    Quest const* quest = sObjectMgr.GetQuestTemplate(entry);
-
-    // If player doesn't have the quest
-    if (!quest)
+    const char* status = "NONE";
+    switch (player->GetQuestStatus(entry))
     {
-        PSendSysMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
-        SetSentErrorMessage(true);
-        return false;
+    case QUEST_STATUS_COMPLETE:
+        status = "COMPLETE";
+        break;
+    case QUEST_STATUS_UNAVAILABLE:
+        status = "UNAVAILABLE";
+        break;
+    case QUEST_STATUS_INCOMPLETE:
+        status = "INCOMPLETE";
+        break;
+    case QUEST_STATUS_AVAILABLE:
+        status = "AVAILABLE";
+        break;
+    case QUEST_STATUS_FAILED:
+        status = "FAILED";
+        break;
     }
-
-    PSendSysMessage("Quest ID: %u - [%s]", entry, QuestStatusToString(player->GetQuestStatus(entry)));
-
-    Quest const* prevQuest = quest;
-
-    uint8 pos = 1;
-    while (prevQuest->GetPrevQuestId())
-    {
-        if (Quest const* quest = sObjectMgr.GetQuestTemplate(prevQuest->GetPrevQuestId()))
-        {
-            if (quest->GetNextQuestInChain() == prevQuest->GetQuestId())
-            {
-                uint32 id = quest->GetQuestId();
-                PSendSysMessage("%u. [PreventInChain] Quest ID: %u - [%s]", pos, id, QuestStatusToString(player->GetQuestStatus(id)));
-                prevQuest = quest;
-            }
-            else
-            {
-                uint32 id = quest->GetQuestId();
-                PSendSysMessage("%u. [Prevent] Quest ID: %u - [%s]", pos, id, QuestStatusToString(player->GetQuestStatus(id)));
-                prevQuest = quest;
-            }
-        } else break;
-        ++pos;
-    }
+    PSendSysMessage("Quest #%u status for %s: %s", entry, player->GetName(), status);
     return true;
 }
 
@@ -5808,16 +5796,11 @@ bool ChatHandler::HandleInstanceListBindsCommand(char* /*args*/)
     for (Player::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
     {
         DungeonPersistentState *state = itr->second.state;
-        std::string timeleft = "";
-        if (!itr->second.perm)
-            timeleft = secsToTimeString(state->GetResetTime() - time(nullptr), true);
-        else
-            timeleft = secsToTimeString(sMapPersistentStateMgr.GetScheduler().GetResetTimeFor(itr->first) - time(nullptr));
-
-        if (const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(itr->first))
+        std::string timeleft = secsToTimeString(state->GetResetTime() - time(NULL), true);
+        if (const MapEntry* entry = sMapStore.LookupEntry(itr->first))
         {
             PSendSysMessage("map: %d (%s) inst: %d perm: %s canReset: %s TTR: %s",
-                            itr->first, entry->name, state->GetInstanceId(), itr->second.perm ? "yes" : "no",
+                            itr->first, entry->name[GetSessionDbcLocale()], state->GetInstanceId(), itr->second.perm ? "yes" : "no",
                             state->CanReset() ? "yes" : "no", timeleft.c_str());
         }
         else
@@ -5834,16 +5817,12 @@ bool ChatHandler::HandleInstanceListBindsCommand(char* /*args*/)
         for (Group::BoundInstancesMap::const_iterator itr = binds.begin(); itr != binds.end(); ++itr)
         {
             DungeonPersistentState *state = itr->second.state;
-            std::string timeleft = "";
-            if (!itr->second.perm)
-                timeleft = secsToTimeString(state->GetResetTime() - time(nullptr), true);
-            else
-                timeleft = secsToTimeString(sMapPersistentStateMgr.GetScheduler().GetResetTimeFor(itr->first) - time(nullptr));
+            std::string timeleft = secsToTimeString(state->GetResetTime() - time(NULL), true);
 
-            if (const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(itr->first))
+            if (const MapEntry* entry = sMapStore.LookupEntry(itr->first))
             {
                 PSendSysMessage("map: %d (%s) inst: %d perm: %s canReset: %s TTR: %s",
-                                itr->first, entry->name, state->GetInstanceId(), itr->second.perm ? "yes" : "no",
+                                itr->first, entry->name[GetSessionDbcLocale()], state->GetInstanceId(), itr->second.perm ? "yes" : "no",
                                 state->CanReset() ? "yes" : "no", timeleft.c_str());
             }
             else
@@ -5862,7 +5841,7 @@ bool ChatHandler::HandleInstanceUnbindCommand(char* args)
         return false;
 
     Player* player = getSelectedPlayer();
-    if (!player || GetAccessLevel() < SEC_BASIC_ADMIN)
+    if (!player)
         player = m_session->GetPlayer();
     uint32 counter = 0;
     uint32 mapid = 0;
@@ -5890,10 +5869,10 @@ bool ChatHandler::HandleInstanceUnbindCommand(char* args)
             DungeonPersistentState *save = itr->second.state;
             std::string timeleft = secsToTimeString(save->GetResetTime() - time(NULL), true);
 
-            if (const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(itr->first))
+            if (const MapEntry* entry = sMapStore.LookupEntry(itr->first))
             {
                 PSendSysMessage("unbinding map: %d (%s) inst: %d perm: %s canReset: %s TTR: %s",
-                                itr->first, entry->name, save->GetInstanceId(), itr->second.perm ? "yes" : "no",
+                                itr->first, entry->name[GetSessionDbcLocale()], save->GetInstanceId(), itr->second.perm ? "yes" : "no",
                                 save->CanReset() ? "yes" : "no", timeleft.c_str());
             }
             else
@@ -6464,9 +6443,6 @@ bool ChatHandler::HandleDebugMoveCommand(char* args)
         case 3:
             target->GetMotionMaster()->MoveFleeing(m_session->GetPlayer());
             break;
-        case 4:
-            target->GetMotionMaster()->MoveFeared(m_session->GetPlayer());
-            break;
     }
     SendSysMessage("Debug Move.");
     return true;
@@ -6477,189 +6453,5 @@ bool ChatHandler::HandleReloadConditionsCommand(char* /*args*/)
     sLog.outString("Re-Loading `conditions`... ");
     sObjectMgr.LoadConditions();
     SendSysMessage("DB table `conditions` reloaded.");
-    return true;
-}
-
-enum ServiceDeleteFlags
-{
-    SDF_NONE            = 0x00,
-    SDF_MAX_LEVEL       = 0x01,
-    SDF_MAX_MONEY       = 0x02,
-    SDF_MAX_ITEMS       = 0x04,
-    SDF_MAX_PLAYED_TIME = 0x08,
-    SDF_PERM_BANNED     = 0x10,
-    SDF_LAST_LOGIN      = 0x20,
-    SDF_GM              = 0x40
-};
-
-bool ChatHandler::HandleServiceDeleteCharacters(char* args)
-{
-    uint32 flags = 0;
-    if (!ExtractUInt32(&args, flags))
-        return false;
-
-    Tokens tokens = StrSplit(sConfig.GetStringDefault("LoginDatabase.Info", ""), ";");
-
-    std::string dblogon;
-    auto i = 0;
-    for (auto& token : tokens)
-    {
-        if (i == 4)
-        {
-            dblogon = token;
-            break;
-        }
-        else
-            ++i;
-    }
-
-    std::ostringstream s;
-
-    if (flags & SDF_PERM_BANNED)
-    {
-        s << "SELECT `guid`, `account` FROM `characters` WHERE `account` IN (SELECT `id` FROM `" << dblogon << "`.`account_banned` WHERE `bandate` = `unbandate` AND `active` = 1) ";
-
-        uint32 maxLevel = 0;
-        if (ExtractUInt32(&args, maxLevel))
-            s << "AND `level` <= " << maxLevel << " ";
-    }
-    else if (flags & SDF_GM)
-    {
-        s << "SELECT `guid`, `account` FROM `characters` WHERE `account` IN (SELECT `id` FROM `" << dblogon << "`.`account` WHERE `gmlevel` > 0)";
-    }
-    else
-    {
-        s << "SELECT `characters`.`guid`,"
-	         "    `characters`.`account`,"
-	         "    `characters`.`level` AS `level`,"
-	         "    `characters`.`money` AS `money`,"
-	         "    `characters`.`totaltime` AS `totaltime`,"
-	         "    COUNT(`characters`.`guid`) AS `items`,"
-             "    `characters`.`logout_time` AS `logout_time` "
-             "FROM `characters` "
-	         "INNER JOIN `character_inventory` USING(`guid`) "
-	         "GROUP BY `characters`.`guid` HAVING ";
-
-        bool _and = false;
-        if (flags & SDF_MAX_LEVEL)
-        {
-            uint32 maxLevel = 0;
-            if (!ExtractUInt32(&args, maxLevel))
-                return false;
-
-            s << (_and ? "AND " : "") << "`level` <= " << maxLevel << " ";
-            _and = true;
-        }
-
-        if (flags & SDF_MAX_MONEY)
-        {
-            uint32 maxMoney = 0;
-            if (!ExtractUInt32(&args, maxMoney))
-                return false;
-
-            s << (_and ? "AND " : "") << "`money` <= " << maxMoney << " ";
-            _and = true;
-        }
-
-        if (flags & SDF_MAX_ITEMS)
-        {
-            uint32 maxItems = 0;
-            if (!ExtractUInt32(&args, maxItems))
-                return false;
-
-            s << (_and ? "AND " : "") << "`items` <= " << maxItems << " ";
-            _and = true;
-        }
-
-        if (flags & SDF_MAX_PLAYED_TIME)
-        {
-            uint32 maxPlayedTime = 0;
-            if (!ExtractUInt32(&args, maxPlayedTime))
-                return false;
-
-            s << (_and ? "AND " : "") << "`totaltime` <= " << maxPlayedTime << " ";
-            _and = true;
-        }
-
-        if (flags & SDF_LAST_LOGIN)
-        {
-            uint32 logoutTime = 0;
-            if (!ExtractUInt32(&args, logoutTime))
-                return false;
-
-            s << (_and ? "AND " : "") << "`logout_time` <= " << logoutTime << " ";
-            _and = true;
-        }
-    }
-
-    QueryResult* result = CharacterDatabase.Query(s.str().c_str());
-    uint32 count = 0;
-    if (result)
-    {
-        count = result->GetRowCount();
-        do
-        {
-            Field* fields = result->Fetch();
-            uint32 lowGuid = fields[0].GetUInt32();
-            uint32 accountId = fields[1].GetUInt32();
-
-            ObjectGuid guid = ObjectGuid(HIGHGUID_PLAYER, lowGuid);
-
-            Player::DeleteFromDB(guid, accountId, true, true);
-        } while (result->NextRow());
-
-        delete result;
-    }
-
-    sLog.outString("Service: Removed %u characters", count);
-    return true;
-}
-
-bool ChatHandler::HandleSpamerMute(char* args)
-{
-    if (!*args)
-        return false;
-
-    char* cname = ExtractArg(&args);
-    if (!cname)
-        return false;
-
-    if (Player* player = ObjectAccessor::FindPlayerByName(cname))
-    {
-        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        {
-            a->mute(player->GetSession()->GetAccountId());
-            PSendSysMessage("Spamer %s was muted", cname);
-        }
-    }
-
-    return true;
-}
-
-bool ChatHandler::HandleSpamerUnmute(char* args)
-{
-    if (!*args)
-        return false;
-
-    char* cname = ExtractArg(&args);
-    if (!cname)
-        return false;
-
-    if (Player* player = ObjectAccessor::FindPlayerByName(cname))
-    {
-        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        {
-            a->unmute(player->GetSession()->GetAccountId());
-            PSendSysMessage("Spamer %s was unmuted", cname);
-        }
-    }
-
-    return true;
-}
-
-bool ChatHandler::HandleSpamerList(char* args)
-{
-    if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        a->showMuted(GetSession());
     return true;
 }

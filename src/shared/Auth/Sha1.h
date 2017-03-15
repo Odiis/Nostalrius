@@ -35,7 +35,6 @@ class Sha1Hash
 
         void UpdateData(const uint8 *dta, int len);
         void UpdateData(const std::string &str);
-        void UpdateData(const std::vector<uint8>& data);
 
         void Initialize();
         void Finalize();

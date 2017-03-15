@@ -1,6 +1,6 @@
 /*
 SQLyog Ultimate
-MySQL - 5.7.14-log : Database - nost_logs
+MySQL - 5.7.14-log : Database - logs
 *********************************************************************
 */
 
@@ -38,7 +38,7 @@ CREATE TABLE `logs_behavior` (
   `detection` varchar(255) NOT NULL,
   `data` varchar(255) NOT NULL,
   KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=5601433 DEFAULT CHARSET=latin1;
 
 /*Table structure for table `logs_characters` */
 
@@ -55,7 +55,7 @@ CREATE TABLE `logs_characters` (
   KEY `guid` (`guid`),
   KEY `ip` (`ip`),
   KEY `clientHash` (`clientHash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 /*Table structure for table `logs_chat` */
 
@@ -71,20 +71,18 @@ CREATE TABLE `logs_chat` (
   `message` varchar(255) NOT NULL DEFAULT '',
   KEY `guid` (`guid`),
   KEY `target` (`target`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
-/*Table structure for table `logs_spamdetect` */
+/*Table structure for table `logs_spamdetector` */
 
-DROP TABLE IF EXISTS `logs_spamdetect`;
+DROP TABLE IF EXISTS `logs_spamdetector`;
 
-CREATE TABLE `logs_spamdetect` (
-  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `accountId` int(11) DEFAULT '0',
-  `guid` int(11) NOT NULL DEFAULT '0',
-  `message` varchar(255) NOT NULL DEFAULT '',
-  `reason` varchar(255) NOT NULL DEFAULT '',
-  KEY `guid` (`guid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+CREATE TABLE `logs_spamdetector` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message` varchar(500) NOT NULL DEFAULT '',
+  `data` varchar(500) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=19699519 DEFAULT CHARSET=latin1;
 
 /*Table structure for table `logs_trade` */
 
@@ -101,7 +99,7 @@ CREATE TABLE `logs_trade` (
   `data` int(11) NOT NULL DEFAULT '0',
   KEY `sender` (`sender`),
   KEY `receiver` (`receiver`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 /*Table structure for table `logs_transactions` */
 
@@ -120,7 +118,7 @@ CREATE TABLE `logs_transactions` (
   `items2` varchar(255) NOT NULL DEFAULT '',
   KEY `guid2` (`guid2`),
   KEY `guid1` (`guid1`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 /*Table structure for table `logs_trashcharacters` */
 
@@ -131,22 +129,7 @@ CREATE TABLE `logs_trashcharacters` (
   `data` varchar(255) NOT NULL,
   `cluster` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-/*Table structure for table `smartlog_creature` */
-
-DROP TABLE IF EXISTS `smartlog_creature`;
-
-CREATE TABLE `smartlog_creature` (
-  `time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `type` ENUM('Death','LongCombat','ScriptInfo','') NOT NULL DEFAULT '',
-  `entry` INT(11) NOT NULL DEFAULT '0',
-  `guid` INT(11) NOT NULL DEFAULT '0',
-  `specifier` VARCHAR(255) NOT NULL DEFAULT '',
-  `combatTime` INT(11) NOT NULL DEFAULT '0',  
-  `content` VARCHAR(255) NOT NULL DEFAULT '',
-  KEY `entry` (`entry`)
-) ENGINE=INNODB DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 /*Table structure for table `migrations` */
 

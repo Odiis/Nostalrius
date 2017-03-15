@@ -565,7 +565,7 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
         void SaveToDB();
         void SaveToDB(uint32 mapid);
         bool LoadFromDB(uint32 guid, Map *map);
-        void DeleteFromDB() const;
+        void DeleteFromDB();
 
         void SetOwnerGuid(ObjectGuid ownerGuid)
         {
@@ -681,7 +681,7 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
 
         GridReference<GameObject> &GetGridRef() { return m_gridRef; }
 
-        // Nostalrius
+        // Elysium
         bool IsUseRequirementMet() const;
         bool PlayerCanUse(Player* pl);
         void SetOwnerGroupId(uint32 groupId) { m_playerGroupId = groupId; }
@@ -690,7 +690,7 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
         void AIM_Initialize();
         GameObjectAI* AI() { return i_AI; }
 
-        // NOSTALRIUS: GOCollision
+        // ELYSIUM: GOCollision
         void UpdateCollisionState();
         void UpdateModel();                                 // updates model in case displayId were changed
         GameObjectModel* m_model;

@@ -237,7 +237,7 @@ struct npc_custodian_of_timeAI : public npc_escortAI
                 float Radius = 10.0;
 
                 if (m_creature->IsWithinDistInMap(who, Radius))
-                    Start(false, who->GetGUID());
+                    Start(false, false, who->GetGUID());
             }
         }
     }
@@ -295,14 +295,14 @@ enum
     NPC_SHADOW_MAGE         = 5617
 };
 
-struct npc_oox17tnAI : npc_escortAI
+struct npc_oox17tnAI : public npc_escortAI
 {
-    explicit npc_oox17tnAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_oox17tnAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        npc_oox17tnAI::Reset();
+        Reset();
     }
 
-    void WaypointReached(uint32 i) override
+    void WaypointReached(uint32 i)
     {
         Player* pPlayer = GetPlayerForEscort();
 
@@ -314,22 +314,22 @@ struct npc_oox17tnAI : npc_escortAI
             //1. Ambush: 3 scorpions
             case 22:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_SCORPION, -8340.70f, -4448.17f, 9.17f, 3.10f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SCORPION, -8343.18f, -4444.35f, 9.44f, 2.35f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SCORPION, -8348.70f, -4457.80f, 9.58f, 2.02f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SCORPION, -8340.70f, -4448.17f, 9.17f, 3.10f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_SCORPION, -8343.18f, -4444.35f, 9.44f, 2.35f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_SCORPION, -8348.70f, -4457.80f, 9.58f, 2.02f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
                 break;
             //2. Ambush: 2 Rogues & 1 Shadow Mage
-            case 32:
+            case 28:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
 
-                m_creature->SummonCreature(NPC_SCOFFLAW, -7488.02f, -4786.56f, 10.67f, 3.74f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SHADOW_MAGE, -7486.41f, -4791.55f, 10.54f, 3.26f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SCOFFLAW, -7488.02f, -4786.56f, 10.67f, 3.74f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_SHADOW_MAGE, -7486.41f, -4791.55f, 10.54f, 3.26f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
 
-                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, -7488.47f, -4800.77f, 9.77f, 2.50f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS))
+                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, -7488.47f, -4800.77f, 9.77f, 2.50f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000))
                     DoScriptText(SAY_OOX17_AMBUSH_REPLY, pCreature);
 
                 break;
-            case 44:
+            case 34:
                 DoScriptText(SAY_OOX_END, m_creature);
                 // Award quest credit
                 pPlayer->GroupEventHappens(QUEST_RESCUE_OOX_17TN, m_creature);
@@ -337,9 +337,9 @@ struct npc_oox17tnAI : npc_escortAI
         }
     }
 
-    void Reset() override { }
+    void Reset() { }
 
-    void Aggro(Unit* /*who*/) override
+    void Aggro(Unit* who)
     {
         //For an small probability he say something when it aggros
         switch (urand(0, 9))
@@ -353,7 +353,7 @@ struct npc_oox17tnAI : npc_escortAI
         }
     }
 
-    void JustSummoned(Creature* summoned) override
+    void JustSummoned(Creature* summoned)
     {
         summoned->AI()->AttackStart(m_creature);
     }
@@ -378,8 +378,8 @@ bool QuestAccept_npc_oox17tn(Player* pPlayer, Creature* pCreature, const Quest* 
         if (pPlayer->GetTeam() == HORDE)
             pCreature->setFaction(FACTION_ESCORT_H_PASSIVE);
 
-        if (auto pEscortAI = dynamic_cast<npc_oox17tnAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+        if (npc_oox17tnAI* pEscortAI = dynamic_cast<npc_oox17tnAI*>(pCreature->AI()))
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -617,7 +617,7 @@ bool QuestAccept_npc_tooga(Player* pPlayer, Creature* pCreature, const Quest* pQ
     return true;
 }
 
-// Chakor@nostalrius : quest "L'or de Cuergo"(id: 2882)
+// Chakor@elysium : quest "L'or de Cuergo"(id: 2882)
 /*####
 # go_inconspicuous_landmark
 ####*/
@@ -639,7 +639,7 @@ struct go_inconspicuous_landmarkAI: public GameObjectAI
     uint32 timer;
     bool state;//0 = usual, can launch. //1 = in use, cannot launch
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (state)
         {
@@ -725,12 +725,12 @@ bool GOHello_go_inconspicuous_landmark(Player* pPlayer, GameObject* pGo)
                                 break;
                         }
                     }
-                    if (pirate4 = pGo->SummonCreature(extraPirateType[0], -10113.952148f, -4040.484375f, 5.174251f, 4.300828f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))
+                    if (pirate4 = pGo->SummonCreature(extraPirateType[0], -10113.952148, -4040.484375, 5.174251, 4.300828, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))
                     {
                         pirate4->AI()->AttackStart(pPlayer);
                         pirate4->SetRespawnDelay(350000);
                     }
-                    if (pirate5 = pGo->SummonCreature(extraPirateType[1], -10136.779297f, -4063.175049f, 4.787039f, 0.526417f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))
+                    if (pirate5 = pGo->SummonCreature(extraPirateType[1], -10136.779297, -4063.175049, 4.787039, 0.526417, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 310000))
                     {
                         pirate5->AI()->AttackStart(pPlayer);
                         pirate5->SetRespawnDelay(350000);
@@ -773,7 +773,7 @@ struct npc_yehkinyaAI : public npc_escortAI
 {
     npc_yehkinyaAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        Reset();
+    	Reset();
     }
     
     uint32 Event_Timer;
@@ -785,10 +785,10 @@ struct npc_yehkinyaAI : public npc_escortAI
         isEventStarted = false;
         m_creature->LoadEquipment(1315, true);
         m_creature->SetDisplayId(7902);
-        Event_Timer = 0;
-        m_creature->SetFly(false);
+    	Event_Timer = 0;
+    	m_creature->SetFly(false);
         m_creature->SetWalk(false);
-    if (HasEscortState(STATE_ESCORT_ESCORTING))
+	if (HasEscortState(STATE_ESCORT_ESCORTING))
             return;
     }
 
@@ -798,14 +798,14 @@ struct npc_yehkinyaAI : public npc_escortAI
         {
             case 1:
                 m_creature->SetWalk(false);
-                isEventStarted = true;
+            	isEventStarted = true;
                 m_creature->LoadEquipment(0, true);
-                Event_Timer = 3000;
+            	Event_Timer = 3000;
                 DoCastSpellIfCan(m_creature, SPELL_AV_VISUALTRANSFORM);
-                m_creature->SetDisplayId(1336);
-                m_creature->SetFly(true);
-                SetEscortPaused(true);
-                break;
+            	m_creature->SetDisplayId(1336);
+            	m_creature->SetFly(true);
+            	SetEscortPaused(true);
+            	break;
         }
     }
 
@@ -837,11 +837,11 @@ bool QuestRewarded_npc_yehkinya(Player* pPlayer, Creature* pCreature, Quest cons
 {
     if (pQuest->GetQuestId() == QUEST_HAKKAR_EVENT)
     {
-        DoScriptText(QUEST_TEXT_HAKKAR_EVENT, pCreature);
+		DoScriptText(QUEST_TEXT_HAKKAR_EVENT, pCreature);
 
-        if (npc_yehkinyaAI* pEscortAI = dynamic_cast<npc_yehkinyaAI*>(pCreature->AI()))
+		if (npc_yehkinyaAI* pEscortAI = dynamic_cast<npc_yehkinyaAI*>(pCreature->AI()))
                 {
-            pEscortAI->Start(true, NULL, NULL, true);
+			pEscortAI->Start(true, true, NULL, NULL, true);
                         pCreature->SetWalk(false);
                 }
     }

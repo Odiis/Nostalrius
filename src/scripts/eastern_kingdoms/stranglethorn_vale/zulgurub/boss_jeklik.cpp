@@ -206,7 +206,7 @@ struct boss_jeklikAI : public ScriptedAI
                 if (Unit *target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
                     Creature* FlyingBat = m_creature->SummonCreature(14965, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ() + 15, 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 30 * 60 * 1000);
-                    if (FlyingBat && FlyingBat->AI())
+                    if (FlyingBat && FlyingBat->AI() && target)
                     {
                         FlyingBat->AI()->AttackStart(target);
                         DoScriptText(SAY_RAIN_FIRE, m_creature);
@@ -359,7 +359,7 @@ struct boss_jeklikAI : public ScriptedAI
                     m_creature->InterruptNonMeleeSpells(false);
                     if (DoCastSpellIfCan(m_creature, SPELL_GREATER_HEAL) == CAST_OK)
                     {
-                        //m_creature->MonsterTextEmote(NOST_TEXT(TEXTE_GRAND_SORT_SOIN), NULL, true);
+                        //m_creature->MonsterTextEmote(ELYSIUM_TEXT(TEXTE_GRAND_SORT_SOIN), NULL, true);
                         DoScriptText(TEXTE_GRAND_SORT_SOIN, m_creature);
                         skillStarted = true;
                         GreaterHeal_Timer = urand(20000, 25000);

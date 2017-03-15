@@ -31,8 +31,7 @@ enum eEmperor
     SAY_SLAY                    = -1230002,
 
     SPELL_HANDOFTHAURISSAN      = 17492,
-    SPELL_AVATAROFFLAME         = 15636,
-    SPELL_IRONFOE               = 15642
+    SPELL_AVATAROFFLAME         = 15636
 };
 
 struct boss_emperor_dagran_thaurissanAI : public ScriptedAI
@@ -47,13 +46,13 @@ struct boss_emperor_dagran_thaurissanAI : public ScriptedAI
 
     uint32 m_uiHandOfThaurissan_Timer;
     uint32 m_uiAvatarOfFlame_Timer;
-    uint32 m_uiIronfoeTimer;
+    //uint32 m_uiCounter;
 
     void Reset()
     {
-        m_uiHandOfThaurissan_Timer        = urand(5000, 7500);
-        m_uiAvatarOfFlame_Timer           = 18000;
-        m_uiIronfoeTimer                  = 9000;
+        m_uiHandOfThaurissan_Timer = 4000;
+        m_uiAvatarOfFlame_Timer = 25000;
+        //m_uiCounter = 0;
     }
 
     void Aggro(Unit* pWho)
@@ -89,33 +88,32 @@ struct boss_emperor_dagran_thaurissanAI : public ScriptedAI
 
         if (m_uiHandOfThaurissan_Timer < uiDiff)
         {
-            if (m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, nullptr, SELECT_FLAG_PLAYER))
-            {
-                if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_HANDOFTHAURISSAN) == CAST_OK)
-                    m_uiHandOfThaurissan_Timer = urand(10000, 15000);
-            }
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                DoCastSpellIfCan(pTarget, SPELL_HANDOFTHAURISSAN);
+
+            //3 Hands of Thaurissan will be casted
+            //if (m_uiCounter < 3)
+            //{
+            //    m_uiHandOfThaurissan_Timer = 1000;
+            //    ++m_uiCounter;
+            //}
+            //else
+            //{
+            m_uiHandOfThaurissan_Timer = 5000;
+            //m_uiCounter = 0;
+            //}
         }
         else
             m_uiHandOfThaurissan_Timer -= uiDiff;
 
+        //AvatarOfFlame_Timer
         if (m_uiAvatarOfFlame_Timer < uiDiff)
         {
-            DoCastSpellIfCan(m_creature, SPELL_AVATAROFFLAME);
+            DoCastSpellIfCan(m_creature->getVictim(), SPELL_AVATAROFFLAME);
             m_uiAvatarOfFlame_Timer = 18000;
         }
         else
             m_uiAvatarOfFlame_Timer -= uiDiff;
-
-        /*
-        if (m_uiIronfoeTimer < uiDiff)
-        {
-            if (m_creature->IsWithinMeleeRange(m_creature->getVictim()))
-                if (DoCastSpellIfCan(m_creature, SPELL_IRONFOE) == CAST_OK)
-                    m_uiIronfoeTimer = urand(20000, 25000);
-        }
-        else 
-            m_uiIronfoeTimer -= uiDiff;
-        */
 
         DoMeleeAttackIfReady();
     }

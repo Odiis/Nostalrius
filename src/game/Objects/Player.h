@@ -40,7 +40,6 @@
 #include "DBCStores.h"
 #include "SharedDefines.h"
 #include "SpellMgr.h"
-#include "HonorMgr.h"
 
 #include <string>
 #include <vector>
@@ -59,7 +58,10 @@ class Item;
 class ZoneScript;
 class PlayerAI;
 class NodeSession;
-class PlayerBroadcaster;
+
+
+//Havric: Player Polymorphed Regen percent
+#define PLAYER_POLYMORPHED_REGEN_PERCENT 10
 
 #define PLAYER_MAX_SKILLS           127
 #define PLAYER_EXPLORED_ZONES_SIZE  64
@@ -323,6 +325,60 @@ enum DrunkenState
 
 #define MAX_DRUNKEN   4
 
+enum TYPE_OF_HONOR
+{
+    HONORABLE    = 1,
+    DISHONORABLE = 2,
+};
+
+struct HonorCP
+{
+    uint8 victimType;
+    uint32 victimID;
+    float honorPoints;
+    uint32 date;
+    uint8 type;
+    uint8 state;
+    // Ajouts AntiCheat
+    uint32 map;
+    uint32 zone;
+
+    bool isKill;
+};
+
+class HonorRankInfo
+{
+    public:
+    HonorRankInfo()
+    {
+        rank=0;
+        visualRank=0;
+        maxRP=0.0f;
+        minRP=0.0f;
+        positive=true;
+    }
+
+    uint8 rank;       // internal range [0..18]
+    int8 visualRank;  // number visualized in rank bar [-4..14]
+    float maxRP;
+    float minRP;
+    bool positive;
+};
+
+enum HonorKillState
+{
+   HK_NEW = 0,
+   HK_OLD = 1,
+   HK_DELETED = 2,
+   HK_UNCHANGED = 3
+};
+
+typedef std::list<HonorCP> HonorCPMap;
+
+#define NEGATIVE_HONOR_RANK_COUNT 4
+#define POSITIVE_HONOR_RANK_COUNT 15
+#define HONOR_RANK_COUNT 19 // negative + positive ranks
+
 enum PlayerFlags
 {
     PLAYER_FLAGS_NONE                   = 0x00000000,
@@ -401,7 +457,7 @@ enum AtLoginFlags
     AT_LOGIN_FIRST             = 0x20,
 };
 
-// Nostalrius
+// Elysium
 enum PlayerCheatOptions
 {
     PLAYER_CHEAT_GOD           = 0x001,
@@ -872,17 +928,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
 
         static bool BuildEnumData( QueryResult * result,  WorldPacket * p_data );
 
-        // knockback/jumping states
-        bool IsLaunched() { return launched; }
-        void SetLaunched(bool apply) { launched = apply; }
-        float GetXYSpeed() { return xy_speed; }
-        void SetXYSpeed(float speed) { xy_speed = speed; }
-
-        // knockback/jumping states
-        bool launched;
-        // not null only is player has knockback state
-        float xy_speed;
-
         void SetInWater(bool apply);
 
         bool IsInWater() const { return m_isInWater; }
@@ -925,10 +970,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         bool isAcceptTickets() const { return GetSession()->GetSecurity() >= SEC_GAMEMASTER && (m_ExtraFlags & PLAYER_EXTRA_GM_ACCEPT_TICKETS); }
         void SetAcceptTicket(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_GM_ACCEPT_TICKETS; else m_ExtraFlags &= ~PLAYER_EXTRA_GM_ACCEPT_TICKETS; }
 
-        bool isAllowedWhisperFrom(ObjectGuid guid);
-        bool isEnabledWhisperRestriction() const { return m_ExtraFlags & PLAYER_EXTRA_WHISP_RESTRICTION; }
-        void setWhisperRestriction(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_WHISP_RESTRICTION; else m_ExtraFlags &= ~PLAYER_EXTRA_WHISP_RESTRICTION; }
-
         bool IsAcceptWhispers() const { return m_ExtraFlags & PLAYER_EXTRA_ACCEPT_WHISPERS; }
         void SetAcceptWhispers(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_ACCEPT_WHISPERS; else m_ExtraFlags &= ~PLAYER_EXTRA_ACCEPT_WHISPERS; }
         uint32 GetExtraFlags() const { return m_ExtraFlags; }
@@ -942,10 +983,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         bool isGMVisible() const { return !(m_ExtraFlags & PLAYER_EXTRA_GM_INVISIBLE); }
         void SetGMVisible(bool on);
         void SetPvPDeath(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_PVP_DEATH; else m_ExtraFlags &= ~PLAYER_EXTRA_PVP_DEATH; }
-
-        // Cannot be detected by creature (Should be tested in AI::MoveInLineOfSight)
-        void SetCannotBeDetectedTimer(uint32 milliseconds) { m_cannotBeDetectedTimer = milliseconds; };
-        bool CanBeDetected() const override { return m_cannotBeDetectedTimer <= 0; }
 
         uint32 _playerOptions;
         bool HasOption(uint32 o) const{ return (_playerOptions & o); }
@@ -974,7 +1011,9 @@ class MANGOS_DLL_SPEC Player final: public Unit
                 m_ExtraFlags |= PLAYER_EXTRA_AUCTION_NEUTRAL;
         }
 
+
         void GiveXP(uint32 xp, Unit* victim);
+        void SendPexerReward();
         void GiveLevel(uint32 level);
 
         void InitStatsForLevel(bool reapplyMods = false);
@@ -1077,7 +1116,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         Item* EquipNewItem( uint16 pos, uint32 item, bool update );
         Item* EquipItem( uint16 pos, Item *pItem, bool update );
         void AutoUnequipOffhandIfNeed();
-        void AutoUnequipMainHandIfNeed();  // Ustaag <Nostalrius> : ajout fonction
+        void AutoUnequipMainHandIfNeed();  // Ustaag <Elysium> : ajout fonction
         bool StoreNewItemInBestSlots(uint32 item_id, uint32 item_count);
         Item* StoreNewItemInInventorySlot(uint32 itemEntry, uint32 amount);
 
@@ -1122,7 +1161,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void DestroyZoneLimitedItem( bool update, uint32 new_zone );
         void SplitItem( uint16 src, uint16 dst, uint32 count );
         void SwapItem( uint16 src, uint16 dst );
-        void AddItemToBuyBackSlot(Item* pItem, uint32 money);
+        void AddItemToBuyBackSlot( Item *pItem );
         Item* GetItemFromBuyBackSlot( uint32 slot );
         void RemoveItemFromBuyBackSlot( uint32 slot, bool del );
 
@@ -1310,9 +1349,10 @@ class MANGOS_DLL_SPEC Player final: public Unit
         /***                   SAVE SYSTEM                     ***/
         /*********************************************************/
 
-        void SaveToDB(bool online = true, bool force = false);
+        void SaveToDB(bool online = true);
         void SaveInventoryAndGoldToDB();                    // fast save function for item/money cheating preventing
         void SaveGoldToDB();
+        void SaveHonorDataToDB();
 
         static void SetUInt32ValueInArray(Tokens& data,uint16 index, uint32 value);
         static void SetFloatValueInArray(Tokens& data,uint16 index, float value);
@@ -1384,7 +1424,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         TrainerSpellState GetTrainerSpellState(TrainerSpell const* trainer_spell) const;
         bool IsSpellFitByClassAndRace(uint32 spell_id, uint32* pReqlevel = NULL) const;
         bool IsNeedCastPassiveLikeSpellAtLearn(SpellEntry const* spellInfo) const;
-        bool IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const;
+        bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const;
 
         void SendProficiency(ItemClass itemClass, uint32 itemSubclassMask);
         void SendInitialSpells();
@@ -1527,7 +1567,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void UpdateDamagePhysical(WeaponAttackType attType);
         void UpdateSpellDamageAndHealingBonus();
 
-        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage, uint8 index = 0);
+        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage);
 
         void UpdateDefenseBonusesMod();
         float GetMeleeCritFromAgility();
@@ -1660,8 +1700,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void RewardSinglePlayerAtKill(Unit* pVictim);
         void RewardPlayerAndGroupAtEvent(uint32 creature_id,WorldObject* pRewardSource);
         void RewardPlayerAndGroupAtCast(WorldObject* pRewardSource, uint32 spellid = 0);
-        void RewardHonor(Unit* uVictim, uint32 groupSize);
-        void RewardHonorOnDeath();
         bool isHonorOrXPTarget(Unit* pVictim) const;
 
         ReputationMgr&       GetReputationMgr()       { return m_reputationMgr; }
@@ -1671,12 +1709,52 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void RewardReputation(Quest const *pQuest);
         int32 CalculateReputationGain(ReputationSource source, int32 rep, int32 faction, uint32 creatureOrQuestLevel = 0, bool noAuraBonus = false);
 
-        HonorMgr&       GetHonorMgr()       { return m_honorMgr; }
-        HonorMgr const& GetHonorMgr() const { return m_honorMgr; }
-
         void UpdateSkillsForLevel();
         void UpdateSkillsToMaxSkillsForLevel();             // for .levelup
         void ModifySkillBonus(uint32 skillid,int32 val, bool talent);
+
+        /*********************************************************/
+        /***                  HONOR SYSTEM                     ***/
+        /*********************************************************/
+        bool AddHonorCP(float honor,uint8 type,uint32 victim,uint8 victimType);
+        void UpdateHonor();
+        void ResetHonor();
+        void ClearHonorInfo();
+        bool RewardHonor(Unit *pVictim,uint32 groupsize);
+        //Assume only Players and Units as kills
+        //TYPEID_OBJECT used for CP from BG,quests etc.
+        bool isKill(uint8 victimType) { return (victimType == TYPEID_UNIT || victimType == TYPEID_PLAYER ); }
+        uint32 CalculateTotalKills(Unit *Victim,uint32 fromDate,uint32 toDate) const;
+        //Acessors of honor rank
+        HonorRankInfo GetHonorRankInfo() const { return m_honor_rank; }
+        void SetHonorRankInfo(HonorRankInfo rank) { m_honor_rank = rank; }
+        //Acessors of total honor points
+        void SetRankPoints(float rankPoints) { m_rank_points = rankPoints; }
+        float GetRankPoints(void) const { return m_rank_points; }
+        //Acessors of highest rank
+        HonorRankInfo GetHonorHighestRankInfo() const { return m_highest_rank; }
+        void SetHonorHighestRankInfo(HonorRankInfo hr) { m_highest_rank = hr; }
+        //Acessors of rating
+        float GetStoredHonor() const { return m_stored_honor; }
+        void SetStoredHonor(float rating) { m_stored_honor = rating; }
+        //Acessors of lifetime
+        uint32 GetHonorStoredKills(bool honorable) const { return honorable? m_stored_honorableKills : m_stored_dishonorableKills; }
+        void SetHonorStoredKills(uint32 kills,bool honorable) { if (honorable) m_stored_honorableKills = kills; else m_stored_dishonorableKills = kills; }
+        //Acessors of last week standing
+        uint32 GetHonorLastWeekStandingPos() const { return m_standing_pos; }
+        void SetHonorLastWeekStandingPos(uint32 standingPos){ m_standing_pos = standingPos; }
+        // Elysium: semaine precedente.
+        void SetLastWeekHonorableKills(uint32 kills) { m_lastweek_honorable_kills = kills; }
+        uint32 GetLastWeekHonorableKills() const { return m_lastweek_honorable_kills; }
+        void SetLastWeekHonor(float honor) { m_lastweek_honor = honor; }
+        float GetLastWeekHonor() const { return m_lastweek_honor; }
+        void ClearHonorCP();
+
+        /*********************************************************/
+        /***                  PVP SYSTEM                       ***/
+        /*********************************************************/
+
+        //End of PvP System
 
         void SetDrunkValue(uint16 newDrunkValue, uint32 itemid=0);
         uint16 GetDrunkValue() const { return m_drunk; }
@@ -1840,8 +1918,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
             return false;
         }
         WorldLocation const& GetBattleGroundEntryPoint() const { return m_bgData.joinPos; }
-        void SetBattleGroundEntryPoint(uint32 mapId, float x, float y, float z, float orientation);
-        void SetBattleGroundEntryPoint(Player* leader = NULL, bool queuedAtBGPortal = false);
+        void SetBattleGroundEntryPoint(Player* leader = NULL);
 
         void SetBGTeam(Team team) { m_bgData.bgTeam = team; m_bgData.m_needSave = true; }
         Team GetBGTeam() const { return m_bgData.bgTeam ? m_bgData.bgTeam : GetTeam(); }
@@ -1894,14 +1971,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void GetSafePosition(float &x, float &y, float &z, Transport* onTransport = NULL) const;
 
         /*********************************************************/
-        /***                 PACKET BROADCASTER                ***/
-        /*********************************************************/
-        std::shared_ptr<PlayerBroadcaster> m_broadcaster;
-        void DeletePacketBroadcaster();
-        void CreatePacketBroadcaster();
-        std::shared_ptr<PlayerBroadcaster> GetPacketBroadcaster() { return m_broadcaster; }
-
-        /*********************************************************/
         /***                 VARIOUS SYSTEMS                   ***/
         /*********************************************************/
         float m_modManaRegen;
@@ -1916,17 +1985,13 @@ class MANGOS_DLL_SPEC Player final: public Unit
             m_lastFallZ = z;
         }
         void HandleFall(MovementInfo const& movementInfo);
-        bool IsFalling() const { return GetPositionZ() < m_lastFallZ; }
 
         void BuildTeleportAckMsg(WorldPacket& data, float x, float y, float z, float ang) const;
 
         void SetClientControl(Unit* target, uint8 allowMove);
         void SetMover(Unit* target) { m_mover = target ? target : this; }
         Unit* GetMover() const { return m_mover; }
-        bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit        
-        bool IsNextRelocationIgnored() const { return m_bNextRelocationsIgnored ? true : false; }
-        void SetNextRelocationsIgnoredCount(uint32 count) { m_bNextRelocationsIgnored = count; }
-        void DoIgnoreRelocation() { if (m_bNextRelocationsIgnored) --m_bNextRelocationsIgnored; }
+        bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit
 
         ObjectGuid const& GetFarSightGuid() const { return GetGuidValue(PLAYER_FARSIGHT); }
 
@@ -1952,8 +2017,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         // currently visible objects at player client
         ObjectGuidSet m_visibleGUIDs;
         mutable ACE_Thread_Mutex m_visibleGUIDs_lock;
-        std::map<ObjectGuid, bool> m_visibleGobjQuestActivated;
-        mutable ACE_Thread_Mutex m_visibleGobjsQuestAct_lock;
 
         bool IsInVisibleList(WorldObject const* u) const;
         bool IsInVisibleList_Unsafe(WorldObject const* u) const { return this == u || m_visibleGUIDs.find(u->GetObjectGuid()) != m_visibleGUIDs.end(); }
@@ -1980,7 +2043,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         bool IsPetNeedBeTemporaryUnsummoned() const { return !IsInWorld() || !isAlive() || IsMounted() /*+in flight*/; }
 
         void SendCinematicStart(uint32 CinematicSequenceId);
-        // Nostalrius : Gestion des cinematiques avancee
+        // Elysium : Gestion des cinematiques avancee
         void UpdateCinematic(uint32 diff);
         void CinematicEnd();
         void CinematicStart(uint32 id);
@@ -1995,7 +2058,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         uint32 cinematic_last_check;
         uint32 cinematic_elapsed_time;
 
-        // Nostalrius : Phasing
+        // Elysium : Phasing
         virtual void SetWorldMask(uint32 newMask);
 
         // Custom Flags
@@ -2074,7 +2137,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SetAuraUpdateMask(uint64 mask) { m_auraUpdateMask = mask; }
         Player* GetNextRandomRaidMember(float radius);
         PartyResult CanUninviteFromGroup(ObjectGuid uninvitedGuid) const;
-        void UpdateGroupLeaderFlag(const bool remove = false);
         // BattleGround Group System
         void SetBattleGroundRaid(Group *group, int8 subgroup = -1);
         void RemoveFromBattleGroundRaid();
@@ -2087,7 +2149,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         MapReference &GetMapRef() { return m_mapRef; }
 
         bool isAllowedToLoot(Creature const* creature);
-        // Nostalrius
+        // Elysium
         // Gestion des PlayerAI
         PlayerAI* i_AI;
         PlayerAI* AI() { return i_AI; }
@@ -2098,17 +2160,20 @@ class MANGOS_DLL_SPEC Player final: public Unit
         // Changement de faction
         bool m_DbSaveDisabled;
 
+        // Elysium - Ivina
         uint32 m_lastFromClientCastedSpellID;
         void SetLastCastedSpell(uint32 spell_id, bool byclient);
         uint32 GetLastCastedSpell(bool byclientonly);
 
+        // ELYSIUM: Packets
         void SendDestroyGroupMembers(bool includingSelf = false);
 
         void RemoveDelayedOperation(uint32 operation)
         {
             m_DelayedOperations &= ~operation;
         }
-
+        void RewardPvPAtDeath();
+        void SendKillCredit(uint32 honorPoints, uint64 victimGuid, uint32 victimRank);
         inline bool HasScheduledEvent() const { return m_Events.m_events.size(); }
         void SetAutoInstanceSwitch(bool v) { m_enableInstanceSwitch = v; }
     protected:
@@ -2124,8 +2189,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SetGMInvisibilityLevel(uint32 level) { m_gmInvisibilityLevel = level; }
         uint32 GetGMTicketCounter() const { return m_currentTicketCounter; }
         void SetGMTicketCounter(uint32 counter) { m_currentTicketCounter = counter; }
-        bool GetSmartInstanceBindingMode() { return m_smartInstanceRebind; }
-        void SetSmartInstanceBindingMode(bool smartRebinding) { m_smartInstanceRebind = smartRebinding; }
 
         PlayerTaxi const& GetTaxi() const { return m_taxi; }
         uint32 GetHomeBindMap() const { return m_homebindMapId; }
@@ -2171,6 +2234,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void _LoadActions(QueryResult *result);
         void _LoadAuras(QueryResult *result, uint32 timediff);
         void _LoadBoundInstances(QueryResult *result);
+        void _LoadHonorCP(QueryResult *result);
         void _LoadInventory(QueryResult *result, uint32 timediff);
         void _LoadItemLoot(QueryResult *result);
         void _LoadMails(QueryResult *result);
@@ -2192,6 +2256,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void _SaveActions();
         void _SaveAuras();
         void _SaveInventory();
+        void _SaveHonorCP();
         void _SaveMail();
         void _SaveQuestStatus();
         void _SaveSkills();
@@ -2213,6 +2278,21 @@ class MANGOS_DLL_SPEC Player final: public Unit
         int32 m_MirrorTimer[MAX_TIMERS];
         uint8 m_MirrorTimerFlags;
         uint8 m_MirrorTimerFlagsLast;
+
+        /*********************************************************/
+        /***                  HONOR SYSTEM                     ***/
+        /*********************************************************/
+        HonorCPMap m_honorCP;
+        HonorRankInfo m_honor_rank;
+        HonorRankInfo m_highest_rank;
+        float m_rank_points;
+        float m_stored_honor;
+        uint32 m_stored_honorableKills;
+        uint32 m_stored_dishonorableKills;
+        uint32 m_standing_pos;
+        // Elysium: last week
+        uint32 m_lastweek_honorable_kills;
+        float m_lastweek_honor;
 
         void outDebugStatsValues() const;
         ObjectGuid m_lootGuid;
@@ -2308,11 +2388,8 @@ class MANGOS_DLL_SPEC Player final: public Unit
         float  m_summon_x;
         float  m_summon_y;
         float  m_summon_z;
-
-        // GM variables
         uint32 m_gmInvisibilityLevel;
         uint32 m_currentTicketCounter;
-        bool m_smartInstanceRebind;
 
     private:
         // internal common parts for CanStore/StoreItem functions
@@ -2381,15 +2458,8 @@ class MANGOS_DLL_SPEC Player final: public Unit
         // Temporary removed pet cache
         uint32 m_temporaryUnsummonedPetNumber;
 
-        HonorMgr  m_honorMgr;
-
         ReputationMgr  m_reputationMgr;
         ObjectGuid     m_selectedGobj; // For GM commands
-
-        int32 m_cannotBeDetectedTimer;
-
-        uint32 m_bNextRelocationsIgnored;
-
 public:
         /**
          * @brief Handles serialization / unserialization of the Object.
@@ -2459,7 +2529,7 @@ template <class T> T Player::ApplySpellMod(uint32 spellId, SpellModOp op, T &bas
 
         DropModCharge(mod, spell);
 
-        // Nostalrius : fix ecorce (22812 - +1sec incant) + rapidite nature (17116 - sorts instant) = 0sec de cast
+        // Elysium : fix ecorce (22812 - +1sec incant) + rapidite nature (17116 - sorts instant) = 0sec de cast
         if (mod->op == SPELLMOD_CASTING_TIME && mod->type == SPELLMOD_PCT && mod->value == -100)
         {
             totalpct = -100;

@@ -200,12 +200,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
     }
 
     /** Enable various spam chat detections */
-    if (lang != LANG_ADDON)
-    {
-        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-            if (a->isMuted(GetAccountId(), true, type))
-                return;
-    }
+    if (GetMasterPlayer())
+        if (sAnticheatLib->FilterChatMessage(this, type, msg, channel, to))
+            return;
 
     // Message handling
     switch (type)
@@ -215,7 +212,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
             PlayerPointer playerPointer(GetPlayerPointer());
             ASSERT(playerPointer);
             if (ChannelMgr* cMgr = channelMgr(playerPointer->GetTeam()))
-            {
                 if (Channel *chn = cMgr->GetChannel(channel, playerPointer, IsMaster()))
                 {
                     // Public channels restrictions
@@ -233,38 +229,10 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
                             return;
                         }
                     }
-
-                    // Check strict Latin for general chat channels
-                    if (sWorld.getConfig(CONFIG_BOOL_STRICT_LATIN_IN_GENERAL_CHANNELS))
-                    {
-                        if (!chn->HasFlag(Channel::ChannelFlags::CHANNEL_FLAG_CUSTOM))
-                        {
-                            // remove color, punct, ctrl, space
-                            if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-                            {
-                                std::string normMsg = a->normalizeMessage(msg, 0x1D);
-                                std::wstring w_normMsg;
-                                if (Utf8toWStr(normMsg, w_normMsg))
-                                {
-                                    if (!isBasicLatinString(w_normMsg, true))
-                                    {
-                                        ChatHandler(this).SendSysMessage("Sorry, only Latin characters are allowed in this channel.");
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     chn->Say(playerPointer->GetObjectGuid(), msg.c_str(), lang);
-
-                    if (lang != LANG_ADDON && chn->HasFlag(Channel::ChannelFlags::CHANNEL_FLAG_GENERAL))
-                        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-                            a->addMessage(msg, type, GetPlayerPointer(), nullptr);
                 }
                 else // If it is not a global channel, forward to Node
                     ForwardPacketToMaster();
-            }
 
             if (lang != LANG_ADDON)
             {
@@ -281,12 +249,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
             ForwardPacketToNode();
             ASSERT(GetPlayer());
             if (lang != LANG_ADDON)
-            {
                 sWorld.LogChat(this, "Say", msg);
-
-                if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-                    a->addMessage(msg, type, GetPlayerPointer(), nullptr);
-            }
 
             if (type == CHAT_MSG_SAY)
                 GetPlayer()->Say(msg, lang);
@@ -324,32 +287,16 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
                     SendWrongFactionNotice();
                     return;
                 }
-                if (/*player->GetZoneId() != masterPlr->GetZoneId() && */masterPlr->getLevel() < sWorld.getConfig(CONFIG_UINT32_WHISP_DIFF_ZONE_MIN_LEVEL))
+                if (player->GetZoneId() != masterPlr->GetZoneId() && masterPlr->getLevel() < sWorld.getConfig(CONFIG_UINT32_WHISP_DIFF_ZONE_MIN_LEVEL))
                 {
                     ChatHandler(this).SendSysMessage("You cannot whisper yet.");
                     return;
                 }
             }
+            masterPlr->Whisper(msg, lang, player);
 
-            if (Player* toPlayer = player->GetSession()->GetPlayer())
-            {
-                bool allowIgnoreAntispam = toPlayer->isAllowedWhisperFrom(masterPlr->GetObjectGuid());
-                bool allowSendWhisper = allowIgnoreAntispam;
-                if (!sWorld.getConfig(CONFIG_BOOL_WHISPER_RESTRICTION) || !toPlayer->isEnabledWhisperRestriction())
-                    allowSendWhisper = true;
-
-                if (masterPlr->isGameMaster() || allowSendWhisper)
-                    masterPlr->Whisper(msg, lang, player);
-
-                if (lang != LANG_ADDON)
-                {
-                    sWorld.LogChat(this, "Whisp", msg, PlayerPointer(new PlayerWrapper<MasterPlayer>(player)));
-
-                    if (!allowIgnoreAntispam)
-                        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-                            a->addMessage(msg, type, GetPlayerPointer(), PlayerPointer(new PlayerWrapper<MasterPlayer>(player)));
-                }
-            }
+            if (lang != LANG_ADDON)
+                sWorld.LogChat(this, "Whisp", msg, PlayerPointer(new PlayerWrapper<MasterPlayer>(player)));
         }
         break;
 
@@ -485,44 +432,43 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
         case CHAT_MSG_AFK: // Node side (for combat Check)
         {
             ForwardPacketToNode();
-
-            if(_player && _player->isInCombat())
+            if (_player && _player->isInCombat())
                 break;
 
             // Move this masterside ?
-            if(!msg.empty() || !_player->isAFK())
+            if (!msg.empty() || !_player->isAFK())
             {
-                _player->afkMsg = msg;
+                if (msg.empty())
+                    _player->afkMsg = GetMangosString(LANG_PLAYER_AFK_DEFAULT);
+                else
+                    _player->afkMsg = msg;
             }
-
-            if(msg.empty() || !_player->isAFK())
+            if (msg.empty() || !_player->isAFK())
             {
                 _player->ToggleAFK();
-
-                if(_player->isAFK() && _player->isDND())
+                if (_player->isAFK() && _player->isDND())
                     _player->ToggleDND();
             }
         }
-
         break;
 
         case CHAT_MSG_DND:
         {
             // Move this masterside ?
-            if(!msg.empty() || !_player->isDND())
+            if (!msg.empty() || !_player->isDND())
             {
-                _player->dndMsg = msg;
+                if (msg.empty())
+                    _player->dndMsg = GetMangosString(LANG_PLAYER_DND_DEFAULT);
+                else
+                    _player->dndMsg = msg;
             }
-
-            if(msg.empty() || !_player->isDND())
+            if (msg.empty() || !_player->isDND())
             {
                 _player->ToggleDND();
-
-                if(_player->isDND() && _player->isAFK())
+                if (_player->isDND() && _player->isAFK())
                     _player->ToggleAFK();
             }
         }
-
         break;
     }
 }

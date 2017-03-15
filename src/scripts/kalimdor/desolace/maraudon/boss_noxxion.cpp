@@ -196,11 +196,9 @@ struct TinkererGizlockAI : public ScriptedAI
             for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end() && !m_bIsBombLaunched; ++itr)
             {
                 Player* pPlayer = itr->getSource();
-
-                if(!pPlayer)
-                    continue;
-
                 Unit*   pPet    = pPlayer->GetPet();
+                if (!pPlayer)
+                    continue;
 
                 /** Range limit set to 35 meters/yards */
                 if (pPlayer->IsInFeralForm() && m_creature->GetDistance2d(pPlayer) < 35.0f)
@@ -252,6 +250,8 @@ struct TinkererGizlockAI : public ScriptedAI
                 }
                 else
                     m_uiShoot_Timer -= uiDiff;
+                break;
+            default:
                 break;
         }
         DoMeleeAttackIfReady();

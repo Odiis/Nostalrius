@@ -54,38 +54,27 @@ enum
     SAY_MALFURION3                = -1109003,
     SAY_MALFURION4                = -1109004,
 
-    MAX_MALFURION_TEMPLE_SPEECHES = 7
+    MAX_MALFURION_TEMPLE_SPEECHES = 6
 };
 
 struct npc_malfurionAI : public ScriptedAI
 {
     npc_malfurionAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
+        DoScriptText(EMOTE_MALFURION1, m_creature);
         m_uiSpeech   = 0;
-        m_uiSayTimer = 3000;
-        m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER | UNIT_NPC_FLAG_GOSSIP);
-
-        // Prevents interference with Waking Legends
-        m_inDungeon = m_creature->GetMap()->IsDungeon();
-
-        if (m_inDungeon)
-        {
-            // If in temple, spawn invisible, emote "Walls Tremble"
-            m_creature->SetVisibility(VISIBILITY_OFF);
-            DoScriptText(EMOTE_MALFURION1, m_creature);
-        }
+        m_uiSayTimer = 0;
+        m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
     }
 
     uint32 m_uiSayTimer;
     uint32 m_uiSpeech;
-    bool m_inDungeon;
 
     void Reset() {}
-
     void UpdateAI(const uint32 uiDiff)
     {
         // We are in Sunken Temple
-        if (m_inDungeon)
+        if (m_creature->GetMap()->IsDungeon())
         {
             if (m_uiSpeech < MAX_MALFURION_TEMPLE_SPEECHES)
             {
@@ -94,40 +83,28 @@ struct npc_malfurionAI : public ScriptedAI
                     switch (m_uiSpeech)
                     {
                         case 0:
-                            m_creature->SetVisibility(VISIBILITY_ON);
-                            m_creature->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                            // Resurrection visual
-                            m_creature->CastSpell(m_creature, 20761, true);
+                            DoScriptText(EMOTE_MALFURION1, m_creature);
                             m_uiSayTimer = 1500;
                             break;
-
                         case 1:
                             m_creature->HandleEmoteCommand(EMOTE_ONESHOT_BOW);
                             m_uiSayTimer = 2000;
                             break;
-
                         case 2:
                             DoScriptText(SAY_MALFURION1, m_creature);
-                            m_uiSayTimer = 10000;
+                            m_uiSayTimer = 1000;
                             break;
-
                         case 3:
                             DoScriptText(SAY_MALFURION2, m_creature);
-                            m_uiSayTimer = 10000;
+                            m_uiSayTimer = 1000;
                             break;
-
                         case 4:
                             DoScriptText(SAY_MALFURION3, m_creature);
-                            m_uiSayTimer = 8000;
+                            m_uiSayTimer = 2000;
                             break;
-
                         case 5:
                             DoScriptText(SAY_MALFURION4, m_creature);
-                            m_uiSayTimer = 5000;
-                            break;
-                        
-                        case 6:
-                            m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER | UNIT_NPC_FLAG_GOSSIP);
+                            m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
                             break;
                     }
 
@@ -143,32 +120,6 @@ struct npc_malfurionAI : public ScriptedAI
 CreatureAI* GetAI_npc_malfurion(Creature* pCreature)
 {
     return new npc_malfurionAI(pCreature);
-}
-
-// Summon Malfurion trigger (AQ scepter quest)
-bool AreaTrigger_at_shade_of_eranikus(Player* pPlayer, AreaTriggerEntry const* pAt)
-{
-    if (!pPlayer || !pPlayer->isAlive() || !pAt)
-        return false;
-
-    if (pAt->id != AREATRIGGER_MALFURION)
-        return false;
-
-    // Don't spawn if player did not complete Charge of Dragonflights, or already on/done with Malfurion quest
-    if (!pPlayer->GetQuestRewardStatus(QUEST_THE_CHARGE_OF_DRAGONFLIGHTS)
-        || pPlayer->GetQuestStatus(QUEST_ERANIKUS_TYRANT_OF_DREAMS) != QUEST_STATUS_NONE
-        || pPlayer->GetQuestRewardStatus(QUEST_ERANIKUS_TYRANT_OF_DREAMS))
-        return false;
-
-    // Check if Malfurion already spawned
-    if (Creature* cMalfurion = GetClosestCreatureWithEntry(pPlayer, NPC_MALFURION, 50.0f))
-        return true;
-
-    // Summon for real now
-    if (Creature* cMalfurion = pPlayer->SummonCreature(NPC_MALFURION, pAt->x, pAt->y - 15, pAt->z, 1.52f, TEMPSUMMON_CORPSE_DESPAWN, 0))
-        return true;
-    
-    return false;
 }
 
 /*######
@@ -218,7 +169,7 @@ static const SpawnLocation aMobLocs[8] =
     { -476.58f, 261.124f, -90.4991f, 4.94248f},
     { -467.589f, 257.202f, -90.5792f, 3.14941f},
     { -483.749f, 272.907f, -90.6463f, 0.023527f},
-    { -469.401f, 290.183f, -90.5949f, 0.475917f},
+    { -469.401f, 290.183f, -90.5949f, 0.475917},
     { -457.525f, 260.605f, -90.5002f, 0.715479f},
     { -457.922f, 286.686f, -90.5413f, 1.02569f}
 };
@@ -524,11 +475,6 @@ void AddSC_sunken_temple()
     pNewScript = new Script;
     pNewScript->Name = "npc_malfurion_stormrage";
     pNewScript->GetAI = &GetAI_npc_malfurion;
-    pNewScript->RegisterSelf();
-
-    pNewScript = new Script;
-    pNewScript->Name = "at_shade_of_eranikus";
-    pNewScript->pAreaTrigger = &AreaTrigger_at_shade_of_eranikus;
     pNewScript->RegisterSelf();
 
     pNewScript = new Script;

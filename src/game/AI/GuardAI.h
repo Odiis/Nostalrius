@@ -30,12 +30,12 @@ class MANGOS_DLL_DECL GuardAI : public CreatureAI
 
         explicit GuardAI(Creature *c);
 
-        void MoveInLineOfSight(Unit *) override;
-        void AttackStart(Unit *) override;
-        void JustDied(Unit *) override;
-        bool IsVisible(Unit *) const override;
+        void MoveInLineOfSight(Unit *);
+        void AttackStart(Unit *);
+        void JustDied(Unit *);
+        bool IsVisible(Unit *) const;
 
-        void UpdateAI(const uint32) override;
+        void UpdateAI(const uint32);
         static int Permissible(const Creature *);
 };
 #endif

@@ -33,7 +33,6 @@ class HMACSHA1
         HMACSHA1(uint32 len, uint8 *seed);
         ~HMACSHA1();
         void UpdateBigNumber(BigNumber *bn);
-        void UpdateData(const std::vector<uint8>& data);
         void UpdateData(const uint8 *data, int length);
         void UpdateData(const std::string &str);
         void Finalize();

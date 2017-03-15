@@ -128,6 +128,10 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                     if (!GetPlayer()->IsValidAttackTarget(TargetUnit))
                         return;
 
+                    // Not let attack through obstructions
+                    if (sWorld.getConfig(CONFIG_BOOL_PET_LOS) && !pet->IsWithinLOSInMap(TargetUnit)) // Elysium : activation LOS des pets en config.
+                        return;
+
                     pet->clearUnitState(UNIT_STAT_FOLLOW);
                     // This is true if pet has no target or has target but targets differs.
                     if (pet->getVictim() != TargetUnit || (pet->getVictim() == TargetUnit && !pet->GetCharmInfo()->IsCommandAttack()))
@@ -488,7 +492,7 @@ void WorldSession::HandlePetRename(WorldPacket& recv_data)
     Pet* pet = _player->GetMap()->GetPet(petGuid);
     // check it!
     if (!pet || pet->getPetType() != HUNTER_PET ||
-            !pet->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_RENAME) ||
+            !pet->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_RENAME) ||
             pet->GetOwnerGuid() != _player->GetObjectGuid() || !pet->GetCharmInfo())
         return;
 
@@ -510,7 +514,7 @@ void WorldSession::HandlePetRename(WorldPacket& recv_data)
     if (_player->GetGroup())
         _player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_NAME);
 
-    pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_RENAME);
+    pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_RENAME);
 
     CharacterDatabase.BeginTransaction();
     CharacterDatabase.escape_string(name);
@@ -531,27 +535,17 @@ void WorldSession::HandlePetAbandon(WorldPacket& recv_data)
         return;
 
     // pet/charmed
-    if (Unit* petUnit = _player->GetMap()->GetUnit(guid))
+    if (Creature* pet = _player->GetMap()->GetAnyTypeCreature(guid))
     {
-        if (petUnit->GetOwnerGuid() != _player->GetObjectGuid() || !petUnit->GetCharmInfo())
-            return;
-
-        Creature* petCreature = petUnit->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(petUnit) : nullptr;
-        Pet* pet = petCreature && petCreature->IsPet() ? static_cast<Pet*>(petUnit) : nullptr;
-
-        if (pet)
+        if (pet->IsPet())
         {
-            // Permanently abandon pet
-            if (pet->getPetType() == HUNTER_PET)
-                pet->Unsummon(PET_SAVE_AS_DELETED, _player);
-            // Simply dismiss
-            else
-                pet->Unsummon(PET_SAVE_NOT_IN_SLOT);
+            if (pet->GetObjectGuid() == _player->GetPetGuid())
+                pet->ModifyPower(POWER_HAPPINESS, -50000);
+
+            ((Pet*)pet)->Unsummon(PET_SAVE_AS_DELETED, _player);
         }
-        else if (petUnit->GetObjectGuid() == _player->GetCharmGuid())
-        {
+        else if (pet->GetObjectGuid() == _player->GetCharmGuid())
             _player->Uncharm();
-        }
     }
 }
 

@@ -7,7 +7,7 @@
 
 enum
 {
-    ZULGURUB_MAX_ENCOUNTER  = 11,
+    ZULGURUB_MAX_ENCOUNTER  = 10,
 
     NPC_LORKHAN             = 11347,
     NPC_ZATH                = 11348,
@@ -21,7 +21,6 @@ enum
     NPC_RAZZASHI_VENOMBROOD = 14532,
     NPC_HAKARI_SHADOWCASTER = 11338,
     NPC_RAZZASHI_BROODWIDOW = 11370,
-    NPC_GAHZRANKA           = 15114,
 
     TYPE_ARLOKK             = 1,
     TYPE_JEKLIK             = 2,
@@ -38,53 +37,49 @@ enum
     DATA_LORKHAN            = 12,
     DATA_THEKAL             = 13,
     DATA_ZATH               = 14,
-    DATA_HAKKAR             = 15,
-
-    TYPE_GAHZRANKA          = 16,
-    DATA_GAHZRANKA          = 17
+    DATA_HAKKAR             = 15
 };
 
 class instance_zulgurub : public ScriptedInstance
 {
-    public:
-        instance_zulgurub(Map* pMap) : ScriptedInstance(pMap), m_randomBossSpawned(false) {Initialize();};
+	public:
+		instance_zulgurub(Map* pMap) : ScriptedInstance(pMap), m_randomBossSpawned(false) {Initialize();};
 
-        void Initialize();
+		void Initialize();
                 void Create();
 
-        bool IsEncounterInProgress();
-        void OnCreatureCreate(Creature* pCreature);
+		bool IsEncounterInProgress();
+		void OnCreatureCreate(Creature* pCreature);
                 void OnCreatureDeath(Creature * pCreature);
-        void SetData(uint32 uiType, uint32 uiData);
-        const char* Save();
-        void Load(const char* chrIn);
-                void HandleLoadCreature(uint32 dataType, uint64 &storeGuid, Creature* pCrea); // Nostalrius
+		void SetData(uint32 uiType, uint32 uiData);
+		const char* Save();
+		void Load(const char* chrIn);
+                void HandleLoadCreature(uint32 dataType, uint64 &storeGuid, Creature* pCrea); // Elysium
 
-        uint32 GetData(uint32 uiType);
-        uint64 GetData64(uint32 uiData);
+		uint32 GetData(uint32 uiType);
+		uint64 GetData64(uint32 uiData);
 
-        // each time High Priest dies lower Hakkar's HP
-        void LowerHakkarHitPoints();
-        Unit* Thekal_GetUnitThatCanRez();
+		// each time High Priest dies lower Hakkar's HP
+		void LowerHakkarHitPoints();
+		Unit* Thekal_GetUnitThatCanRez();
         uint32 GenerateRandomBoss();
         void SpawnRandomBoss();
 
-    protected:
-        std::string strInstData;
+	protected:
+		std::string strInstData;
                 bool m_randomBossSpawned;
                 uint32 randomBossEntry;
-        // If all High Priest bosses were killed. Lorkhan, Zath and Ohgan are added too.
-        uint32 m_auiEncounter[ZULGURUB_MAX_ENCOUNTER];
+		// If all High Priest bosses were killed. Lorkhan, Zath and Ohgan are added too.
+		uint32 m_auiEncounter[ZULGURUB_MAX_ENCOUNTER];
 
-        // Storing Lorkhan, Zath and Thekal because we need to cast on them later. Jindo is needed for heal function too.
-        uint64 m_uiLorKhanGUID;
-        uint64 m_uiZathGUID;
-        uint64 m_uiThekalGUID;
-        uint64 m_uiJindoGUID;
-        uint64 m_uiHakkarGUID;
-        uint64 m_uiGahzrankaGUID;
+		// Storing Lorkhan, Zath and Thekal because we need to cast on them later. Jindo is needed for heal function too.
+		uint64 m_uiLorKhanGUID;
+		uint64 m_uiZathGUID;
+		uint64 m_uiThekalGUID;
+		uint64 m_uiJindoGUID;
+		uint64 m_uiHakkarGUID;
 
-        uint64 m_uiMarliGUID;
+		uint64 m_uiMarliGUID;
                 std::list<uint64> m_lMarliTrashGUIDList;
 };
 

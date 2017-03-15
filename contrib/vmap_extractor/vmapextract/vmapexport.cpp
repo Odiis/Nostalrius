@@ -533,7 +533,6 @@ bool ModelLOSMgr::Load()
         modificators.push_back(mod);
     }
     printf("%u LOS modificators loaded\n", uint32(modificators.size()));
-    fclose(f);
     return true;
 }
 

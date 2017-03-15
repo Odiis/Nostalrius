@@ -124,7 +124,7 @@ struct instance_razorfen_downs : public ScriptedInstance
                             break;
                     }
 
-                    if (Creature* pCreature = pGo->SummonCreature(uiCreature, 2502.635f, 844.140f, 46.896f, 0.633f))
+                    if (Creature* pCreature = pGo->SummonCreature(uiCreature, 2502.635, 844.140, 46.896, 0.633))
                     {
                         if (uiGongWaves == 10 || uiGongWaves == 1)
                         {
@@ -133,25 +133,25 @@ struct instance_razorfen_downs : public ScriptedInstance
                             {
                                 if (i % 2 == 1)
                                 {
-                                    x = 2502.635f;
-                                    y = 844.140f;
-                                    z = 46.896f;
+                                    x = 2502.635;
+                                    y = 844.140;
+                                    z = 46.896;
                                 }
                                 else
                                 {
-                                    x = 2546.33f;
-                                    y = 887.455f;
-                                    z = 47.69f;
+                                    x = 2546.33;
+                                    y = 887.455;
+                                    z = 47.69;
                                 }
-                                if (Creature* pSummon = pGo->SummonCreature(uiCreature, x + float(irand(-5, 5)), y + float(irand(-5, 5)), z, 0.633f))
+                                if (Creature* pSummon = pGo->SummonCreature(uiCreature, x + float(irand(-5, 5)), y + float(irand(-5, 5)), z, 0.633))
                                 {
                                     pSummon->SetWalk(false);
-                                    pSummon->GetMotionMaster()->MovePoint(0, 2533.479f + float(irand(-5, 5)), 870.020f + float(irand(-5, 5)), 47.678f, MOVE_PATHFINDING);
+                                    pSummon->GetMotionMaster()->MovePoint(0, 2533.479 + float(irand(-5, 5)), 870.020 + float(irand(-5, 5)), 47.678, MOVE_PATHFINDING);
                                 }
                             }
                         }
                         pCreature->SetWalk(false);
-                        pCreature->GetMotionMaster()->MovePoint(0, 2533.479f + float(irand(-5, 5)), 870.020f + float(irand(-5, 5)), 47.678f, MOVE_PATHFINDING);
+                        pCreature->GetMotionMaster()->MovePoint(0, 2533.479 + float(irand(-5, 5)), 870.020 + float(irand(-5, 5)), 47.678, MOVE_PATHFINDING);
                     }
                     break;
                 }

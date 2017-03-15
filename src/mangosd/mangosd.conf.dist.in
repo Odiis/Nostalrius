@@ -104,29 +104,17 @@ BindIP = "0.0.0.0"
 #                 9 (best compression)
 #
 #    PlayerLimit
-#        Initial realm capacity. Excluding Mods, GM's and Admins
+#        Maximum number of players in the world. Excluding Mods, GM's and Admins
 #        Default: 100
 #                 0 (for infinite players)
 #                -1 (for Mods, GM's and Admins only)
 #                -2 (for GM's and Admins only)
 #                -3 (for Admins only)
 #
-#    PlayerHardLimit
-#        Maximum number of players in the world, after increasing PlayerLimit with LoginPerTick.
-#        Default: 0 - Disabled. No population limit.
-#
-#    LoginQueue.GracePeriodSecs
-#        How many seconds after last logout can we login and skip the queue
-#        Default: 0 - Disabled
-#
 #    LoginPerTick
 #        Maximum number of players allowed to login from the queue during a world update tick (~every 100 ms)
 #        WARNING: Overwrites $PlayerLimit value.
 #        Default: 0 (disabled)
-#
-#    CharacterScreenMaxIdleTime
-#        Number of seconds to allow for players to remain on the character screen before disconnecting
-#        Default: 0 - Disabled
 #
 #    SaveRespawnTimeImmediately
 #        Save respawn time for creatures at death and for gameobjects at use/open
@@ -228,10 +216,7 @@ UseProcessors = 0
 ProcessPriority = 1
 Compression = 1
 PlayerLimit = 100
-PlayerHardLimit = 0
-LoginQueue.GracePeriodSecs = 0
 LoginPerTick = 0
-CharacterScreenMaxIdleTime = 900
 SaveRespawnTimeImmediately = 1
 MaxOverspeedPings = 2
 GridUnload = 1
@@ -394,21 +379,17 @@ LogFilter_TransportMoves = 1
 LogFilter_CreatureMoves = 1
 LogFilter_VisibilityChanges = 1
 LogFilter_Weather = 1
-LogFilter_PlayerStats = 0
-LogFilter_SQLText = 0
-LogFilter_PlayerMoves = 0
+LogFilter_DbStrictedCheck = 1
 LogFilter_PeriodicAffects = 0
+LogFilter_PlayerMoves = 0
+LogFilter_SQLText = 0
 LogFilter_AIAndMovegens = 0
+LogFilter_PlayerStats = 0
 LogFilter_Damage = 0
 LogFilter_Combat = 0
 LogFilter_SpellCast = 0
-LogFilter_DbStrictedCheck = 1
-LogFilter_Pathfinding = 0
-LogFilter_Honor = 1
 WorldLogFile = ""
 WorldLogTimestamp = 0
-HonorLogFile = ""
-HonorLogTimestamp = 0
 DBErrorLogFile = "DBErrors.log"
 DBErrorFixFile = ""
 ClientIdsLogFile = "client.log"
@@ -435,7 +416,6 @@ PerformanceLog.SlowMapUpdate            = 100
 PerformanceLog.SlowAsynQueries          = 100
 PerformanceLog.SlowPackets              = 20
 PerformanceLog.SlowMapPackets           = 60
-PerformanceLog.SlowPacketBroadcast      = 0
 
 ###################################################################################################################
 # SERVER SETTINGS
@@ -478,10 +458,6 @@ PerformanceLog.SlowPacketBroadcast      = 0
 #    27 Tournament    - basic-Latin at create, any at login
 #    28 QA Server     - any language
 #    29 CN9           - basic-Latin at create, any at login
-#
-#    TimeZoneOffset
-#        Time zone offset in hours
-#        0 - UTC (default)
 #
 #    DBC.Locale
 #        DBC Language Settings
@@ -648,11 +624,6 @@ PerformanceLog.SlowPacketBroadcast      = 0
 #        Default: 0 (not allowed)
 #                 1 (allowed)
 #
-#    Group.OfflineLeaderDelay
-#        A grace period for an offline group leader to reconnect before tranfering leadership to a next suitable member of the group (in secs) 
-#        Default: 300 (5 minutes)
-#                   0 (Do not transfer group leadership)
-#
 #    Guild.EventLogRecordsCount
 #        Count of guild event log records stored in guild_eventlog table
 #        Increase to store more guild events in table, minimum is 100
@@ -740,7 +711,6 @@ PerformanceLog.SlowPacketBroadcast      = 0
 
 GameType = 1
 RealmZone = 1
-TimeZoneOffset = 0
 DBC.Locale = 255
 DeclinedNames = 0
 StrictPlayerNames = 0
@@ -773,7 +743,6 @@ Instance.UnloadDelay = 1800000
 Quests.LowLevelHideDiff = 4
 Quests.HighLevelHideDiff = 7
 Quests.IgnoreRaid = 0
-Group.OfflineLeaderDelay = 300
 Guild.EventLogRecordsCount = 100
 TimerBar.Fatigue.GMLevel = 4
 TimerBar.Fatigue.Max = 60
@@ -791,7 +760,7 @@ Event.Announce = 0
 BeepAtStart = 1
 ShowProgressBars = 0
 WaitAtStartupError = 0
-Motd = "Welcome to Nostalrius !"
+Motd = "Welcome to Elysium !"
 
 ###################################################################################################################
 # PLAYER INTERACTION
@@ -1038,11 +1007,6 @@ GuidReserveSize.GameObject = 1000
 #        Default: 0 (join announcement in normal way)
 #                 1 (GM join without announcement)
 #
-#    Channel.StrictLatinInGeneral
-#        Filter out messages using non-Latin characters in general channels.
-#        Default: 0 (disable)
-#                 1 (enable)
-#
 ###################################################################################################################
 
 ChatFakeMessagePreventing = 0
@@ -1052,7 +1016,6 @@ ChatFlood.MessageCount = 10
 ChatFlood.MessageDelay = 1
 ChatFlood.MuteTime = 10
 Channel.SilentlyGMJoin = 0
-Channel.StrictLatinInGeneral = 0
 
 ###################################################################################################################
 # GAME MASTER SETTINGS
@@ -1475,18 +1438,6 @@ BattleGround.TagInBattleGrounds     = 1
 #         Default: 0 - do not kick
 #                  1 - kick
 #
-#    Network.PacketBroadcast.Threads
-#         Number of threads for packets broadcasting.
-#         Default: 0 - disabled
-#
-#    Network.PacketBroadcast.Frequency
-#         How often packet broadcasting threads run in milliseconds.
-#         Default: 50
-#
-#    Network.Interval
-#         How often ACE will transmit the client's outbound packet buffer in milliseconds.
-#         Default: 10
-#
 ###################################################################################################################
 
 Network.Threads = 1
@@ -1494,10 +1445,6 @@ Network.OutKBuff = -1
 Network.OutUBuff = 65536
 Network.TcpNodelay = 1
 Network.KickOnBadPacket = 0
-Network.PacketBroadcast.Threads = 0
-Network.PacketBroadcast.Frequency = 50
-Network.PacketBroadcast.ReduceVisDistance.DiffAbove = 0
-Network.Interval = 10
 
 ###################################################################################################################
 # CONSOLE, REMOTE ACCESS AND SOAP
@@ -1589,7 +1536,7 @@ CharDelete.MinLevel = 0
 CharDelete.KeepDays = 30
 
 ###################################################################################################################
-#    NOSTALRIUS SPECIFIC CONFIGURATION
+#    ELYSIUM SPECIFIC CONFIGURATION
 ###################################################################################################################
 
 # Clustering
@@ -1615,17 +1562,17 @@ PlayerBot.MaxBots = 0
 PlayerBot.Refresh = 10000
 PlayerBot.ForceLogoutDelay = 1
 
-# Nostalrius: it is possible to earn money at each level !
-#Nostalrius.ModMoney.56 = 150000
+# Elysium: it is possible to earn money at each level !
+#Elysium.ModMoney.56 = 150000
 
 # Fix duel distance here !
 DuelDist = 80
 
-# Nostalrius log file (sLog.nostalrius)
-NostalriusLogFile = "Nostalrius.log"
-NostalriusLogTimestamp = 0
+# Elysium log file (sLog.elysium)
+ElysiumLogFile = "Elysium.log"
+ElysiumLogTimestamp = 0
 
-# Nostalrius chat log file (LOG_CHAT)
+# Elysium chat log file (LOG_CHAT)
 ChatLogFile = "Chat.log"
 ChatLogEnable = 1
 ChatLogTimestamp = 0
@@ -1735,8 +1682,6 @@ WorldChan.MinLevel          = 1
 WhisperDiffZone.MinLevel    = 1
 YellRange.LinearScale.MaxLevel      = 0
 YellRange.QuadraticScale.MaxLevel   = 0
-ChannelInvite.MinLevel = 10
-WhisperRestriction = 0
 
 # Database logs
 LogsDB.Chat                 = 0
@@ -1809,7 +1754,3 @@ Movement.Interpolation = 0
 
 # Delayed repositionning checks (mounts inside / swimming ...). 0 to disable.
 Movement.RelocationVmapsCheckDelay = 0
-
-# Sanction applied to a player if sending too many packets
-# - By default: Kick
-Antiflood.Sanction = 4

@@ -23,7 +23,7 @@ EndScriptData */
 
 #include "scriptPCH.h"
 
-#define SPELL_CURSEOFBLOOD          16098
+#define SPELL_CURSEOFBLOOD          24673
 //#define SPELL_ILLUSION              17773
 
 //Spells of Illusion of Jandice Barov
@@ -38,22 +38,18 @@ struct boss_jandicebarovAI : public ScriptedAI
 
     uint32 CurseOfBlood_Timer;
     uint32 Illusion_Timer;
-    uint32 damageTaken;
     //uint32 Illusioncounter;
     std::vector<uint64> IllusionGUIDS;
 
     uint32 Invisible_Timer;
     bool Invisible;
-    bool checkForDamage;
 
     void Reset()
     {
-        CurseOfBlood_Timer = 10000;
-        Illusion_Timer = 15000;
+        CurseOfBlood_Timer = 15000;
+        Illusion_Timer = 30000;
         Invisible_Timer = 3000;                             //Too much too low?
         Invisible = false;
-        damageTaken = 0;
-        checkForDamage = false;
     }
 
     void SummonIllusions(Unit* victim)
@@ -66,7 +62,7 @@ struct boss_jandicebarovAI : public ScriptedAI
             }
     }
 
-    void UnsummonIllusions()
+    void JustDied(Unit *pKiller)
     {
         // Despawn des adds (illusions)
         std::vector<uint64>::iterator itr;
@@ -77,28 +73,7 @@ struct boss_jandicebarovAI : public ScriptedAI
             else
                 sLog.outString("Cannot find creature %u", *itr);
         }
-        IllusionGUIDS.clear(); 
-    }
-
-    void JustDied(Unit *pKiller)
-    {
-        UnsummonIllusions();
-        m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-        m_creature->SetVisibility(VISIBILITY_ON);
-    }
-
-    void DamageTaken(Unit* /*pDealer*/, uint32& uiDamage)
-    {
-        if (checkForDamage)
-        {
-            damageTaken += uiDamage;
-            if (damageTaken > 500)
-            {
-                UnsummonIllusions();
-                checkForDamage = false;
-                damageTaken = 0;
-            }
-        }
+        IllusionGUIDS.clear();
     }
 
     void UpdateAI(const uint32 diff)
@@ -108,10 +83,8 @@ struct boss_jandicebarovAI : public ScriptedAI
             //Become visible again
             m_creature->setFaction(14);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-            m_creature->SetVisibility(VISIBILITY_ON);
+            m_creature->SetDisplayId(11073);                //Jandice Model
             Invisible = false;
-            damageTaken = 0;
-            checkForDamage = true;
         }
         else if (Invisible)
         {
@@ -140,15 +113,8 @@ struct boss_jandicebarovAI : public ScriptedAI
             m_creature->InterruptNonMeleeSpells(false);
             m_creature->setFaction(35);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            m_creature->SetDisplayId(11686);                // Invisible Model
             m_creature->getThreatManager().modifyThreatPercent(m_creature->getVictim(), -99);
-            m_creature->SetVisibility(VISIBILITY_OFF);
-
-            damageTaken = 0;
-            Invisible = true;
-            Invisible_Timer = 3000;
-
-            //25 seconds until we should cast this agian
-            Illusion_Timer = 25000;
 
             //Summon 10 Illusions attacking random gamers
             Unit* target = NULL;
@@ -157,6 +123,11 @@ struct boss_jandicebarovAI : public ScriptedAI
                 target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0);
                 SummonIllusions(target);
             }
+            Invisible = true;
+            Invisible_Timer = 3000;
+
+            //25 seconds until we should cast this agian
+            Illusion_Timer = 25000;
         }
         else
             Illusion_Timer -= diff;
@@ -192,7 +163,7 @@ struct mob_illusionofjandicebarovAI : public ScriptedAI
         if (Cleave_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CLEAVE) == CAST_OK)
-                Cleave_Timer = urand(5000, 15000);
+                Cleave_Timer = urand(5000, 8000);
         }
         else
             Cleave_Timer -= diff;

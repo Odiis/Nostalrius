@@ -1,5 +1,5 @@
 /*
-  ROCKETTE FOR NOSTALRIUS
+  ROCKETTE FOR ELYSIUM
  */
 
 #include "scriptPCH.h"
@@ -103,7 +103,7 @@ struct npc_celebrasAI : public ScriptedAI
                 EventPhase = EVENT_PHASE_AT_1;
                 break;
             case EVENT_PHASE_GO_2:
-                m_creature->GetMotionMaster()->MovePoint(EVENT_PHASE_GO_3, 656.4841f, 73.4726f, -86.8292f, MOVE_PATHFINDING, 0, 3.0223f);
+                m_creature->GetMotionMaster()->MovePoint(EVENT_PHASE_GO_3, 656.4841f, 73.4726f, -86.8292f, 3.0223f);
                 break;
             case EVENT_PHASE_GO_3:
                 EventTimer = 0;

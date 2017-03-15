@@ -81,7 +81,7 @@ class MANGOS_DLL_SPEC HostileReference : public Reference<Unit, ThreatManager>
             }
         }
 
-        float getTempThreatModifyer() const { return iTempThreatModifyer; }
+        float getTempThreatModifyer() { return iTempThreatModifyer; }
 
         //=================================================
         // check, if source can reach target and set the status
@@ -110,18 +110,19 @@ class MANGOS_DLL_SPEC HostileReference : public Reference<Unit, ThreatManager>
         //=================================================
 
         // Tell our refTo (target) object that we have a link
-        void targetObjectBuildLink() override;
+        void targetObjectBuildLink();
 
         // Tell our refTo (taget) object, that the link is cut
-        void targetObjectDestroyLink() override;
+        void targetObjectDestroyLink();
 
         // Tell our refFrom (source) object, that the link is cut (Target destroyed)
-        void sourceObjectDestroyLink() override;
+        void sourceObjectDestroyLink();
     private:
         // Inform the source, that the status of that reference was changed
         void fireStatusChanged(ThreatRefStatusChangeEvent& pThreatRefStatusChangeEvent);
 
         Unit* getSourceUnit();
+    private:
         float iThreat;
         float iTempThreatModifyer;                          // used for taunt
         ObjectGuid iUnitGuid;
@@ -136,86 +137,87 @@ typedef std::list<HostileReference*> ThreatList;
 
 class MANGOS_DLL_SPEC ThreatContainer
 {
-    ThreatList iThreatList;
-    bool iDirty;
-protected:
-    friend class ThreatManager;
+    private:
+        ThreatList iThreatList;
+        bool iDirty;
+    protected:
+        friend class ThreatManager;
 
-    void remove(HostileReference* pRef) { iThreatList.remove(pRef); }
-    void addReference(HostileReference* pHostileReference) { iThreatList.push_back(pHostileReference); }
-    void clearReferences();
-    // Sort the list if necessary
-    void update();
-public:
-    ThreatContainer() { iDirty = false; }
-    ~ThreatContainer() { clearReferences(); }
+        void remove(HostileReference* pRef) { iThreatList.remove(pRef); }
+        void addReference(HostileReference* pHostileReference) { iThreatList.push_back(pHostileReference); }
+        void clearReferences();
+        // Sort the list if necessary
+        void update();
+    public:
+        ThreatContainer() { iDirty = false; }
+        ~ThreatContainer() { clearReferences(); }
 
-    HostileReference* addThreat(Unit* pVictim, float pThreat);
+        HostileReference* addThreat(Unit* pVictim, float pThreat);
 
-    void modifyThreatPercent(Unit *pVictim, int32 percent);
+        void modifyThreatPercent(Unit *pVictim, int32 percent);
 
-    HostileReference* selectNextVictim(Creature* pAttacker, HostileReference* pCurrentVictim);
+        HostileReference* selectNextVictim(Creature* pAttacker, HostileReference* pCurrentVictim);
 
-    void setDirty(bool pDirty) { iDirty = pDirty; }
+        void setDirty(bool pDirty) { iDirty = pDirty; }
 
-    bool isDirty() const { return iDirty; }
+        bool isDirty() const { return iDirty; }
 
-    bool empty() const { return(iThreatList.empty()); }
+        bool empty() const { return(iThreatList.empty()); }
 
-    HostileReference* getMostHated() { return iThreatList.empty() ? NULL : iThreatList.front(); }
+        HostileReference* getMostHated() { return iThreatList.empty() ? NULL : iThreatList.front(); }
 
-    HostileReference* getReferenceByTarget(Unit* pVictim);
+        HostileReference* getReferenceByTarget(Unit* pVictim);
 
-    ThreatList const& getThreatList() const { return iThreatList; }
+        ThreatList const& getThreatList() const { return iThreatList; }
 };
 
 //=================================================
 
 class MANGOS_DLL_SPEC ThreatManager
 {
-public:
-    friend class HostileReference;
+    public:
+        friend class HostileReference;
 
-    explicit ThreatManager(Unit *pOwner);
+        explicit ThreatManager(Unit *pOwner);
 
-    ~ThreatManager() { clearReferences(); }
+        ~ThreatManager() { clearReferences(); }
 
-    void clearReferences();
+        void clearReferences();
 
-    void addThreat(Unit* pVictim, float threat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *threatSpell, bool isAssistThreat);
-    void addThreat(Unit* pVictim, float threat) { addThreat(pVictim, threat, false, SPELL_SCHOOL_MASK_NONE, nullptr, false); }
+        void addThreat(Unit* pVictim, float threat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *threatSpell);
+        void addThreat(Unit* pVictim, float threat) { addThreat(pVictim,threat,false,SPELL_SCHOOL_MASK_NONE,NULL); }
 
-    // add threat as raw value (ignore redirections and expection all mods applied already to it
-    void addThreatDirectly(Unit* pVictim, float threat);
+        // add threat as raw value (ignore redirections and expection all mods applied already to it
+        void addThreatDirectly(Unit* pVictim, float threat);
 
-    void modifyThreatPercent(Unit *pVictim, int32 pPercent);
+        void modifyThreatPercent(Unit *pVictim, int32 pPercent);
 
-    float getThreat(Unit *pVictim, bool pAlsoSearchOfflineList = false);
+        float getThreat(Unit *pVictim, bool pAlsoSearchOfflineList = false);
 
-    bool isThreatListEmpty() const { return iThreatContainer.empty(); }
+        bool isThreatListEmpty() const { return iThreatContainer.empty(); }
 
-    void processThreatEvent(ThreatRefStatusChangeEvent* threatRefStatusChangeEvent);
+        void processThreatEvent(ThreatRefStatusChangeEvent* threatRefStatusChangeEvent);
 
-    HostileReference* getCurrentVictim() const { return iCurrentVictim; }
+        HostileReference* getCurrentVictim() { return iCurrentVictim; }
 
-    Unit*  getOwner() const { return iOwner; }
+        Unit*  getOwner() const { return iOwner; }
 
-    Unit* getHostileTarget();
+        Unit* getHostileTarget();
 
-    void tauntApply(Unit* pTaunter);
-    void tauntFadeOut(Unit *pTaunter);
+        void tauntApply(Unit* pTaunter);
+        void tauntFadeOut(Unit *pTaunter);
 
-    void setCurrentVictim(HostileReference* pHostileReference);
+        void setCurrentVictim(HostileReference* pHostileReference);
 
-    void setDirty(bool pDirty) { iThreatContainer.setDirty(pDirty); }
+        void setDirty(bool pDirty) { iThreatContainer.setDirty(pDirty); }
 
-    // Don't must be used for explicit modify threat values in iterator return pointers
-    ThreatList const& getThreatList() const { return iThreatContainer.getThreatList(); }
-private:
-    HostileReference* iCurrentVictim;
-    Unit* iOwner;
-    ThreatContainer iThreatContainer;
-    ThreatContainer iThreatOfflineContainer;
+        // Don't must be used for explicit modify threat values in iterator return pointers
+        ThreatList const& getThreatList() const { return iThreatContainer.getThreatList(); }
+    private:
+        HostileReference* iCurrentVictim;
+        Unit* iOwner;
+        ThreatContainer iThreatContainer;
+        ThreatContainer iThreatOfflineContainer;
 };
 
 //=================================================

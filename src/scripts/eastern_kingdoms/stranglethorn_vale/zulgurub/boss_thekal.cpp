@@ -28,9 +28,6 @@ EndScriptData */
 #define SAY_AGGRO               -1309009
 #define SAY_DEATH               -1309010
 
-#define EMOTE_DIES              -1309027
-#define EMOTE_RESURRECT         -1309028
-
 #define SPELL_MORTALCLEAVE        22859
 #define SPELL_SILENCE             22666
 #define SPELL_FRENZY              24185
@@ -124,7 +121,6 @@ struct zg_rez_add : public ScriptedAI
 
     void JustDied(Unit* Killer)
     {
-        DoScriptText(EMOTE_DIES, m_creature);
         Unit* pRezzer = NULL;
         // Mort et non selectionnable (= pas de loots)
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
@@ -238,7 +234,6 @@ void DoRessurectUnit(Unit* unit, Unit* victim)
 
     if (Creature* creature = unit->ToCreature())
     {
-        DoScriptText(EMOTE_RESURRECT, creature);
         creature->Respawn();
         creature->NearTeleportTo(x, y, z, o);
         // TRES DANGEREUX.
@@ -593,20 +588,34 @@ struct mob_zealot_lorkhanAI : public zg_rez_add
         }
         else BloodLust_Timer -= diff;
 
-        //GreaterHeal
+        //Casting Greaterheal to Thekal or Zath if they are in meele range.
         if (GreaterHeal_Timer < diff)
         {
-            // Lorkhan prioritizes himself with heal when under 50%
-            if (m_creature->GetHealthPercent() < 50.0f)
+            if (m_pInstance)
             {
-                if (DoCastSpellIfCan(m_creature, SPELL_GREATERHEAL) == CAST_OK)
-                    GreaterHeal_Timer = 12000;
+                Unit *pThekal = m_creature->GetMap()->GetUnit(m_pInstance->GetData64(DATA_THEKAL));
+                Unit *pZath = m_creature->GetMap()->GetUnit(m_pInstance->GetData64(DATA_ZATH));
+
+                if (pThekal && pZath)
+                {
+                    // Pas de heal necessaire : reverification dans 2 sec.
+                    if (pThekal->GetHealthPercent() >= 95.0f && pZath->GetHealthPercent() >= 95.0f)
+                        GreaterHeal_Timer = 2000;
+                    else
+                    {
+                        GreaterHeal_Timer = urand(15000, 20000);
+                        if (m_creature->IsWithinMeleeRange(pThekal) && pThekal->GetHealthPercent() < pZath->GetHealthPercent())
+                            DoCastSpellIfCan(pThekal, SPELL_GREATERHEAL);
+                        else if (m_creature->IsWithinMeleeRange(pZath))
+                            DoCastSpellIfCan(pZath, SPELL_GREATERHEAL);
+                        else // Personne a distance de melee.
+                            GreaterHeal_Timer = 2000;
+                    }
+                }
             }
-            else if (Unit* pTarget = DoSelectLowestHpFriendly(100.0f, 9500))
-            {
-                if (DoCastSpellIfCan(pTarget, SPELL_GREATERHEAL) == CAST_OK)
-                    GreaterHeal_Timer = 12000;
-            }
+            else
+                GreaterHeal_Timer = 180000;
+
         }
         else
             GreaterHeal_Timer -= diff;

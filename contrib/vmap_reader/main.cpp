@@ -62,11 +62,7 @@ int main(int argc, char **argv)
     FILE* output = fopen("out.obj", "w");
     FILE* _3ds    = fopen("out.3ds", "wb");
     if (!output || !_3ds)
-    {
-        fclose(_3ds);
-        fclose(output);
         return 1;
-    }
     ModelInstance* models = NULL;
     uint32 count = 0;
     InstanceTreeMap instanceTrees;
@@ -75,17 +71,11 @@ int main(int argc, char **argv)
     if (!instanceTrees[mapId])
     {
         printf("Pas de modeles sur cette map. Abandon.\n");
-        fclose(_3ds);
-        fclose(output);
         return 2;
     }
     instanceTrees[mapId]->getModelInstances(models, count);
     if (!models || !count)
-    {
-        fclose(_3ds);
-        fclose(output);
         return 3;
-    }
     printf("* Il y a %u models sur cette map.\n", count);
 
     vector<Vector3> vertices;
@@ -159,7 +149,6 @@ int main(int argc, char **argv)
                 if (DistanceSq(vect, CENTER_X, CENTER_Y) < (RADIUS)*(RADIUS))
                     vertices.push_back(vect);
             }
-            delete[] verticesRemap;
         }
     }
     printf("* %u vertices de %u triangles\n", vertices.size(), triangles.size());

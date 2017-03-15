@@ -36,7 +36,8 @@ Bag::Bag(): Item()
 Bag::~Bag()
 {
     for (int i = 0; i < MAX_BAG_SIZE; ++i)
-        delete m_bagslot[i];
+        if (m_bagslot[i])
+            delete m_bagslot[i];
 }
 
 void Bag::AddToWorld()
@@ -57,7 +58,7 @@ void Bag::RemoveFromWorld()
     Item::RemoveFromWorld();
 }
 
-bool Bag::Create(uint32 guidlow, uint32 itemid, ObjectGuid ownerGuid)
+bool Bag::Create(uint32 guidlow, uint32 itemid, Player const* owner)
 {
     ItemPrototype const* itemProto = ObjectMgr::GetItemPrototype(itemid);
 
@@ -69,8 +70,8 @@ bool Bag::Create(uint32 guidlow, uint32 itemid, ObjectGuid ownerGuid)
     SetEntry(itemid);
     SetObjectScale(DEFAULT_OBJECT_SCALE);
 
-    SetGuidValue(ITEM_FIELD_OWNER, ownerGuid);
-    SetGuidValue(ITEM_FIELD_CONTAINED, ownerGuid);
+    SetGuidValue(ITEM_FIELD_OWNER, owner ? owner->GetObjectGuid() : ObjectGuid());
+    SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid());
 
     SetUInt32Value(ITEM_FIELD_MAXDURABILITY, itemProto->MaxDurability);
     SetUInt32Value(ITEM_FIELD_DURABILITY, itemProto->MaxDurability);

@@ -680,7 +680,7 @@ namespace MMAP
                 tbmax[0] = tileCfg.bmax[0];
                 tbmax[1] = tileCfg.bmax[2];
 
-                // NOSTALRIUS - MMAPS TILE GENERATION
+                // ELYSIUM - MMAPS TILE GENERATION
                 /// 1. Alloc heightfield for walkable areas
                 tile.solid = rcAllocHeightfield();
                 if (!tile.solid || !rcCreateHeightfield(m_rcContext, *tile.solid, tileCfg.width, tileCfg.height, tileCfg.bmin, tileCfg.bmax, tileCfg.cs, tileCfg.ch))
@@ -854,7 +854,6 @@ namespace MMAP
         if (!pmmerge)
         {
             printf("%s alloc pmmerge FAILED!          \r", tileString);
-            delete [] tiles;
             return;
         }
 
@@ -862,8 +861,6 @@ namespace MMAP
         if (!dmmerge)
         {
             printf("%s alloc dmmerge FAILED!          \r", tileString);
-            delete [] tiles;
-            delete [] pmmerge;
             return;
         }
 
@@ -885,9 +882,6 @@ namespace MMAP
         iv.polyMesh = rcAllocPolyMesh();
         if (!iv.polyMesh)
         {
-            delete[] tiles;
-            delete[] pmmerge;
-            delete[] dmmerge;
             printf("%s alloc iv.polyMesh FAILED!          \r", tileString);
             return;
         }
@@ -897,9 +891,6 @@ namespace MMAP
         if (!iv.polyMeshDetail)
         {
             printf("%s alloc m_dmesh FAILED!          \r", tileString);
-            delete[] tiles;
-            delete[] pmmerge;
-            delete[] dmmerge;
             return;
         }
         rcMergePolyMeshDetails(m_rcContext, dmmerge, nmerge, *iv.polyMeshDetail);

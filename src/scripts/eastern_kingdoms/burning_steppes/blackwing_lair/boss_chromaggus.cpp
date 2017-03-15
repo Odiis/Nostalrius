@@ -96,8 +96,6 @@ struct boss_chromaggusAI : public ScriptedAI
 
     ScriptedInstance* m_pInstance;
 
-    uint32 m_uiMovetoLeverTimer;
-
     uint32 m_uiBreathOneSpell;
     uint32 m_uiBreathTwoSpell;
     uint32 m_uiCurrentVulnerabilitySpell;
@@ -117,8 +115,6 @@ struct boss_chromaggusAI : public ScriptedAI
 
     void Reset()
     {
-        m_uiMovetoLeverTimer = 2000;
-
         m_uiCurrentVulnerabilitySpell = 0;                  // We use this to store our last vulnerability spell so we can remove it later
 
         m_uiShimmerTimer    = 0;                            // Time till we change vurlnerabilites
@@ -156,12 +152,12 @@ struct boss_chromaggusAI : public ScriptedAI
 
     void MoveInLineOfSight(Unit *pUnit)
     {
-        if (!pUnit || m_creature->getVictim())
+        // Check this now to prevent calling expensive functions (isInAccessablePlaceFor / IsWithinLOSInMap)
+        if (m_creature->getVictim())
             return;
-
-        if (m_bEngagedOnce && pUnit->IsPlayer() && m_creature->GetDistance2d(pUnit) < 55.0f && m_creature->IsWithinLOSInMap(pUnit)
-          && pUnit->isTargetableForAttack() && pUnit->isInAccessablePlaceFor(m_creature))
-            AttackStart(pUnit);
+        if (m_creature->GetDistance2d(pUnit) > 50.0f)
+            return;
+        ScriptedAI::MoveInLineOfSight(pUnit);
     }
 
     void Aggro(Unit* /*pWho*/)
@@ -169,7 +165,7 @@ struct boss_chromaggusAI : public ScriptedAI
         if (m_pInstance)
             m_pInstance->SetData(TYPE_CHROMAGGUS, IN_PROGRESS);
 
-        m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PASSIVE);
+        m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_PASSIVE);
         m_creature->SetInCombatWithZone();
     }
 
@@ -203,27 +199,6 @@ struct boss_chromaggusAI : public ScriptedAI
         }
     }
 
-    void MovementInform(uint32 uiType, uint32 uiPointId)
-    {
-        if (uiType != POINT_MOTION_TYPE)
-            return;
-
-        switch (uiPointId)
-        {
-            case 0:
-                // walk to Flamegor's room on first pull of lever
-                m_creature->GetMotionMaster()->MovePoint(1, -7379.223f, -1002.1122f, 477.0402f, 3.7662f);
-                break;
-            case 1:
-                // didn't find anyone! walk back to home position
-                m_creature->GetMotionMaster()->MovePoint(2, -7484.609385f, -1075.678101f, 477.144623f, 0.616172f);
-                break;
-            case 2:
-                m_creature->GetMotionMaster()->MoveTargetedHome();
-                break;
-        }
-    }
-
     void UpdateAI(const uint32 uiDiff)
     {
         if (!m_creature->isInCombat() && !m_bEngagedOnce)
@@ -232,20 +207,10 @@ struct boss_chromaggusAI : public ScriptedAI
             {
                 if (pGO->GetGoState() == GO_STATE_ACTIVE) // Porte OUVERTE
                 {
-                    if (m_uiMovetoLeverTimer < uiDiff)
-                    { 
-                        float x = -7484.609385f;
-                        float y = -1075.678101f;
-                        float z =   477.144623f;
-                        float o =     0.616172f;
-                        m_creature->SetHomePosition(x, y, z, o);
-                        m_creature->SetWalk(true);
-                        m_creature->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
-                        m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PASSIVE);
-                        m_bEngagedOnce = true;
-                    }
-                    else
-                        m_uiMovetoLeverTimer -= uiDiff;
+                    m_creature->SetHomePosition(-7484.609375f, -1075.678101f, 477.144623f, 0.616172f);
+                    m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PASSIVE);
+                    m_bEngagedOnce = true;
+                    m_creature->AI()->EnterEvadeMode();
                 }
                 else if (!m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE))
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PASSIVE);

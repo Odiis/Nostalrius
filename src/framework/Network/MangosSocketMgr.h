@@ -30,7 +30,6 @@ class MangosSocketMgr
         void SetOutUBuff(int v) { m_SockOutUBuff = v; }
         void SetThreads(int v) { m_NetThreadsCount = v; }
         void SetTcpNodelay(bool v) { m_UseNoDelay = v; }
-        void SetInterval(int v) { m_Interval = v * 1000; /* to microseconds */ }
 
         int Connect(int port, std::string const& address, SocketType*& sock);
     protected:
@@ -47,7 +46,6 @@ class MangosSocketMgr
         int m_SockOutKBuff;
         int m_SockOutUBuff;
         bool m_UseNoDelay;
-        int m_Interval;
 
         std::string m_addr;
         ACE_UINT16 m_port;

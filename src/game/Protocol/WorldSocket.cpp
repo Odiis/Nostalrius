@@ -303,24 +303,17 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     // NOTE ATM the socket is single-threaded, have this in mind ...
     ACE_NEW_RETURN(m_Session, WorldSession(id, this, AccountTypes(security), mutetime, locale), -1);
 
-    m_Crypt.SetKey(K.AsByteArray());
+    m_Crypt.SetKey(K.AsByteArray(), 40);
     m_Crypt.Init();
 
     m_Session->SetUsername(account);
     m_Session->SetGameBuild(BuiltNumberClient);
     m_Session->SetAccountFlags(accFlags);
-
-    ClientOSType clientOs;
-    if (os == "niW")
+    ClientOSType clientOs = CLIENT_OS_UNKNOWN;
+    if (os == "Win")
         clientOs = CLIENT_OS_WIN;
-    else if (os == "XSO")
+    else if (os == "OSX")
         clientOs = CLIENT_OS_MAC;
-    else
-    {
-        sLog.outError("WorldSocket::HandleAuthSession: Unrecognized OS '%s' for account '%s' from %s", os.c_str(), account.c_str(), address.c_str());
-        return -1;
-    }
-
     m_Session->SetOS(clientOs);
     m_Session->LoadTutorialsData();
     m_Session->InitWarden(&K);

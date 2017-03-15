@@ -31,7 +31,7 @@ enum
     NPC_STUDENT                                     = 10475,
     NPC_MARDUK_BLACKPOOL                            = 10433,
 
-    VECTUS_SPEECH_GAMBIT_EVENT_START                = NOST_TEXT(117),
+    VECTUS_SPEECH_GAMBIT_EVENT_START                = ELYSIUM_TEXT(117),
 
     GO_DAWN_S_GAMBIT                                = 177304,
 
@@ -46,7 +46,6 @@ struct boss_vectusAI : public ScriptedAI
 {
     boss_vectusAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_bStartedDialogue      = false;
         eventGambitDone         = false;
         eventGambitStart        = false;
         findGambit              = false;
@@ -65,8 +64,6 @@ struct boss_vectusAI : public ScriptedAI
     bool   findGambit;
     GameObject* pGambit;
 
-    bool m_bStartedDialogue;
-
     void Reset()
     {
         m_uiFlameStrike_Timer   = 2000;
@@ -75,24 +72,9 @@ struct boss_vectusAI : public ScriptedAI
         _fullAggroDone          = false;
     }
 
-    void MoveInLineOfSight(Unit* pWho) override
-    {        
-        if (!m_bStartedDialogue)
-        {
-            if (pWho->IsPlayer() && m_creature->IsWithinDistInMap(pWho, 32.0f) && m_creature->IsWithinLOSInMap(pWho))
-            {
-                m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
-                m_creature->GetMotionMaster()->Initialize();
-                m_bStartedDialogue = true;
-            }
-        }
-
-        ScriptedAI::MoveInLineOfSight(pWho);
-    }
-
     void UpdateAI(const uint32 uiDiff)
     {
-        // Chakor@Nostalrius : Event Du Gambit
+        // Chakor@Elysium : Event Du Gambit
         if (!eventGambitDone)
         {
             if (m_uiGambitEvent_Timer < uiDiff)
@@ -155,7 +137,7 @@ struct boss_vectusAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        // NOSTALRIUS: Aggro toute la salle lorsqu'il est pull.
+        // ELYSIUM: Aggro toute la salle lorsqu'il est pull.
         if (!_fullAggroDone)
         {
             std::list<Creature*> creatures;
@@ -237,21 +219,6 @@ struct npc_scholomance_studentAI : public ScriptedAI
                 m_creature->Respawn();
             }
         }
-    }
-
-    void Aggro(Unit* /*pWho*/)
-    {
-        // set the viewing room and Marduk and Vectus to hostile on aggro
-        std::list<Creature*> creatures;
-        m_creature->GetCreatureListWithEntryInGrid(creatures, NPC_STUDENT, 100.0f);
-        for (std::list<Creature*>::iterator it = creatures.begin(); it != creatures.end(); ++it)
-            (*it)->setFaction(14);
-
-        if (Creature* pMarduck = m_creature->FindNearestCreature(NPC_MARDUK_BLACKPOOL, 100.0f))
-            pMarduck->setFaction(14);
-
-        if (Creature* pVectus = m_creature->FindNearestCreature(NPC_VECTUS, 100.0f))
-			pVectus->setFaction(14);
     }
 
     void JustDied(Unit* Killer)

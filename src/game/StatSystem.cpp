@@ -363,7 +363,7 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
     }
 }
 
-void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage, uint8 index)
+void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage)
 {
     UnitMods unitMod;
 
@@ -381,15 +381,15 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, fl
             break;
     }
 
-    float att_speed = GetAPMultiplier(attType, normalized) * m_modRecalcDamagePct[attType];
+    float att_speed = GetAPMultiplier(attType, normalized);
 
     float base_value  = GetModifierValue(unitMod, BASE_VALUE) + GetTotalAttackPowerValue(attType) / 14.0f * att_speed;
     float base_pct    = GetModifierValue(unitMod, BASE_PCT);
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
 
-    float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE, index);
-    float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE, index);
+    float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE);
+    float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE);
 
     if (IsInFeralForm())                                    // check if player is druid and in cat or bear forms, non main hand attacks not allowed for this mode so not check attack type
     {
@@ -409,12 +409,6 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, fl
     {
         weapon_mindamage += GetAmmoDPS() * att_speed;
         weapon_maxdamage += GetAmmoDPS() * att_speed;
-    }
-
-    if (index != 0)
-    {
-        base_value = 0.0f;
-        total_value = 0.0f;
     }
 
     min_damage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct;
@@ -550,7 +544,7 @@ void Player::UpdateParryPercentage()
 
 void Player::UpdateDodgePercentage()
 {
-    // Nostalrius : base dodge per class
+    // Elysium : base dodge per class
     float value = 0.0f;
     switch (getClass())
     {
@@ -613,7 +607,7 @@ void Player::UpdateAllSpellCritChances()
 void Player::UpdateManaRegen()
 {
     // Mana regen from spirit
-    // Nostalrius - Fix mana regen (diviser par 2)
+    // Elysium - Fix mana regen (diviser par 2)
     float power_regen = OCTRegenMPPerSpirit() / 2.0f;
     // Apply PCT bonus from SPELL_AURA_MOD_POWER_REGEN_PERCENT aura on spirit base regen
     power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
@@ -914,16 +908,18 @@ void Pet::UpdateAttackPowerAndDamage(bool ranged)
 
 void Pet::UpdateDamagePhysical(WeaponAttackType attType)
 {
-    if (attType > BASE_ATTACK)
+    if (attType > OFF_ATTACK)
         return;
 
-    UnitMods unitMod = UNIT_MOD_DAMAGE_MAINHAND;
+    UnitMods unitMod = (attType == BASE_ATTACK) ? UNIT_MOD_DAMAGE_MAINHAND : UNIT_MOD_DAMAGE_OFFHAND;
 
     float base_value  = GetModifierValue(unitMod, BASE_VALUE);
     float base_pct    = GetModifierValue(unitMod, BASE_PCT);
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
-    float dmg_multiplier = getPetType() == HUNTER_PET ? 1.0f : GetCreatureInfo()->dmg_multiplier;
+    float dmg_multiplier = GetCreatureInfo()->dmg_multiplier;
+    if (getPetType() == HUNTER_PET)
+        dmg_multiplier = 1.0f; // Stats are taken from pet_levelstats table.
 
     float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE);
@@ -933,9 +929,7 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
      * We have to ignore creatures that don't have AP set in database (we would divide by 0)
      */
     // Compute base attack power
-    float createAttackPower = getPetType() == HUNTER_PET ? 2.0f * GetCreateStat(STAT_STRENGTH) - 20.0f
-                                                         : GetInt32Value(UNIT_FIELD_ATTACK_POWER);
-
+    float createAttackPower = GetInt32Value(UNIT_FIELD_ATTACK_POWER);
     if (createAttackPower > 0)
     {
         float attackPowerNow = GetTotalAttackPowerValue(attType);
@@ -947,7 +941,7 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
     float maxdamage = ((base_value + weapon_maxdamage) * dmg_multiplier * base_pct + total_value) * total_pct;
 
     //  Pet's base damage changes depending on happiness
-    if (getPetType() == HUNTER_PET)
+    if (getPetType() == HUNTER_PET && attType == BASE_ATTACK)
     {
         switch (GetHappinessState())
         {
@@ -967,6 +961,6 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
         }
     }
 
-    SetStatFloatValue(UNIT_FIELD_MINDAMAGE, mindamage);
-    SetStatFloatValue(UNIT_FIELD_MAXDAMAGE, maxdamage);
+    SetStatFloatValue(attType == BASE_ATTACK ? UNIT_FIELD_MINDAMAGE : UNIT_FIELD_MINOFFHANDDAMAGE, mindamage);
+    SetStatFloatValue(attType == BASE_ATTACK ? UNIT_FIELD_MAXDAMAGE : UNIT_FIELD_MAXOFFHANDDAMAGE, maxdamage);
 }

@@ -155,7 +155,7 @@ int32 MoveSplineInit::Launch()
         compress = false;
 
     MovementData mvtData(compress ? NULL : &unit);
-    // Nostalrius: client has a hardcoded limit to spline movement speed : 4*runSpeed.
+    // Elysium: client has a hardcoded limit to spline movement speed : 4*runSpeed.
     // We need to fix this, in case of charges for example (if character has movement slowing effects)
     if (args.velocity > 4 * realSpeedRun && !args.flags.done) // From client
         mvtData.SetUnitSpeed(SMSG_SPLINE_SET_RUN_SPEED, unit.GetObjectGuid(), args.velocity);
@@ -177,7 +177,7 @@ int32 MoveSplineInit::Launch()
     {
         WorldPacket data2;
         mvtData.BuildPacket(data2);
-        unit.SendMovementMessageToSet(std::move(data2), true);
+        unit.SendObjectMessageToSet(&data2, true);
     }
     return move_spline.Duration();
 }

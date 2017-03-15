@@ -26,8 +26,6 @@ enum
     SPELL_RAGNAROS_EMERGE       = 20568,
     SPELL_ELEMENTAL_FIRE        = 19773,
 
-    SPELL_VISUAL_TELEPORT       = 19484, 
-
     NPC_FLAMEWAKER_HEALER       = 11663,
     NPC_FLAMEWAKER_ELITE        = 11664,
     // NPC_RAGNAROS                = 11502, // Already defined in instance script
@@ -261,27 +259,26 @@ struct boss_majordomoAI : public ScriptedAI
             Domo->SetMaxHealth(35);
         }
         DialogRagnarosTimer = 0;
-        m_creature->CastSpell(m_creature, SPELL_VISUAL_TELEPORT, false);
-        m_creature->ForcedDespawn(1000);
+        m_creature->CastSpell(m_creature, SPELL_TELEPORT, false);
+        m_creature->DeleteLater();
     }
 
     void DomoEvent()
     {
         switch (DialogRagnaros_M)
         {
-            case 6:
-                m_creature->GetMotionMaster()->MovePoint(POINT_SUMMON1, (float)POINT_SUMMON1_X, (float)POINT_SUMMON1_Y, (float)POINT_SUMMON1_Z);
+            case 1:
                 m_creature->SummonGameObject(178108, 842.237488f, -833.683105f, -231.916498f, 3.000000f, 0, 0, 0, 0, 0);
                 m_creature->CastSpell(m_creature, 19774, false);
                 DoScriptText(SAY_MAJ, m_creature);
                 break;
-            case 15:
+            case 7:
                 m_creature->SetOrientation(5.231960f);
                 break;
-            case 21:
+            case 11:
                 DoScriptText(SAY_SUMMON_MAJ, m_creature);
                 break;
-            case 28:
+            case 22:
                 if (Creature* Ragnaros = m_creature->SummonCreature(NPC_RAGNAROS, 842.237488f, -833.683105f, -231.916498f, M_PI + m_creature->GetAngle(842.237488f, -833.683105f), TEMPSUMMON_MANUAL_DESPAWN, 2 * HOUR * IN_MILLISECONDS))   // Ragnaros reste spawn 2heures
                 {
                     Ragnaros->SetUInt64Value(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
@@ -289,17 +286,17 @@ struct boss_majordomoAI : public ScriptedAI
                     Ragnaros->CastSpell(Ragnaros, SPELL_RAGNAROS_EMERGE, false);
                 }
                 break;
-            case 34:
+            case 25:
                 if (Creature* Ragnaros = m_creature->FindNearestCreature(NPC_RAGNAROS, 100.0f, true))
                 {
                     DoScriptText(SAY_ARRIVAL1_RAG, Ragnaros);
                     Ragnaros->HandleEmote(EMOTE_ONESHOT_ROAR);
                 }
                 break;
-            case 47:
+            case 37:
                 DoScriptText(SAY_ARRIVAL2_MAJ, m_creature);
                 break;
-            case 55:
+            case 45:
                 if (Creature* Ragnaros = m_creature->FindNearestCreature(NPC_RAGNAROS, 100.0f, true))
                 {
                     Ragnaros->SetTargetGuid(m_creature->GetGUID());
@@ -307,12 +304,16 @@ struct boss_majordomoAI : public ScriptedAI
                     Ragnaros->HandleEmote(EMOTE_ONESHOT_ROAR);
                 }
                 break;
-            case 70:
+            case 61:
                 if (Creature* Ragnaros = m_creature->FindNearestCreature(NPC_RAGNAROS, 100.0f, true))
+                {
+                    DoScriptText(SAY_ARRIVAL5_RAG, Ragnaros);
+                    Ragnaros->SetUInt64Value(UNIT_FIELD_FLAGS, 0);
+                    Ragnaros->SetInCombatWithZone();
                     Ragnaros->CastSpell(m_creature, SPELL_ELEMENTAL_FIRE, false);  // 20565
-                // Handle rest in Ragnaros script
+                }
                 break;
-            }
+        }
     }
 
     void UpdateAI(const uint32 diff)
@@ -359,7 +360,7 @@ struct boss_majordomoAI : public ScriptedAI
             if (m_creature->GetDistance2d(758.089f, -1176.71f) < 2.0f && m_creature->getFaction() == 35)
             {
                 DialogRagnarosTimer += diff;
-                if (DialogRagnarosTimer > 28000)
+                if (DialogRagnarosTimer > 30000)
                     DomoTP();
             }
             return;
@@ -430,9 +431,9 @@ bool GossipSelect_event_domo(Player* pPlayer, Creature* pCreature, uint32 uiSend
         {
             pDomoEventAI->RagnarosEventStart = true;
             pCreature->SetUInt32Value(UNIT_NPC_FLAGS, 0);            // disable gossip
-            char sMessage[200];
-            sprintf(sMessage, "Very well, %s.", pPlayer->GetName());
-            pCreature->MonsterSay(sMessage, 0, 0);
+            pCreature->SetSpeedRate(MOVE_WALK, 0.7f, true);
+            pCreature->GetMotionMaster()->MovePoint(POINT_SUMMON1, (float)POINT_SUMMON1_X, (float)POINT_SUMMON1_Y, (float)POINT_SUMMON1_Z);
+            //pCreature->MonsterSay("Tres bien, %s.", 0, pPlayer);
 
             if (boss_majordomoAI* pDomoEventAI = dynamic_cast<boss_majordomoAI*>(pCreature->AI()))
                 pDomoEventAI->RagnarosEventStart = true;

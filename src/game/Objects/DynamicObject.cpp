@@ -88,7 +88,7 @@ bool DynamicObject::Create(uint32 guidlow, Unit *caster, uint32 spellId, SpellEf
     */
     uint32 bytes = type;
 
-    // Nostalrius: fusee eclairante. Fix diametre visuel.
+    // Elysium: fusee eclairante. Fix diametre visuel.
     if (spellId == 1543)
         bytes = 0x10; // Aucune idee de ce que ca represente ...
 
@@ -154,7 +154,7 @@ void DynamicObject::Update(uint32 update_diff, uint32 p_time)
         MaNGOS::DynamicObjectUpdater notifier(*this, caster, m_positive);
         Cell::VisitAllObjects(this, notifier, m_radius);
 
-        // Nostalrius
+        // Elysium
         // Hackfix pour Piege explosif. Ne doit s'activer qu'une fois.
         switch (m_spellId)
         {

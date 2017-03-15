@@ -32,9 +32,8 @@
 #include "DBCStores.h"
 #include "ObjectGuid.h"
 #include "PoolManager.h"
-#include "SQLStorages.h"
-#include "Map.h"
 
+struct InstanceTemplate;
 struct MapEntry;
 struct GameObjectData;
 struct CreatureData;
@@ -73,7 +72,7 @@ class MapPersistentState
         uint32 GetInstanceId() const { return m_instanceid; }
         uint32 GetMapId() const { return m_mapid; }
 
-        const MapEntry* GetMapEntry() const;
+        MapEntry const* GetMapEntry() const;
 
         bool IsUsedByMap() const { return m_usedByMap; }
         Map* GetMap() const { return m_usedByMap; }         // Can be NULL if map not loaded for persistent state
@@ -177,6 +176,8 @@ class DungeonPersistentState : public MapPersistentState
         ~DungeonPersistentState();
         void UnbindThisState();
 
+        InstanceTemplate const* GetTemplate() const;
+
         uint8 GetPlayerCount() const { return m_playerList.size(); }
         uint8 GetGroupCount() const { return m_groupList.size(); }
 
@@ -274,8 +275,8 @@ class DungeonResetScheduler
     public:                                                 // accessors
         time_t GetResetTimeFor(uint32 mapid) { return m_resetTimeByMapId[mapid]; }
 
-        static uint32 GetMaxResetTimeFor(MapEntry const* temp);
-        static time_t CalculateNextResetTime(MapEntry const* temp, time_t prevResetTime);
+        static uint32 GetMaxResetTimeFor(InstanceTemplate const* temp);
+        static time_t CalculateNextResetTime(InstanceTemplate const* temp, time_t prevResetTime);
     public:                                                 // modifiers
         void SetResetTimeFor(uint32 mapid, time_t t)
         {
@@ -319,7 +320,7 @@ class MANGOS_DLL_DECL MapPersistentStateManager : public MaNGOS::Singleton<MapPe
         void RemovePersistentState(uint32 mapId, uint32 instanceId);
 
         template<typename Do>
-        void DoForAllStatesWithMapId(uint32 mapId, uint32 instanceId, Do& _do);
+        void DoForAllStatesWithMapId(uint32 mapId, Do& _do);
 
     public:                                                 // DungeonPersistentState specific
         void CleanupInstances();
@@ -353,15 +354,15 @@ class MANGOS_DLL_DECL MapPersistentStateManager : public MaNGOS::Singleton<MapPe
 };
 
 template<typename Do>
-void MapPersistentStateManager::DoForAllStatesWithMapId(uint32 mapId, uint32 instanceId, Do& _do)
+inline void MapPersistentStateManager::DoForAllStatesWithMapId(uint32 mapId, Do& _do)
 {
-    MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(mapId);
+    MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
     if (!mapEntry)
         return;
 
     if (mapEntry->Instanceable())
     {
-        for (auto itr = m_instanceSaveByInstanceId.begin(); itr != m_instanceSaveByInstanceId.end();)
+        for(PersistentStateMap::iterator itr = m_instanceSaveByInstanceId.begin(); itr != m_instanceSaveByInstanceId.end();)
         {
             if (itr->second->GetMapId() == mapId)
                 _do((itr++)->second);
@@ -372,7 +373,7 @@ void MapPersistentStateManager::DoForAllStatesWithMapId(uint32 mapId, uint32 ins
     }
     else
     {
-        if (auto state = GetPersistentState(mapId, instanceId))
+        if (MapPersistentState* state = GetPersistentState(mapId, 0))
             _do(state);
     }
 }

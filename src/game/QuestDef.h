@@ -98,22 +98,6 @@ enum QuestStatus
     MAX_QUEST_STATUS
 };
 
-inline char* QuestStatusToString(QuestStatus status)
-{
-    switch (status)
-    {
-        case QUEST_STATUS_NONE: return "NONE";
-        case QUEST_STATUS_COMPLETE: return "COMPLETE";
-        case QUEST_STATUS_UNAVAILABLE: return "UNAVAILABLE";
-        case QUEST_STATUS_INCOMPLETE: return "INCOMPLETE";
-        case QUEST_STATUS_AVAILABLE: return "AVAILABLE";
-        case QUEST_STATUS_FAILED: return "FAILED";
-        default: break;
-    }
-
-    return "UNKNOWN";
-}
-
 enum __QuestGiverStatus
 {
     DIALOG_STATUS_NONE                     = 0,

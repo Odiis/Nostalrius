@@ -20,7 +20,6 @@
 #define _AUTH_BIGNUMBER_H
 
 #include "Common.h"
-#include <memory>
 
 struct bignum_st;
 
@@ -82,12 +81,14 @@ class BigNumber
         struct bignum_st *BN() { return _bn; }
 
         uint32 AsDword();
-        std::vector<uint8> AsByteArray(int minSize = 0, bool reverse = true);
+        uint8* AsByteArray(int minSize = 0, bool reverse = true);
 
         const char *AsHexStr();
         const char *AsDecStr();
 
     private:
+        void ClearArraysMap();
         struct bignum_st *_bn;
+        std::map<int, uint8*> arraysMap;
 };
 #endif

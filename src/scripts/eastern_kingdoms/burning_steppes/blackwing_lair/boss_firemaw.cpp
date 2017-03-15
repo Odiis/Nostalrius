@@ -32,7 +32,7 @@ enum
     SPELL_SHADOW_FLAME          = 22539,
     SPELL_WING_BUFFET           = 23339,
     SPELL_FLAME_BUFFET          = 23341,
-    SPELL_THRASH                = 3391,
+    SPELL_THRASH                = 3391,                     // TODO, missing
 };
 
 struct boss_firemawAI : public ScriptedAI
@@ -51,9 +51,9 @@ struct boss_firemawAI : public ScriptedAI
 
     void Reset()
     {
-        m_uiShadowFlameTimer = 16000;
+        m_uiShadowFlameTimer = 16000;                       // These times are probably wrong
         m_uiWingBuffetTimer = 30000;
-        m_uiFlameBuffetTimer = 2000;
+        m_uiFlameBuffetTimer = 5000;
     }
 
     void Aggro(Unit* /*pWho*/)
@@ -120,7 +120,7 @@ struct boss_firemawAI : public ScriptedAI
         if (m_uiFlameBuffetTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_FLAME_BUFFET) == CAST_OK)
-                m_uiFlameBuffetTimer = urand(1800, 3000);
+                m_uiFlameBuffetTimer = 5000;
         }
         else
             m_uiFlameBuffetTimer -= uiDiff;

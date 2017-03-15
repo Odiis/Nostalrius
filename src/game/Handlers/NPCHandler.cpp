@@ -138,7 +138,7 @@ static void SendTrainerSpellHelper(WorldPacket& data, TrainerSpell const* tSpell
     data << uint8(spellLevel);
     data << uint32(tSpell->reqSkill);
     data << uint32(tSpell->reqSkillValue);
-    // Nostalrius: le client veut spellreq1, spellreq2 avec spellreq2 != 0 seulement si spellreq1 != 0.
+    // Elysium: le client veut spellreq1, spellreq2 avec spellreq2 != 0 seulement si spellreq1 != 0.
     if (chain_node)
     {
         if (chain_node->req)
@@ -264,13 +264,6 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket & recv_data)
     if (!unit->IsTrainerOf(_player, true))
         return;
 
-    // check LOS
-    if (!unit->IsWithinLOSInMap(_player))
-    {    
-	unit->MonsterWhisper("I can't train you when you're hiding like that", _player);
-	return;
-    }
-
     // check present spell in trainer spell list
     TrainerSpellData const* cSpells = unit->GetTrainerSpells();
     TrainerSpellData const* tSpells = unit->GetTrainerTemplateSpells();
@@ -303,10 +296,6 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket & recv_data)
         return;
 
     GetPlayer()->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TALK); // Removes stealth, feign death ...
-    // Player must get off her high horse before learning
-    _player->Unmount();
-    _player->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
-
     _player->ModifyMoney(-int32(nSpellCost));
 
     WorldPacket data(SMSG_PLAY_SPELL_VISUAL, 12);           // visual effect on trainer

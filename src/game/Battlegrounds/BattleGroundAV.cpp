@@ -766,7 +766,7 @@ void BattleGroundAV::UpdateScore(BattleGroundTeamIndex teamIdx, int32 points)
 
     if (points < 0)
     {
-        // Ivina < Nostalrius > : removed message and winning condition.
+        // Ivina < Elysium > : removed message and winning condition.
         if (m_TeamScores[teamIdx] < 1)
         {
             m_TeamScores[teamIdx] = 0;
@@ -1400,13 +1400,6 @@ void BattleGroundAV::SendMineWorldStates(uint32 mine)
 
 WorldSafeLocsEntry const* BattleGroundAV::GetClosestGraveYard(Player *plr)
 {
-    // repop players at the entrance GY if BG is not started yet
-    if (GetStatus() != STATUS_IN_PROGRESS && !plr->isGameMaster())
-    {
-        if (WorldSafeLocsEntry const* gEntry = sWorldSafeLocsStore.LookupEntry(plr->GetTeam() == ALLIANCE ? 611 : 610))
-            return gEntry;
-    }
-
     float x = plr->GetPositionX();
     float y = plr->GetPositionY();
     float mindist = 9999999.0f;
@@ -1604,7 +1597,7 @@ void BattleGroundAV::Reset()
 }
 
 
-/* Reap <Nostalrius> */
+/* Reap <Elysium> */
 /*
 Valide une quête de type alterac:
 SetQuestSlotCounter-> Visuel "Complete Quest" dans le journal de quête. (Deco reco disparais il faut donc modifier la fonction pour que sa le modifie dans `character_queststatus`)

@@ -34,7 +34,7 @@ enum
     // Mandokir's spells
     // -----------------
 
-    // Charge - Charge regulierement le membre du raid le plus ï¿½loigne dans le range 8-40m.
+    // Charge - Charge regulierement le membre du raid le plus éloigne dans le range 8-40m.
     // OK
     SPELL_CHARGE        = 24408,
 
@@ -121,8 +121,8 @@ struct boss_mandokirAI : public ScriptedAI
 
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
 
-        m_creature->Relocate(-12169.2f, -1928.1f, 153.6f);
-        m_creature->GetMap()->CreatureRelocation(m_creature, -12169.2f, -1928.1f, 153.6f, 3.14f);
+        m_creature->Relocate(-12169.2, -1928.1, 153.6);
+        m_creature->GetMap()->CreatureRelocation(m_creature, -12169.2, -1928.1, 153.6, 3.14);
         m_VilebranchDead = false;
 
         Reset();
@@ -199,8 +199,8 @@ struct boss_mandokirAI : public ScriptedAI
         if (!m_VilebranchDead)
         {
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
-            m_creature->Relocate(-12169.2f, -1928.1f, 153.6f);
-            m_creature->GetMap()->CreatureRelocation(m_creature, -12169.2f, -1928.1f, 153.6f, 3.14f);
+            m_creature->Relocate(-12169.2, -1928.1, 153.6);
+            m_creature->GetMap()->CreatureRelocation(m_creature, -12169.2, -1928.1, 153.6, 3.14);
         }
 
     }
@@ -209,16 +209,9 @@ struct boss_mandokirAI : public ScriptedAI
     {
         if (pVictim->GetTypeId() == TYPEID_PLAYER)
         {
-            DoCastSpellIfCan(m_creature, SPELL_LEVEL_UP, true);
-            m_creature->SetLevel(m_creature->getLevel() + 1);
-            m_uiPlayerToRez = pVictim->GetGUID();
-
             DoScriptText(SAY_DING_KILL, m_creature);
 
-            if (!m_pInstance)
-                return;
-
-            if (!urand(0,2))
+            if (m_pInstance)
             {
                 if (Creature* jTemp = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_JINDO)))
                 {
@@ -226,8 +219,15 @@ struct boss_mandokirAI : public ScriptedAI
                         DoScriptText(SAY_GRATS_JINDO, jTemp);
                 }
                 else
+                {
+                    // txt modifié dans la table script_texts pour palier à Jtemp == NULL
                     DoScriptText(SAY_GRATS_JINDO, m_creature);
+                }
             }
+
+            DoCastSpellIfCan(m_creature, SPELL_LEVEL_UP, true);
+            m_creature->SetLevel(m_creature->getLevel() + 1);
+            m_uiPlayerToRez = pVictim->GetGUID();
         }
     }
 
@@ -509,7 +509,7 @@ struct boss_mandokirAI : public ScriptedAI
                         {
                             if (DoCastSpellIfCan(pTargetToKill, SPELL_DECAPITATE) == CAST_OK)
                                 bTargetKilled = true;
-                            // TODO: Mandokir should also cast a sound explosion, after charging the player
+                            // TODO : Mandokir devrait aussi caster une explosion sonore, apres avoir chargé le joueur?
                         }
                         if (!bTargetKilled)
                             m_creature->DoKillUnit(pTargetToKill);
@@ -527,7 +527,7 @@ struct boss_mandokirAI : public ScriptedAI
         {
             if ((m_uiGlobalCooldown == 0) && (!m_uiTargetToKill) && (!m_uiWatchTarget))
             {
-                if (Unit* pTarget = m_creature->GetFarthestVictimInRange(8.0f, 40.0f))
+                if (Unit* pTarget = m_creature->GetFarestVictimInRange(8.0f, 40.0f))
                 {
                     if (Player* pPlayer = pTarget->GetCharmerOrOwnerPlayerOrPlayerItself())
                     {

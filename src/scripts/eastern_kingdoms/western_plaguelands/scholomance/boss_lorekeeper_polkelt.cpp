@@ -25,7 +25,7 @@ EndScriptData */
 #include "scholomance.h"
 
 #define SPELL_VOLATILEINFECTION      24928
-#define SPELL_DARKPLAGUE_AURA        12038
+#define SPELL_DARKPLAGUE             18270
 #define SPELL_CORROSIVEACID          8245
 #define SPELL_NOXIOUSCATALYST        18151
 
@@ -44,15 +44,11 @@ struct boss_lorekeeperpolkeltAI : public ScriptedAI
     void Reset()
     {
         VolatileInfection_Timer = 38000;
+        Darkplague_Timer = 8000;
         CorrosiveAcid_Timer = 45000;
         NoxiousCatalyst_Timer = 35000;
     }
 
-    void Aggro(Unit* /*pWho*/)
-    {
-        DoCastSpellIfCan(m_creature, SPELL_DARKPLAGUE_AURA, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);        
-    }
-    
     void JustDied(Unit *killer)
     {
         if (ScriptedInstance* pInstance = (ScriptedInstance*)m_creature->GetInstanceData())
@@ -71,6 +67,14 @@ struct boss_lorekeeperpolkeltAI : public ScriptedAI
             VolatileInfection_Timer = 32000;
         }
         else VolatileInfection_Timer -= diff;
+
+        //Darkplague_Timer
+        if (Darkplague_Timer < diff)
+        {
+            DoCastSpellIfCan(m_creature->getVictim(), SPELL_DARKPLAGUE);
+            Darkplague_Timer = 8000;
+        }
+        else Darkplague_Timer -= diff;
 
         //CorrosiveAcid_Timer
         if (CorrosiveAcid_Timer < diff)

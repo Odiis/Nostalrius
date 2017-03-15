@@ -307,7 +307,7 @@ public:
         _eventFinished = false;
         _summonTimer  = TIMER_KEEPERS_SUMMON;
     }
-    void UpdateAI(const uint32 diff)
+    void UpdateAI(uint32 diff)
     {
         if (_eventFinished)
             return;

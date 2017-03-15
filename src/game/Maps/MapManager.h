@@ -43,7 +43,6 @@ enum
     MAP1_DUROTAR        = 12,
     MAP1_MIDDLE_EST     = 13,   // Mulgore, Barrens, Dustwallow Marsh
     MAP1_SOUTH          = 14,   // Feralas and south
-    MAP1_VALLEY         = 15,   // Orc and Troll starting area
 
     MAP0_FIRST          = 1,
     MAP0_LAST           = 10,
@@ -224,11 +223,11 @@ class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::
 };
 
 template<typename Do>
-void MapManager::DoForAllMapsWithMapId(uint32 mapId, Do& _do)
+inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Do& _do)
 {
-    MapMapType::const_iterator start = i_maps.lower_bound(MapID(mapId, 0));
-    MapMapType::const_iterator end = i_maps.lower_bound(MapID(mapId + 1, 0));
-    for (auto itr = start; itr != end; ++itr)
+    MapMapType::const_iterator start = i_maps.lower_bound(MapID(mapId,0));
+    MapMapType::const_iterator end   = i_maps.lower_bound(MapID(mapId+1,0));
+    for(MapMapType::const_iterator itr = start; itr != end; ++itr)
         _do(itr->second);
 }
 

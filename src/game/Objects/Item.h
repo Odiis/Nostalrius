@@ -258,18 +258,6 @@ class MANGOS_DLL_SPEC Item : public Object
 
         static void DeleteAllFromDB(uint32 guidLow);
 
-        bool isWeapon() const{ return GetProto()->Class == ITEM_CLASS_WEAPON; }
-        bool isOneHandedWeapon() const 
-        {
-            return (isWeapon() &&
-                (GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_AXE ||
-                GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_SWORD ||
-                GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_MACE ||
-                GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_FIST ||
-                GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER ||
-                GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_EXOTIC));
-        }
-
         bool IsBag() const { return GetProto()->InventoryType == INVTYPE_BAG; }
         bool IsBroken() const { return GetUInt32Value(ITEM_FIELD_MAXDURABILITY) > 0 && GetUInt32Value(ITEM_FIELD_DURABILITY) == 0; }
         bool CanBeTraded() const;
@@ -314,7 +302,7 @@ class MANGOS_DLL_SPEC Item : public Object
         void SendTimeUpdate(Player* owner);
         void UpdateDuration(Player* owner, uint32 diff);
 
-        // spell charges (negative means that once charges are consumed the item should be deleted)
+        // spell charges (signed but stored as unsigned)
         int32 GetSpellCharges(uint8 index/*0..5*/ = 0) const { return GetInt32Value(ITEM_FIELD_SPELL_CHARGES + index); }
         void SetSpellCharges(uint8 index/*0..5*/, int32 value) { SetInt32Value(ITEM_FIELD_SPELL_CHARGES + index,value); }
 

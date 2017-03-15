@@ -1262,41 +1262,15 @@ bool ChatHandler::HandleGameObjectDespawnCommand(char*)
     return true;
 }
 
-bool ChatHandler::HandleGameObjectToggleCommand(char* args)
+bool ChatHandler::HandleGameObjectToggleCommand(char*)
 {
-    uint32 lowguid;
-    GameObject* obj = NULL;
-
-    if (!ExtractUint32KeyFromLink(&args, "Hgameobject", lowguid))
+    GameObject* go = getSelectedGameObject();
+    if (!go)
     {
-        // no args passed, search for already selected GO
-        obj = getSelectedGameObject();
-        if (!obj)
-        {
-            PSendSysMessage(LANG_COMMAND_NOGAMEOBJECTFOUND);
-            SetSentErrorMessage(true);
-            return false;
-        }
+        SendSysMessage(LANG_COMMAND_NOGAMEOBJECTFOUND);
+        return false;
     }
-    else
-    {
-        // lowguid arg found, search DB for GO
-        if (GameObjectData const* go_data = sObjectMgr.GetGOData(lowguid))
-            obj = GetGameObjectWithGuid(lowguid,go_data->id);
-
-        if (!obj)
-        {
-            PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, lowguid);
-            SetSentErrorMessage(true);
-            return false;
-        }
-    }
-
-    if (obj->getLootState() == GO_READY || obj->getLootState() == GO_JUST_DEACTIVATED)
-        obj->UseDoorOrButton();
-    else
-        obj->ResetDoorOrButton();
-
+    go->UseDoorOrButton();
     return true;
 }
 
@@ -1408,7 +1382,7 @@ bool ChatHandler::HandleLookupFactionCommand(char* args)
             if (!Utf8FitTo(name, wnamepart))
             {
                 loc = 0;
-                for (; loc < MAX_DBC_LOCALE; ++loc)
+                for (; loc < MAX_LOCALE; ++loc)
                 {
                     if (loc == GetSessionDbcLocale())
                         continue;
@@ -1422,7 +1396,7 @@ bool ChatHandler::HandleLookupFactionCommand(char* args)
                 }
             }
 
-            if (loc < MAX_DBC_LOCALE)
+            if (loc < MAX_LOCALE)
             {
                 FactionState const* repState = target ? target->GetReputationMgr().GetState(factionEntry) : NULL;
                 ShowFactionListHelper(factionEntry, LocaleConstant(loc), repState, target);
@@ -3722,31 +3696,6 @@ bool ChatHandler::HandleCharacterReputationCommand(char* args)
     return true;
 }
 
-bool ChatHandler::HandleCharacterHasItemCommand(char* args)
-{
-    if(!*args)
-        return false;
-
-    uint32 itemId = 0;
-    if (!ExtractUInt32(&args, itemId))
-        return false;
-
-    Player* pl = m_session->GetPlayer();
-    Player* plTarget = getSelectedPlayer();
-    if(!plTarget)
-        plTarget = pl;
-
-    if (ItemPrototype const* pItem = ObjectMgr::GetItemPrototype(itemId))
-    {
-        uint32 itemCount = plTarget->GetItemCount(itemId, true);
-        PSendSysMessage("%s's amount of %s (id %u) is: %u", GetNameLink(plTarget).c_str(), GetItemLink(pItem).c_str(), itemId, itemCount);
-    }
-    else
-        PSendSysMessage("Unknown item %u", itemId);
-
-    return true;
-}
-
 //change standstate
 bool ChatHandler::HandleModifyStandStateCommand(char* args)
 {
@@ -3768,7 +3717,7 @@ bool ChatHandler::HandleHonorShow(char* /*args*/)
     if (!target)
         target = m_session->GetPlayer();
 
-    int8 highest_rank               = target->GetHonorMgr().GetHighestRank().visualRank;
+    int8 highest_rank               = target->GetHonorHighestRankInfo().visualRank;
     uint32 dishonorable_kills       = target->GetUInt32Value(PLAYER_FIELD_LIFETIME_DISHONORABLE_KILLS);
     uint32 honorable_kills          = target->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
     uint32 today_honorable_kills    = target->GetUInt16Value(PLAYER_FIELD_SESSION_KILLS, 0);
@@ -3830,7 +3779,7 @@ bool ChatHandler::HandleHonorShow(char* /*args*/)
     char const* rank_name = NULL;
     char const* hrank_name = NULL;
 
-    uint32 honor_rank = target->GetHonorMgr().GetRank().visualRank;
+    uint32 honor_rank = target->GetHonorRankInfo().visualRank;
 
     if (honor_rank >= HONOR_RANK_COUNT || highest_rank >= HONOR_RANK_COUNT)
     {
@@ -3859,7 +3808,7 @@ bool ChatHandler::HandleHonorShow(char* /*args*/)
     PSendSysMessage(LANG_HONOR_YESTERDAY, yesterday_kills, yesterday_honor);
     PSendSysMessage(LANG_HONOR_THIS_WEEK, this_week_kills, this_week_honor);
     PSendSysMessage(LANG_HONOR_LAST_WEEK, last_week_kills, last_week_honor, last_week_standing);
-    PSendSysMessage(LANG_HONOR_LIFE, target->GetHonorMgr().GetRankPoints(), honorable_kills, dishonorable_kills, highest_rank, hrank_name);
+    PSendSysMessage(LANG_HONOR_LIFE, target->GetRankPoints(), honorable_kills, dishonorable_kills, highest_rank, hrank_name);
 
     return true;
 }
@@ -3882,7 +3831,8 @@ bool ChatHandler::HandleHonorAddCommand(char* args)
         return false;
 
     float amount = (float)atof(args);
-    target->GetHonorMgr().Add(amount, OTHER);
+    target->SetStoredHonor(target->GetStoredHonor() + amount);
+    target->UpdateHonor();
     return true;
 }
 
@@ -3900,6 +3850,20 @@ bool ChatHandler::HandleHonorAddKillCommand(char* /*args*/)
         return false;
 
     m_session->GetPlayer()->RewardHonor(target, 1);
+    return true;
+}
+
+bool ChatHandler::HandleHonorUpdateCommand(char* /*args*/)
+{
+    Player *target = getSelectedPlayer();
+    if (!target)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    target->UpdateHonor();
     return true;
 }
 
@@ -3961,20 +3925,6 @@ bool ChatHandler::HandleModifyHonorCommand(char* args)
 
     PSendSysMessage(LANG_COMMAND_MODIFY_HONOR, field, target->GetName(), hasStringAbbr(field, "rank") ? amount : (uint32)amount);
 
-    return true;
-}
-
-bool ChatHandler::HandleHonorResetCommand(char* /*args*/)
-{
-    Player *target = getSelectedPlayer();
-    if (!target)
-    {
-        SendSysMessage(LANG_PLAYER_NOT_FOUND);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    target->GetHonorMgr().Reset();
     return true;
 }
 
@@ -4143,13 +4093,6 @@ bool ChatHandler::HandleEventStartCommand(char* args)
         return false;
     }
 
-    if (!sGameEventMgr.IsEnabled(event_id))
-    {
-        PSendSysMessage(LANG_EVENT_DISABLED, event_id);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
     PSendSysMessage(LANG_EVENT_STARTED, event_id, eventData.description.c_str());
     sGameEventMgr.StartEvent(event_id, true);
     return true;
@@ -4191,84 +4134,6 @@ bool ChatHandler::HandleEventStopCommand(char* args)
 
     PSendSysMessage(LANG_EVENT_STOPPED, event_id, eventData.description.c_str());
     sGameEventMgr.StopEvent(event_id, true);
-    return true;
-}
-
-bool ChatHandler::HandleEventEnableCommand(char* args)
-{
-    if (!*args)
-        return false;
-
-    // id or [name] Shift-click form |color|Hgameevent:id|h[name]|h|r
-    uint32 event_id;
-    if (!ExtractUint32KeyFromLink(&args, "Hgameevent", event_id))
-        return false;
-
-    GameEventMgr::GameEventDataMap const& events = sGameEventMgr.GetEventMap();
-
-    if (!sGameEventMgr.IsValidEvent(event_id))
-    {
-        SendSysMessage(LANG_EVENT_NOT_EXIST);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    GameEventData const& eventData = events[event_id];
-    if (!eventData.isValid())
-    {
-        SendSysMessage(LANG_EVENT_NOT_EXIST);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    if (sGameEventMgr.IsEnabled(event_id))
-    {
-        PSendSysMessage(LANG_EVENT_ALREADY_ENABLED, event_id);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    PSendSysMessage(LANG_EVENT_ENABLED, event_id, eventData.description.c_str());
-    sGameEventMgr.EnableEvent(event_id, true);
-    return true;
-}
-
-bool ChatHandler::HandleEventDisableCommand(char* args)
-{
-    if (!*args)
-        return false;
-
-    // id or [name] Shift-click form |color|Hgameevent:id|h[name]|h|r
-    uint32 event_id;
-    if (!ExtractUint32KeyFromLink(&args, "Hgameevent", event_id))
-        return false;
-
-    GameEventMgr::GameEventDataMap const& events = sGameEventMgr.GetEventMap();
-
-    if (!sGameEventMgr.IsValidEvent(event_id))
-    {
-        SendSysMessage(LANG_EVENT_NOT_EXIST);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    GameEventData const& eventData = events[event_id];
-    if (!eventData.isValid())
-    {
-        SendSysMessage(LANG_EVENT_NOT_EXIST);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    if (!sGameEventMgr.IsEnabled(event_id))
-    {
-        PSendSysMessage(LANG_EVENT_ALREADY_DISABLED, event_id);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    PSendSysMessage(LANG_EVENT_DISABLED, event_id, eventData.description.c_str());
-    sGameEventMgr.EnableEvent(event_id, false);
     return true;
 }
 
@@ -4380,7 +4245,7 @@ bool ChatHandler::HandleLearnAllRecipesCommand(char* args)
         if (!Utf8FitTo(name, wnamepart))
         {
             loc = 0;
-            for (; loc < MAX_DBC_LOCALE; ++loc)
+            for (; loc < MAX_LOCALE; ++loc)
             {
                 if (loc == GetSessionDbcLocale())
                     continue;
@@ -4394,7 +4259,7 @@ bool ChatHandler::HandleLearnAllRecipesCommand(char* args)
             }
         }
 
-        if (loc < MAX_DBC_LOCALE)
+        if (loc < MAX_LOCALE)
         {
             targetSkillInfo = skillInfo;
             break;
@@ -4507,29 +4372,13 @@ bool ChatHandler::ShowAccountListHelper(QueryResult* result, uint32* limit, bool
         WorldSession* session = sWorld.FindSession(account);
         Player* player = session ? session->GetPlayer() : NULL;
         char const* char_name = player ? player->GetName() : " - ";
-        
-        std::string lastIp = GetMangosString(LANG_ERROR);
-        bool showIp = true;
-        AccountTypes security = sAccountMgr.GetSecurity(account);
-        if (GetAccessLevel() < security)
-            showIp = false;
-        else if (GetAccessLevel() < SEC_ADMINISTRATOR && security > SEC_PLAYER) // Only admins can see GM IPs
-            showIp = false;
-        if (showIp)
-        {
-            lastIp = fields[2].GetCppString();
-        }
-        else
-        {
-            lastIp = "-";
-        }
 
         if (m_session)
             PSendSysMessage(LANG_ACCOUNT_LIST_LINE_CHAT,
-                            account, fields[1].GetString(), char_name, playerLink(lastIp).c_str(), security, fields[4].GetUInt32());
+                            account, fields[1].GetString(), char_name, fields[2].GetString(), sAccountMgr.GetSecurity(account), fields[4].GetUInt32());
         else
             PSendSysMessage(LANG_ACCOUNT_LIST_LINE_CONSOLE,
-                            account, fields[1].GetString(), char_name, playerLink(lastIp).c_str(), security, fields[4].GetUInt32());
+                            account, fields[1].GetString(), char_name, fields[2].GetString(), sAccountMgr.GetSecurity(account), fields[4].GetUInt32());
 
     }
     while (result->NextRow());

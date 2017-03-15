@@ -1,6 +1,6 @@
 /*
-AQ40 - The Bug Trio -- NOSTALRIUS VERSION
-Reference: http://forum.nostalrius.org/viewtopic.php?f=51&t=35154
+AQ40 - The Bug Trio -- ELYSIUM VERSION
+Reference: https://elysium-project.org/
 
 Stryg comments:
 
@@ -125,7 +125,7 @@ struct boss_bug_trioAI : public ScriptedAI
 			m_bIsEating = true;
 
 			// Sprint to dead bug and clear target
-			m_creature->UpdateSpeed(MOVE_RUN, true, 2.7f);
+			m_creature->UpdateSpeed(MOVE_RUN, true, 2.7);
 			m_creature->GetMotionMaster()->MovePoint(1, pWho->GetPositionX(), pWho->GetPositionY(), pWho->GetPositionZ());
 			m_creature->SetTargetGuid(ObjectGuid());
 		}

@@ -29,7 +29,6 @@
 #include "GuildMgr.h"
 #include "GossipDef.h"
 #include "SocialMgr.h"
-#include "Anticheat.h"
 
 // Charters ID in item_template
 #define GUILD_CHARTER               5863
@@ -98,17 +97,6 @@ void WorldSession::HandlePetitionBuyOpcode(WorldPacket & recv_data)
     {
         SendGuildCommandResult(GUILD_CREATE_S, name, ERR_GUILD_NAME_INVALID);
         return;
-    }
-
-    // Check guild petition name (use whisper type - 6)
-    if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-    {
-        if (a->filterMessage(name))
-        {
-            sWorld.LogChat(this, "Guild", "Attempt to create guild petition with spam name" + name);
-            SendGuildCommandResult(GUILD_CREATE_S, name, ERR_GUILD_NAME_INVALID);
-            return;
-        }
     }
 
     ItemPrototype const *pProto = ObjectMgr::GetItemPrototype(charterid);

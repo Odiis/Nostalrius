@@ -95,7 +95,6 @@ public:
                 w_loops = World::m_worldLoopCounter;
             }
             // possible freeze
-#ifdef NDEBUG
             else if (WorldTimer::getMSTimeDiff(w_lastchange, curtime) > _delaytime)
             {
                 sLog.outError("World Thread hangs, kicking out server!");
@@ -103,7 +102,6 @@ public:
                 Master::m_handleSigvSignals = false;        // disable anticrash
                 *((uint32 volatile*)NULL) = 0;              // bang crash
             }
-#endif
         }
         // Fix crash au shutdown du serv. sLog n'existe plus ici.
         //sLog.outString("Anti-freeze thread exiting without problems.");
@@ -409,7 +407,6 @@ int Master::Run()
         sWorldSocketMgr->SetOutKBuff(sConfig.GetIntDefault("Network.OutKBuff", -1));
         sWorldSocketMgr->SetOutUBuff(sConfig.GetIntDefault("Network.OutUBuff", 65536));
         sWorldSocketMgr->SetThreads(sConfig.GetIntDefault("Network.Threads", 1) + 1);
-        sWorldSocketMgr->SetInterval(sConfig.GetIntDefault("Network.Interval", 10));
         sWorldSocketMgr->SetTcpNodelay(sConfig.GetBoolDefault("Network.TcpNodelay", true));
 
         if (sWorldSocketMgr->StartNetwork(wsport, bind_ip) == -1)
@@ -639,9 +636,9 @@ void Master::_OnSignal(int s)
             sWorld.SetAnticrashRearmTimer(sWorld.getConfig(CONFIG_UINT32_ANTICRASH_REARM_TIMER));
             uint32 anticrashOptions = sWorld.getConfig(CONFIG_UINT32_ANTICRASH_OPTIONS);
             // Log crash stack
-            sLog.nostalrius("Received SIGSEGV");
+            sLog.elysium("Received SIGSEGV");
             ACE_Stack_Trace st;
-            sLog.nostalrius("%s", st.c_str());
+            sLog.elysium("%s", st.c_str());
             if (anticrashOptions & ANTICRASH_GENERATE_COREDUMP)
                 createdump();
             if (anticrashOptions & ANTICRASH_OPTION_ANNOUNCE_PLAYERS)

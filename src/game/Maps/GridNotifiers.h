@@ -681,25 +681,21 @@ namespace MaNGOS
     class MostHPMissingInRangeCheck
     {
         public:
-            MostHPMissingInRangeCheck(Unit const* obj, float range, uint32 hp, bool percent = false) : i_obj(obj), i_range(range), i_hp(hp), i_percent(percent) {}
-            //WorldObject const& GetFocusObject() const { return *i_obj; }
-            bool operator()(Unit* u) const
+            MostHPMissingInRangeCheck(Unit const* obj, float range, uint32 hp) : i_obj(obj), i_range(range), i_hp(hp) {}
+            WorldObject const& GetFocusObject() const { return *i_obj; }
+            bool operator()(Unit* u)
             {
-                if (u->isAlive() && u->isInCombat() && i_obj->IsFriendlyTo(u) && i_obj->IsWithinDistInMap(u, i_range))
+                if(u->isAlive() && u->isInCombat() && !i_obj->IsHostileTo(u) && i_obj->IsWithinDistInMap(u, i_range) && u->GetMaxHealth() - u->GetHealth() > i_hp)
                 {
-                    if (i_percent)
-                        return 100 - u->GetHealthPercent() > i_hp;
-                    
-                    return u->GetMaxHealth() - u->GetHealth() > i_hp;
+                    i_hp = u->GetMaxHealth() - u->GetHealth();
+                    return true;
                 }
-
                 return false;
             }
         private:
             Unit const* i_obj;
             float i_range;
             uint32 i_hp;
-            bool i_percent;
     };
 
     class FriendlyCCedInRangeCheck
@@ -752,7 +748,8 @@ namespace MaNGOS
                     return false;
                 if(u->isAlive() && i_obj->IsWithinDistInMap(u, i_range) && !i_funit->IsFriendlyTo(u))
                     return true;
-                return false;
+                else
+                    return false;
             }
         private:
             WorldObject const* i_obj;
@@ -788,7 +785,8 @@ namespace MaNGOS
             {
                 if(u->isAlive() && i_obj->IsWithinDistInMap(u, i_range) && i_obj->IsFriendlyTo(u) && u->CanSeeInWorld(i_obj))
                     return true;
-                return false;
+                else
+                    return false;
             }
         private:
             WorldObject const* i_obj;

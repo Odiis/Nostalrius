@@ -29,15 +29,13 @@
 #include "Policies/Singleton.h"
 #include "SharedDefines.h"
 #include "ace/Atomic_Op.h"
-#include "Nostalrius.h"
+#include "Elysium.h"
 #include "ObjectGuid.h"
 #include "MapNodes/AbstractPlayer.h"
 
 #include <map>
 #include <set>
 #include <list>
-#include <chrono>
-#include <memory>
 #include <unordered_map>
 
 class Object;
@@ -48,7 +46,6 @@ class Weather;
 class SqlResultQueue;
 class QueryResult;
 class World;
-class MovementBroadcaster;
 
 World& GetSWorld();
 
@@ -83,21 +80,14 @@ enum WorldTimers
     WUPDATE_UPTIME      = 2,
     WUPDATE_CORPSES     = 3,
     WUPDATE_EVENTS      = 4,
-    WUPDATE_SAVE_VAR    = 5,
-    WUPDATE_GROUPS      = 6,
-    WUPDATE_COUNT       = 7
+    WUPDATE_SAVE_VAR    = 5, // Elysium
+    WUPDATE_COUNT       = 6
 };
 
 /// Configuration elements
 enum eConfigUInt32Values
 {
     CONFIG_UINT32_COMPRESSION = 0,
-    CONFIG_UINT32_LOGIN_QUEUE_GRACE_PERIOD_SECS,
-    CONFIG_UINT32_CHARACTER_SCREEN_MAX_IDLE_TIME,
-    CONFIG_UINT32_PLAYER_HARD_LIMIT,
-    CONFIG_UINT32_ANTIFLOOD_SANCTION,
-    CONFIG_UINT32_PACKET_BCAST_THREADS,
-    CONFIG_UINT32_PACKET_BCAST_FREQUENCY,
     CONFIG_UINT32_MAILSPAM_EXPIRE_SECS,
     CONFIG_UINT32_MAILSPAM_MAX_MAILS,
     CONFIG_UINT32_EMPTY_MAPS_UPDATE_TIME,
@@ -114,7 +104,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_INACTIVE_PLAYERS_SKIP_UPDATES,
     CONFIG_UINT32_ITEM_INSTANTSAVE_QUALITY,
     CONFIG_UINT32_WHISP_DIFF_ZONE_MIN_LEVEL,
-    CONFIG_UINT32_CHANNEL_INVITE_MIN_LEVEL,
     CONFIG_UINT32_WORLD_CHAN_MIN_LEVEL,
     CONFIG_UINT32_YELLRANGE_MIN,
     CONFIG_UINT32_YELLRANGE_LINEARSCALE_MAXLEVEL,
@@ -137,7 +126,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_MAPUPDATE_MIN_VISIBILITY_DISTANCE,
     CONFIG_UINT32_MAPUPDATE_TICK_LOWER_GRID_ACTIVATION_DISTANCE,
     CONFIG_UINT32_MAPUPDATE_TICK_INCREASE_GRID_ACTIVATION_DISTANCE,
-    CONFIG_UINT32_PBCAST_DIFF_LOWER_VISIBILITY_DISTANCE,
     CONFIG_UINT32_MAPUPDATE_MIN_GRID_ACTIVATION_DISTANCE,
     CONFIG_UINT32_CONTINENTS_MOTIONUPDATE_THREADS,
     CONFIG_UINT32_PERFLOG_SLOW_WORLD_UPDATE,
@@ -148,7 +136,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_PERFLOG_SLOW_ASYNC_QUERIES,
     CONFIG_UINT32_PERFLOG_SLOW_PACKET,
     CONFIG_UINT32_PERFLOG_SLOW_MAP_PACKETS,
-    CONFIG_UINT32_PERFLOG_SLOW_PACKET_BCAST,
     CONFIG_UINT32_ASYNC_QUERIES_TICK_TIMEOUT,
     CONFIG_UINT32_LOGIN_PER_TICK,
     CONFIG_UINT32_ANTICRASH_REARM_TIMER,
@@ -234,7 +221,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_BATTLEGROUND_PREMATURE_FINISH_TIMER,
     CONFIG_UINT32_BATTLEGROUND_PREMADE_GROUP_WAIT_FOR_MATCH,
     CONFIG_UINT32_BATTLEGROUND_QUEUE_ANNOUNCER_JOIN,
-    CONFIG_UINT32_GROUP_OFFLINE_LEADER_DELAY,
     CONFIG_UINT32_GUILD_EVENT_LOG_COUNT,
     CONFIG_UINT32_TIMERBAR_FATIGUE_GMLEVEL,
     CONFIG_UINT32_TIMERBAR_FATIGUE_MAX,
@@ -249,7 +235,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_CHARDELETE_MIN_LEVEL,
     CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE,
     CONFIG_UINT32_GUID_RESERVE_SIZE_GAMEOBJECT,
-    CONFIG_UINT32_LONGCOMBAT,
     CONFIG_UINT32_VALUE_COUNT
 };
 
@@ -370,9 +355,6 @@ enum eConfigBoolValues
     CONFIG_BOOL_LOGSDB_CHARACTERS,
     CONFIG_BOOL_LOGSDB_TRANSACTIONS,
     CONFIG_BOOL_LOGSDB_BATTLEGROUNDS,
-    CONFIG_BOOL_SMARTLOG_DEATH,
-    CONFIG_BOOL_SMARTLOG_LONGCOMBAT,
-    CONFIG_BOOL_SMARTLOG_SCRIPTINFO,
     CONFIG_BOOL_TERRAIN_PRELOAD_CONTINENTS,
     CONFIG_BOOL_TERRAIN_PRELOAD_INSTANCES,
     CONFIG_BOOL_CLEANUP_TERRAIN,
@@ -402,7 +384,6 @@ enum eConfigBoolValues
     CONFIG_BOOL_DETECT_POS_COLLISION,
     CONFIG_BOOL_RESTRICTED_LFG_CHANNEL,
     CONFIG_BOOL_SILENTLY_GM_JOIN_TO_CHANNEL,
-    CONFIG_BOOL_STRICT_LATIN_IN_GENERAL_CHANNELS,
     CONFIG_BOOL_CHAT_FAKE_MESSAGE_PREVENTING,
     CONFIG_BOOL_CHAT_STRICT_LINK_CHECKING_SEVERITY,
     CONFIG_BOOL_CHAT_STRICT_LINK_CHECKING_KICK,
@@ -426,11 +407,11 @@ enum eConfigBoolValues
     CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT,
     CONFIG_BOOL_ENABLE_VD,
     CONFIG_BOOL_ENABLE_MOVEMENT_INTERP,
-    CONFIG_BOOL_WHISPER_RESTRICTION,
+
     CONFIG_BOOL_VALUE_COUNT
 };
 
-enum NostalriusConfig
+enum ElysiumConfig
 {
     CONFIG_PHASE_MAIL,
     CONFIG_PHASE_ITEM,
@@ -439,7 +420,7 @@ enum NostalriusConfig
     CONFIG_PHASE_WHO,
 
     CONFIG_BANLIST_RELOAD_TIMER,
-    CONFIG_NOSTALRIUS_MAX
+    CONFIG_ELYSIUM_MAX
 };
 
 /// Type of server
@@ -602,19 +583,20 @@ class World
         time_t const& GetStartTime() const { return m_startTime; }
         /// What time is it?
         time_t const& GetGameTime() const { return m_gameTime; }
-        /// What day is it?
-        uint32 const& GetGameDay() const { return m_gameDay; }
         /// Uptime (in secs)
         uint32 GetUptime() const { return uint32(m_gameTime - m_startTime); }
 
         tm *GetLocalTimeByTime(time_t now) const { return localtime(&now); }
-
-        uint32 GetLastMaintenanceDay() const
+        uint32 GetDateByLocalTime(tm * now) const { return ((uint32)(now->tm_year << 16)|(uint32)(now->tm_yday)); }
+        uint32 GetDateToday() const {   return GetDateByLocalTime( GetLocalTimeByTime(m_gameTime) ); }
+        uint32 GetDateThisWeekBegin() const {   return GetDateToday() - GetLocalTimeByTime(m_gameTime)->tm_wday; }
+        uint32 GetDateLastMaintenanceDay() const
         {
+            uint32 today = GetDateToday();
             uint32 mDay  = getConfig(CONFIG_UINT32_MAINTENANCE_DAY);
             tm *date     = GetLocalTimeByTime(m_gameTime);
             // formula to find last mDay of gregorian calendary
-            return m_gameDay - ((date->tm_wday - mDay  + 7) % 7);
+            return today - ( ( date->tm_wday - mDay  + 7 ) % 7 );
         }
 
         /// Get the maximum skill level a player can reach
@@ -626,7 +608,7 @@ class World
 
         void SetInitialWorldSettings();
         void LoadConfigSettings(bool reload = false);
-        void LoadNostalriusConfig(bool reload = false);
+        void LoadElysiumConfig(bool reload = false);
 
         void SendWorldText(int32 string_id, ...);
          // Only for GMs with ticket notification ON
@@ -672,8 +654,8 @@ class World
         /// Get a server configuration element (see #eConfigBoolValues)
         bool getConfig(eConfigBoolValues index) const { return m_configBoolValues[index]; }
 
-        // Nostalrius
-        int32 getConfig(NostalriusConfig index) { return m_configNostalrius[index];}
+        // Elysium
+        int32 getConfig(ElysiumConfig index) { return m_configElysium[index];}
         /// Are we on a "Player versus Player" server?
         bool IsPvPRealm() { return (getConfig(CONFIG_UINT32_GAME_TYPE) == REALM_TYPE_PVP || getConfig(CONFIG_UINT32_GAME_TYPE) == REALM_TYPE_RPPVP || getConfig(CONFIG_UINT32_GAME_TYPE) == REALM_TYPE_FFA_PVP); }
         bool IsFFAPvPRealm() { return getConfig(CONFIG_UINT32_GAME_TYPE) == REALM_TYPE_FFA_PVP; }
@@ -681,7 +663,6 @@ class World
         void KickAll();
         void KickAllLess(AccountTypes sec);
         void WarnAccount(uint32 accountId, std::string from, std::string reason, const char* type = "WARNING");
-        void BanAccount(uint32 accountId, uint32 duration, std::string reason, std::string author);
         BanReturn BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_secs, std::string reason, std::string author);
         bool RemoveBanAccount(BanMode mode, std::string nameOrIP);
 
@@ -697,6 +678,9 @@ class World
         static float GetRelocationLowerLimitSq()            { return m_relocation_lower_limit_sq; }
         static uint32 GetRelocationAINotifyDelay()          { return m_relocation_ai_notify_delay; }
 
+        void InitServerMaintenanceCheck();
+        void ServerMaintenanceStart();
+
         void ProcessCliCommands();
         void QueueCliCommand(CliCommandHolder* commandHolder) { cliCmdQueue.add(commandHolder); }
 
@@ -707,8 +691,7 @@ class World
 
         LocaleConstant GetAvailableDbcLocale(LocaleConstant locale) const { if(m_availableDbcLocaleMask & (1 << locale)) return locale; else return m_defaultDbcLocale; }
 
-        // Nostalrius
-        MovementBroadcaster* GetBroadcaster() { return m_broadcaster.get(); }
+        // Elysium
         float GetTimeRate() const { return m_timeRate; }
         void SetTimeRate(float rate) { m_timeRate = rate; }
         float m_timeRate;
@@ -730,7 +713,6 @@ class World
          */
         void LogMoneyTrade(ObjectGuid sender, ObjectGuid receiver, uint32 amount, const char* type, uint32 dataInt);
         void LogCharacter(Player* character, const char* action);
-        void LogCharacter(WorldSession* sess, uint32 lowGuid, std::string const& charName, const char* action);
         void LogChat(WorldSession* sess, const char* type, std::string const& msg, PlayerPointer target = NULL, uint32 chanId = 0, const char* chanStr = NULL);
         void LogTransaction(PlayerTransactionData const& data);
         void Shutdown();
@@ -772,21 +754,17 @@ class World
         uint32 m_ShutdownTimer;
         uint32 m_ShutdownMask;
 
+        uint32 m_NextMaintenanceDate;
         uint32 m_MaintenanceTimeChecker;
 
         time_t m_startTime;
         time_t m_gameTime;
-        uint32 m_gameDay;
-        int32  m_timeZoneOffset;
         IntervalTimer m_timers[WUPDATE_COUNT];
 
         typedef UNORDERED_MAP<uint32, Weather*> WeatherMap;
         WeatherMap m_weathers;
         SessionMap m_sessions;
         SessionSet m_disconnectedSessions;
-        std::map<uint32 /*accountId*/, time_t /*last logout*/> m_accountsLastLogout;
-        bool CanSkipQueue(WorldSession const* session);
-
         uint32 m_maxActiveSessionCount;
         uint32 m_maxQueuedSessionCount;
 
@@ -794,10 +772,9 @@ class World
         int32 m_configInt32Values[CONFIG_INT32_VALUE_COUNT];
         float m_configFloatValues[CONFIG_FLOAT_VALUE_COUNT];
         bool m_configBoolValues[CONFIG_BOOL_VALUE_COUNT];
-        int32 m_configNostalrius[CONFIG_NOSTALRIUS_MAX];
+        int32 m_configElysium[CONFIG_ELYSIUM_MAX];
 
         int32 m_playerLimit;
-
         LocaleConstant m_defaultDbcLocale;                     // from config for one from loaded DBC locales
         uint32 m_availableDbcLocaleMask;                       // by loaded DBC
         void DetectDBCLang();
@@ -833,9 +810,6 @@ class World
 
         typedef std::unordered_map<uint32, ArchivedLogMessage> LogMessagesMap;
         LogMessagesMap m_logMessages;
-
-        // Packet broadcaster
-        std::unique_ptr<MovementBroadcaster> m_broadcaster;
 };
 
 extern uint32 realmID;

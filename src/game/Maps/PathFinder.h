@@ -50,7 +50,7 @@ enum PathType
     PATHFIND_INCOMPLETE     = 0x0004,   // we have partial path to follow - getting closer to target
     PATHFIND_NOPATH         = 0x0008,   // no valid path at all or error in generating one
     PATHFIND_NOT_USING_PATH = 0x0010,   // used when we are either flying/swiming or on map w/o mmaps
-    PATHFIND_DEST_FORCED    = 0x0020,   // NOSTALRIUS: forced destination
+    PATHFIND_DEST_FORCED    = 0x0020,   // ELYSIUM: forced destination
     PATHFIND_FLYPATH        = 0x0040,
     PATHFIND_UNDERWATER     = 0x0080,
     PATHFIND_CASTER         = 0x0100,
@@ -79,7 +79,7 @@ class PathInfo
         inline PointsArray& getFullPath() { return m_pathPoints; }
         inline PointsArray const& getPath() const { return m_pathPoints; }
         inline PathType getPathType() const { return PathType(m_type); }
-        // Nostalrius
+        // Elysium
         bool UpdateForCaster(Unit* pTarget, float castRange);
         bool UpdateForMelee(Unit* pTarget, float meleeReach);
         void CutPathWithDynamicLoS();
@@ -126,7 +126,7 @@ class PathInfo
         bool inRangeYZX(const float* v1, const float* v2, float r, float h) const;
 
         dtPolyRef getPolyByLocation(const float* point, float *distance, uint32 flags = 0);
-        bool HaveTiles(const Vector3& p) const;
+        bool HaveTiles(const Vector3 p) const;
 
         void BuildPolyPath(const Vector3 &startPos, const Vector3 &endPos);
         void BuildPointPath(const float *startPoint, const float *endPoint, float distToStartPoly, float distToEndPoly);

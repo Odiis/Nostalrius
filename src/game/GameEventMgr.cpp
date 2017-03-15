@@ -39,15 +39,15 @@ bool GameEventMgr::CheckOneGameEvent(uint16 entry, time_t currenttime) const
 {
     // Get the event information
     if (mGameEvent[entry].start < currenttime && currenttime < mGameEvent[entry].end &&
-            (currenttime - mGameEvent[entry].start) % (mGameEvent[entry].occurence * MINUTE) < mGameEvent[entry].length * MINUTE)
+            ((currenttime - mGameEvent[entry].start) % (mGameEvent[entry].occurence * MINUTE)) < (mGameEvent[entry].length * MINUTE))
         return true;
-
-    return false;
+    else
+        return false;
 }
 
 uint32 GameEventMgr::NextCheck(uint16 entry) const
 {
-    time_t currenttime = time(nullptr);
+    time_t currenttime = time(NULL);
 
     // outdated event: we return max
     if (currenttime > mGameEvent[entry].end)
@@ -67,21 +67,21 @@ uint32 GameEventMgr::NextCheck(uint16 entry) const
     // In case the end is before next check
     if (mGameEvent[entry].end  < time_t(currenttime + delay))
         return uint32(mGameEvent[entry].end - currenttime);
-
-    return delay;
+    else
+        return delay;
 }
 
 void GameEventMgr::StartEvent(uint16 event_id, bool overwrite /*=false*/, bool resume /*=false*/)
 {
     if (!IsValidEvent(event_id))
     {
-        sLog.outError("GameEventMgr::StartEvent game event id (%u) not exist in `game_event`.", event_id);
+        sLog.outError("GameEventMgr::StopEvent game event id (%i) not exist in `game_event`", event_id);
         return;
     }
     ApplyNewEvent(event_id, resume);
     if (overwrite)
     {
-        mGameEvent[event_id].start = time(nullptr);
+        mGameEvent[event_id].start = time(NULL);
         if (mGameEvent[event_id].end <= mGameEvent[event_id].start)
             mGameEvent[event_id].end = mGameEvent[event_id].start + mGameEvent[event_id].length;
     }
@@ -91,64 +91,16 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
 {
     if (!IsValidEvent(event_id))
     {
-        sLog.outError("GameEventMgr::StopEvent game event id (%u) not exist in `game_event`.", event_id);
+        sLog.outError("GameEventMgr::StopEvent game event id (%i) not exist in `game_event`", event_id);
         return;
     }
     UnApplyEvent(event_id);
     if (overwrite)
     {
-        mGameEvent[event_id].start = time(nullptr) - mGameEvent[event_id].length * MINUTE;
+        mGameEvent[event_id].start = time(NULL) - mGameEvent[event_id].length * MINUTE;
         if (mGameEvent[event_id].end <= mGameEvent[event_id].start)
             mGameEvent[event_id].end = mGameEvent[event_id].start + mGameEvent[event_id].length;
     }
-}
-
-void GameEventMgr::EnableEvent(uint16 event_id, bool enable)
-{
-    // skip if event not exists or length <= 0
-    if (!IsValidEvent(event_id))
-    {
-        sLog.outError("GameEventMgr::EnableEvent game event id (%u) not exist in `game_event`.", event_id);
-        return;
-    }
-
-    uint8 disabled = enable ? 0 : 1;
-
-    // skip if event is already in desired state
-    if (mGameEvent[event_id].disabled == disabled)
-        return;
-
-    // change state
-    mGameEvent[event_id].disabled = disabled;
-    WorldDatabase.PExecute("UPDATE `game_event` SET `disabled` = '%u' WHERE `entry` = '%u'", disabled, event_id);
-   
-    // we take no action if event needs to be started: GameEvent system will start it for us on its next iteration
-    if (!IsActiveEvent(event_id))
-        return;
-
-    // disabled event should be stopped also, thus we do it here both for regular and hardcoded events
-    auto it = std::find_if(mGameEventHardcodedList.begin(), mGameEventHardcodedList.end(), [&](const WorldEvent* w) { return event_id == w->m_eventId; });
-
-    if (mGameEventHardcodedList.end() != it)
-    {
-        if (!enable)
-            (*it)->Disable();
-    }
-    else
-    {
-        StopEvent(event_id, true);
-    }
-}
-
-bool GameEventMgr::IsEnabled(uint16 event_id)
-{
-    if (!IsValidEvent(event_id))
-    {
-        sLog.outError("GameEventMgr::IsEnabled game event id (%u) not exist in `game_event`.", event_id);
-        return false;
-    }
-
-    return mGameEvent[event_id].disabled ? false : true;
 }
 
 void GameEventMgr::LoadFromDB()
@@ -170,7 +122,7 @@ void GameEventMgr::LoadFromDB()
         mGameEvent.resize(max_event_id + 1);
     }
 
-    QueryResult *result = WorldDatabase.Query("SELECT entry,UNIX_TIMESTAMP(start_time),UNIX_TIMESTAMP(end_time),occurence,length,holiday,description,hardcoded,disabled FROM game_event");
+    QueryResult *result = WorldDatabase.Query("SELECT entry,UNIX_TIMESTAMP(start_time),UNIX_TIMESTAMP(end_time),occurence,length,holiday,description FROM game_event");
     if (!result)
     {
         mGameEvent.clear();
@@ -213,8 +165,7 @@ void GameEventMgr::LoadFromDB()
             }
 
             pGameEvent.description  = fields[6].GetCppString();
-            pGameEvent.hardcoded    = fields[7].GetUInt8();
-            pGameEvent.disabled     = fields[8].GetUInt8();
+
         }
         while (result->NextRow());
         delete result;
@@ -222,9 +173,6 @@ void GameEventMgr::LoadFromDB()
         sLog.outString();
         sLog.outString(">> Loaded %u game events", count);
     }
-
-    // initialize hardcoded events
-    LoadHardcodedEvents(mGameEventHardcodedList);
 
     std::map<uint16, int16> pool2event;                     // for check unique spawn event associated with pool
     std::map<uint32, int16> creature2event;                 // for check unique spawn event associated with creature
@@ -659,34 +607,27 @@ void GameEventMgr::Initialize(MapPersistentState* state)
 {
     // At map persistent state creating need only apply pool spawn modifications
     // other data is global and will be auto-apply
-    for (auto event_itr = m_ActiveEvents.begin(); event_itr != m_ActiveEvents.end(); ++event_itr)
-        for (auto pool_itr = mGameEventSpawnPoolIds[*event_itr].begin(); pool_itr != mGameEventSpawnPoolIds[*event_itr].end(); ++pool_itr)
+    for (GameEventMgr::ActiveEvents::const_iterator event_itr = m_ActiveEvents.begin(); event_itr != m_ActiveEvents.end(); ++event_itr)
+        for (IdList::iterator pool_itr = mGameEventSpawnPoolIds[*event_itr].begin(); pool_itr != mGameEventSpawnPoolIds[*event_itr].end(); ++pool_itr)
             sPoolMgr.InitSpawnPool(*state, *pool_itr);
 }
 
 // return the next event delay in ms
 uint32 GameEventMgr::Update(ActiveEvents const* activeAtShutdown /*= NULL*/)
 {
-    // process hardcoded events
-    for (auto hEvent_iter = mGameEventHardcodedList.begin(); hEvent_iter != mGameEventHardcodedList.end(); ++hEvent_iter)
-        if (!mGameEvent[(*hEvent_iter)->m_eventId].disabled)
-            (*hEvent_iter)->Update();
+    time_t currenttime = time(NULL);
 
-    time_t currenttime = time(nullptr);
     uint32 nextEventDelay = max_ge_check_delay;             // 1 day
-
+    uint32 calcDelay;
     for (uint16 itr = 1; itr < mGameEvent.size(); ++itr)
     {
-        // ignore hardcoded and disabled events
-        if (mGameEvent[itr].hardcoded || mGameEvent[itr].disabled) continue;
-
         //sLog.outErrorDb("Checking event %u",itr);
         if (CheckOneGameEvent(itr, currenttime))
         {
             //DEBUG_LOG("GameEvent %u is active",itr->first);
             if (!IsActiveEvent(itr))
             {
-                bool resume = activeAtShutdown && activeAtShutdown->find(itr) != activeAtShutdown->end();
+                bool resume = activeAtShutdown && (activeAtShutdown->find(itr) != activeAtShutdown->end());
                 StartEvent(itr, false, resume);
             }
         }
@@ -699,19 +640,17 @@ uint32 GameEventMgr::Update(ActiveEvents const* activeAtShutdown /*= NULL*/)
             {
                 if (!m_IsGameEventsInit)
                 {
+                    int16 event_nid = (-1) * (itr);
                     // spawn all negative ones for this event
-                    GameEventSpawn(-itr);
+                    GameEventSpawn(event_nid);
                 }
             }
         }
-
-        uint32 calcDelay = NextCheck(itr);
+        calcDelay = NextCheck(itr);
         if (calcDelay < nextEventDelay)
             nextEventDelay = calcDelay;
     }
-
     BASIC_LOG("Next game event check in %u seconds.", nextEventDelay + 1);
-
     return (nextEventDelay + 1) * IN_MILLISECONDS;           // Add 1 second to be sure event has started/stopped at next call
 }
 
@@ -721,6 +660,9 @@ void GameEventMgr::UnApplyEvent(uint16 event_id)
     CharacterDatabase.PExecute("DELETE FROM game_event_status WHERE event = %u", event_id);
 
     BASIC_LOG("GameEvent %u \"%s\" removed.", event_id, mGameEvent[event_id].description.c_str());
+    // Event has special script
+    if (GameEventUnApplySpecial(event_id))
+        return;
     // un-spawn positive event tagged objects
     GameEventUnspawn(event_id);
     // spawn negative event tagget objects
@@ -742,6 +684,9 @@ void GameEventMgr::ApplyNewEvent(uint16 event_id, bool resume)
         sWorld.SendWorldText(LANG_EVENTMESSAGE, mGameEvent[event_id].description.c_str());
 
     BASIC_LOG("GameEvent %u \"%s\" started.", event_id, mGameEvent[event_id].description.c_str());
+    // Event has special script
+    if (GameEventApplySpecial(event_id, resume))
+        return;
     // spawn positive event tagget objects
     GameEventSpawn(event_id);
     // un-spawn negative event tagged objects
@@ -767,7 +712,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
         return;
     }
 
-    for (auto itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
+    for (GuidList::iterator itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
     {
         // Add to correct cell
         CreatureData const* data = sObjectMgr.GetCreatureData(*itr);
@@ -797,7 +742,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
         return;
     }
 
-    for (auto itr = mGameEventGameobjectGuids[internal_event_id].begin(); itr != mGameEventGameobjectGuids[internal_event_id].end(); ++itr)
+    for (GuidList::iterator itr = mGameEventGameobjectGuids[internal_event_id].begin(); itr != mGameEventGameobjectGuids[internal_event_id].end(); ++itr)
     {
         // Add to correct cell
         GameObjectData const* data = sObjectMgr.GetGOData(*itr);
@@ -829,7 +774,7 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
             return;
         }
 
-        for (auto itr = mGameEventSpawnPoolIds[event_id].begin(); itr != mGameEventSpawnPoolIds[event_id].end(); ++itr)
+        for (IdList::iterator itr = mGameEventSpawnPoolIds[event_id].begin(); itr != mGameEventSpawnPoolIds[event_id].end(); ++itr)
             sPoolMgr.SpawnPoolInMaps(*itr, true);
     }
 }
@@ -844,7 +789,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         return;
     }
 
-    for (auto itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
+    for (GuidList::iterator itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
     {
         // Remove the creature from grid
         if (CreatureData const* data = sObjectMgr.GetCreatureData(*itr))
@@ -874,7 +819,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         return;
     }
 
-    for (auto itr = mGameEventGameobjectGuids[internal_event_id].begin(); itr != mGameEventGameobjectGuids[internal_event_id].end(); ++itr)
+    for (GuidList::iterator itr = mGameEventGameobjectGuids[internal_event_id].begin(); itr != mGameEventGameobjectGuids[internal_event_id].end(); ++itr)
     {
         // Remove the gameobject from grid
         if (GameObjectData const* data = sObjectMgr.GetGOData(*itr))
@@ -906,7 +851,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
             return;
         }
 
-        for (auto itr = mGameEventSpawnPoolIds[event_id].begin(); itr != mGameEventSpawnPoolIds[event_id].end(); ++itr)
+        for (IdList::iterator itr = mGameEventSpawnPoolIds[event_id].begin(); itr != mGameEventSpawnPoolIds[event_id].end(); ++itr)
             sPoolMgr.DespawnPoolInMaps(*itr);
     }
 }
@@ -915,8 +860,8 @@ GameEventCreatureData const* GameEventMgr::GetCreatureUpdateDataForActiveEvent(u
 {
     // only for active event, creature can be listed for many so search all
     uint32 event_id = 0;
-    auto bounds = mGameEventCreatureDataPerGuid.equal_range(lowguid);
-    for (auto itr = bounds.first; itr != bounds.second; ++itr)
+    GameEventCreatureDataPerGuidBounds bounds = mGameEventCreatureDataPerGuid.equal_range(lowguid);
+    for (GameEventCreatureDataPerGuidMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
     {
         if (IsActiveEvent(itr->second))
         {
@@ -926,13 +871,13 @@ GameEventCreatureData const* GameEventMgr::GetCreatureUpdateDataForActiveEvent(u
     }
 
     if (!event_id)
-        return nullptr;
+        return NULL;
 
-    for (auto itr = mGameEventCreatureData[event_id].begin(); itr != mGameEventCreatureData[event_id].end(); ++itr)
+    for (GameEventCreatureDataList::const_iterator itr = mGameEventCreatureData[event_id].begin(); itr != mGameEventCreatureData[event_id].end(); ++itr)
         if (itr->first == lowguid)
             return &itr->second;
 
-    return nullptr;
+    return NULL;
 }
 
 struct GameEventUpdateCreatureDataInMapsWorker
@@ -940,7 +885,7 @@ struct GameEventUpdateCreatureDataInMapsWorker
     GameEventUpdateCreatureDataInMapsWorker(ObjectGuid guid, CreatureData const* data, GameEventCreatureData* event_data, bool activate)
         : i_guid(guid), i_data(data), i_event_data(event_data), i_activate(activate) {}
 
-    void operator()(Map* map) const
+    void operator()(Map* map)
     {
         if (Creature* pCreature = map->GetCreature(i_guid))
         {
@@ -960,7 +905,7 @@ struct GameEventUpdateCreatureDataInMapsWorker
 
 void GameEventMgr::UpdateCreatureData(int16 event_id, bool activate)
 {
-    for (auto itr = mGameEventCreatureData[event_id].begin(); itr != mGameEventCreatureData[event_id].end(); ++itr)
+    for (GameEventCreatureDataList::iterator itr = mGameEventCreatureData[event_id].begin(); itr != mGameEventCreatureData[event_id].end(); ++itr)
     {
         // Remove the creature from grid
         CreatureData const* data = sObjectMgr.GetCreatureData(itr->first);
@@ -975,7 +920,8 @@ void GameEventMgr::UpdateCreatureData(int16 event_id, bool activate)
 
 void GameEventMgr::UpdateEventQuests(uint16 event_id, bool Activate)
 {
-    for (auto itr = mGameEventQuests[event_id].begin(); itr != mGameEventQuests[event_id].end(); ++itr)
+    QuestList::iterator itr;
+    for (itr = mGameEventQuests[event_id].begin(); itr != mGameEventQuests[event_id].end(); ++itr)
     {
         const Quest *pQuest = sObjectMgr.GetQuestTemplate(*itr);
 
@@ -994,7 +940,7 @@ void GameEventMgr::SendEventMails(int16 event_id)
 
     MailList const& mails = mGameEventMails[internal_event_id];
 
-    for (auto itr = mails.begin(); itr != mails.end(); ++itr)
+    for (MailList::const_iterator itr = mails.begin(); itr != mails.end(); ++itr)
     {
         if (itr->questId)
         {
@@ -1057,7 +1003,7 @@ bool GameEventMgr::IsActiveHoliday(HolidayIds id)
     if (id == HOLIDAY_NONE)
         return false;
 
-    for (auto itr = m_ActiveEvents.begin(); itr != m_ActiveEvents.end(); ++itr)
+    for (GameEventMgr::ActiveEvents::const_iterator itr = m_ActiveEvents.begin(); itr != m_ActiveEvents.end(); ++itr)
         if (mGameEvent[*itr].holiday_id == id)
             return true;
 
@@ -1069,10 +1015,476 @@ MANGOS_DLL_SPEC bool IsHolidayActive(HolidayIds id)
     return sGameEventMgr.IsActiveHoliday(id);
 }
 
-/*
- * Silithus PvP
- */
-bool GameEventMgr::GetSilithusPVPEventCompleted() const
+/* Ivina < Elysium > */
+struct GameEventUpdateCreatureSpawnInMapsWorker
+{
+    GameEventUpdateCreatureSpawnInMapsWorker(uint32 guidLow, time_t nextRespawnDelay, bool kill = true, bool removeCorpse = true)
+        : i_guidLow(guidLow), i_nextRespawnDelay(nextRespawnDelay), i_kill(kill), i_removeCorpse(removeCorpse) {}
+
+    void operator()(Map* map)
+    {
+        if (i_nextRespawnDelay < 0)
+            i_nextRespawnDelay = 0;
+        time_t respawnTime = (time(NULL) + i_nextRespawnDelay);
+
+        if (CreatureData const *data = sObjectMgr.GetCreatureData(i_guidLow))
+        {
+            if (ObjectGuid objGuid = data->GetObjectGuid(i_guidLow))
+                UpdateCreatureSpawn(map->GetCreature(objGuid));
+        }
+        map->GetPersistentState()->SaveCreatureRespawnTime(i_guidLow, respawnTime); // Temps absolu
+    }
+
+    uint32 i_guidLow;
+    time_t i_nextRespawnDelay;
+    bool i_kill;
+    bool i_removeCorpse;
+
+    void UpdateCreatureSpawn(Creature* pCreature)
+    {
+        if (pCreature == NULL)
+            return;
+
+        time_t respawnDelay = pCreature->GetRespawnDelay();
+
+        if (i_nextRespawnDelay > 0)
+        {
+            if (pCreature->isAlive())
+            {
+                if (i_kill)
+                {
+                    pCreature->SetRespawnDelay(i_nextRespawnDelay);
+                    pCreature->SetDeathState(JUST_DIED);
+                    pCreature->SetRespawnDelay(respawnDelay);
+                    if (i_removeCorpse)
+                        pCreature->RemoveCorpse();
+                }
+                else
+                    pCreature->SetRespawnDelay(i_nextRespawnDelay);
+            }
+            else
+            {
+                pCreature->SetRespawnTime(i_nextRespawnDelay);
+                if (i_removeCorpse)
+                    pCreature->RemoveCorpse();
+            }
+        }
+        else
+        {
+            if (!pCreature->isAlive())
+                pCreature->Respawn();
+        }
+    }
+};
+
+
+#define GAMEEVENT_GREENDRAKES       47
+#define GAMEEVENT_GD_MINOCCUR       1
+#define GAMEEVENT_ELEM_INVAS_AIR    48
+#define GAMEEVENT_ELEM_INVAS_EARTH  49
+#define GAMEEVENT_ELEM_INVAS_WATER  50
+#define GAMEEVENT_ELEM_INVAS_FIRE   51
+
+enum ElementalInvasionAreas
+{
+    AREA_ASHENVALE_IDX      = 0,
+    AREA_HINTERLANDS_IDX,
+    AREA_DUSKWOOD_IDX,
+    AREA_FERALAS_IDX,
+};
+
+/* Ivina < Elysium >
+Pour gerer les event qui ne fonctionnent pas de la meme facon et necessitent un script particulier.
+Retourne vrai si les fonctions classiques dans ApplyNewEvent doivent etre ignorees. */
+bool GameEventMgr::GameEventApplySpecial(int16 event_id, bool resume)
+{
+    switch (event_id)
+    {
+        case GAMEEVENT_GREENDRAKES: /* Ivina < Elysium */
+        {
+            uint32 drakeGUIDLow[16] = {0};
+            CreatureData const* drakeData[16] = {NULL};
+
+            bool bResetDrakes = false;
+            bool bDelayDrakesReset = false;
+
+            uint32 respawnDelay = (GAMEEVENT_GD_MINOCCUR * (mGameEvent[event_id].occurence * MINUTE) + (mGameEvent[event_id].length * MINUTE));
+
+            int32 internal_event_id = mGameEvent.size() + event_id - 1;
+
+            if (internal_event_id < 0 || (size_t)internal_event_id >= mGameEventCreatureGuids.size())
+            {
+                sLog.elysium("GAMEEVENT_GREENDRAKES attempt access to out of range mGameEventCreatureGuids element %i (size: " SIZEFMTD ")", internal_event_id, mGameEventCreatureGuids.size());
+                return true;
+            }
+
+            /* -------------------------------------------------------- */
+            /* Sort drakes in tables, storing Low Guid and data         */
+            /* -------------------------------------------------------- */
+            for (GuidList::iterator itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
+            {
+                CreatureData const* data = sObjectMgr.GetCreatureData(*itr);
+                if (!data)
+                    return true;
+
+                uint8 darea = 0;
+                uint8 dtype = 0;
+                if (dtype < 14887 || dtype > 14890) // Invalid dragon entry
+                    continue;
+                dtype = data->id - 14887; // From 0 to 3
+                uint32 zoneId = sTerrainMgr.GetZoneId(data->mapid, data->posX, data->posY, data->posZ);
+                switch (zoneId)
+                {
+                    case 331:
+                        darea = AREA_ASHENVALE_IDX;
+                        break;
+                    case 47:
+                        darea = AREA_HINTERLANDS_IDX;
+                        break;
+                    case 10:
+                        darea = AREA_DUSKWOOD_IDX;
+                        break;
+                    case 357:
+                        darea = AREA_FERALAS_IDX;
+                        break;
+                    default:
+                        continue;
+                }
+
+                drakeGUIDLow[(4 * darea) + dtype] = (*itr);
+                drakeData[(4 * darea) + dtype] = data;
+            }
+
+            /* -------------------------------------------------------- */
+            /* Check if we have to spawn drakes, wait, or delay         */
+            /* -------------------------------------------------------- */
+            uint32 uiLivingDrakes = 0;
+            uint32 uiSoonRespawningDrakes = 0;
+            uint32 uiLivingDrakesByPlace[4] = {0, 0, 0, 0};
+            time_t currenttime = time(NULL);
+            uint32 nextStartDelay   = (mGameEvent[event_id].occurence * MINUTE)
+                                      - ((currenttime - mGameEvent[event_id].start) % (mGameEvent[event_id].occurence * MINUTE));
+            for (uint8 index = 0; index < 16; ++index)
+            {
+                if (drakeData[index] == NULL) // Check table : DB must contains 16 drakes with good placement
+                {
+                    sLog.elysium("GAMEEVENT_GREENDRAKES Failed : Missing elements (data).");
+                    return true;
+                }
+
+                uint32 instanceId = sMapMgr.GetContinentInstanceId(drakeData[index]->mapid, drakeData[index]->posX, drakeData[index]->posY);
+                if (Map* pMap = sMapMgr.FindMap(drakeData[index]->mapid, instanceId))
+                {
+                    time_t respawnTime = pMap->GetPersistentState()->GetCreatureRespawnTime(drakeGUIDLow[index]);
+                    if (respawnTime <= currenttime)
+                    {
+                        uiLivingDrakes++;
+                        uiLivingDrakesByPlace[index / 4] += 1;
+                        if (uiLivingDrakesByPlace[index / 4] > 1)
+                            bResetDrakes = true;
+                    }
+                    else if ((respawnTime - currenttime) < nextStartDelay)
+                        uiSoonRespawningDrakes++;
+                }
+                else
+                {
+                    sLog.elysium("GAMEEVENT_GREENDRAKES Failed : Missing elements (map).");
+                    return true;
+                }
+            }
+
+            if (!resume)
+            {
+                if (uiLivingDrakes > 0)
+                    bDelayDrakesReset = true;
+                else if (uiSoonRespawningDrakes > 0)
+                    bResetDrakes = true;
+            }
+            else
+            {
+                if ((uiLivingDrakes + uiSoonRespawningDrakes) > 4)
+                    bResetDrakes = true;
+            }
+
+            /* -------------------------------------------------------- */
+            /* Upkeep of existing drakes                                */
+            /* -------------------------------------------------------- */
+            if (!bResetDrakes)
+            {
+                for (uint8 index = 0; index < 16; ++index)
+                {
+                    uint32 instanceId = sMapMgr.GetContinentInstanceId(drakeData[index]->mapid, drakeData[index]->posX, drakeData[index]->posY);
+                    if (Map* pMap = sMapMgr.FindMap(drakeData[index]->mapid, instanceId))
+                    {
+                        time_t respawnTime = pMap->GetPersistentState()->GetCreatureRespawnTime(drakeGUIDLow[index]);
+                        //sObjectMgr.AddCreatureToGrid(drakeGUIDLow[index], drakeData[index]);
+                        //Creature::SpawnInMaps(drakeGUIDLow[index], drakeData[index]);
+                        time_t respawnDelayNext = (respawnTime - time(NULL));
+                        if (bDelayDrakesReset)
+                        {
+                            if (respawnTime > time(NULL))
+                                respawnDelayNext = respawnDelay;
+                            else
+                                respawnDelayNext = 0;
+                        }
+                        GameEventUpdateCreatureSpawnInMapsWorker worker(drakeGUIDLow[index], respawnDelayNext);
+                        sMapMgr.DoForAllMapsWithMapId(drakeData[index]->mapid, worker);
+                    }
+                }
+            }
+            /* -------------------------------------------------------- */
+            /* Respawn drakes                                           */
+            /* -------------------------------------------------------- */
+            else
+            {
+                uint8 AvailableDrakes[4] = {0, 1, 2, 3};
+                uint32 newSpawnTime = urand(10, (mGameEvent[event_id].length * MINUTE) - 10);
+                // Spawn new drakes
+                for (uint8 darea = 0; darea < 4; ++darea)
+                {
+                    uint8 randIndex = urand(0, (3 - darea));
+                    uint8 newdrake = AvailableDrakes[randIndex];
+                    AvailableDrakes[randIndex] = AvailableDrakes[3 - darea];
+                    for (uint8 dtype = 0; dtype < 4; ++dtype)
+                    {
+                        uint8 index = (4 * darea) + dtype;
+                        //sObjectMgr.AddCreatureToGrid(drakeGUIDLow[index], drakeData[index]);
+                        //Creature::SpawnInMaps(drakeGUIDLow[index], drakeData[index]);
+                        time_t respawnDelayNext = respawnDelay; // By default : unspawn drake
+                        if (dtype == newdrake)
+                            respawnDelayNext = newSpawnTime; // Spawn this drake
+
+                        GameEventUpdateCreatureSpawnInMapsWorker worker(drakeGUIDLow[index], respawnDelayNext);
+                        sMapMgr.DoForAllMapsWithMapId(drakeData[index]->mapid, worker);
+                    }
+                }
+            }
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
+/* Ivina < Elysium > */
+bool GameEventMgr::GameEventUnApplySpecial(int16 event_id)
+{
+    switch (event_id)
+    {
+        case GAMEEVENT_GREENDRAKES:
+        {
+            return true;
+        }
+        case GAMEEVENT_ELEM_INVAS_AIR :
+        case GAMEEVENT_ELEM_INVAS_EARTH :
+        case GAMEEVENT_ELEM_INVAS_WATER :
+        case GAMEEVENT_ELEM_INVAS_FIRE :
+        {
+            int32 internal_event_id = mGameEvent.size() + event_id - 1;
+
+            if (internal_event_id < 0 || (size_t)internal_event_id >= mGameEventCreatureGuids.size())
+            {
+                sLog.outError("GameEventMgr::GameEventUnspawn attempt access to out of range mGameEventCreatureGuids element %i (size: " SIZEFMTD ")", internal_event_id, mGameEventCreatureGuids.size());
+                return true;
+            }
+
+            uint32 randRespawn = (urand(4, 6) * DAY + urand(0, 23) * HOUR + 0 * MINUTE);
+            {
+                uint32 LeaderGUIDLow = 0;
+                switch (event_id)
+                {
+                    case GAMEEVENT_ELEM_INVAS_AIR: // Dechirevent
+                        LeaderGUIDLow = 58000;
+                        break;
+                    case GAMEEVENT_ELEM_INVAS_FIRE: // Baron Charr
+                        LeaderGUIDLow = 58300;
+                        break;
+                    case GAMEEVENT_ELEM_INVAS_WATER: // Princess Tempestria
+                        LeaderGUIDLow = 58200;
+                        break;
+                    case GAMEEVENT_ELEM_INVAS_EARTH: // Avalanchion
+                        LeaderGUIDLow = 58100;
+                        break;
+                    default:
+                        return true;
+                }
+                if (CreatureData const* data = sObjectMgr.GetCreatureData(LeaderGUIDLow))
+                {
+                    GameEventUpdateCreatureSpawnInMapsWorker worker(LeaderGUIDLow, randRespawn, false, false);
+                    sMapMgr.DoForAllMapsWithMapId(data->mapid, worker);
+                }
+            }
+
+            for (GuidList::iterator itr = mGameEventCreatureGuids[internal_event_id].begin(); itr != mGameEventCreatureGuids[internal_event_id].end(); ++itr)
+            {
+                // Remove the creature from grid
+                if (CreatureData const* data = sObjectMgr.GetCreatureData(*itr))
+                {
+                    uint32 nextRespawn = randRespawn + 60;
+                    sObjectMgr.AddCreatureToGrid(*itr, data);
+                    Creature::SpawnInMaps(*itr, data);
+                    GameEventUpdateCreatureSpawnInMapsWorker worker((*itr), nextRespawn, false, false);
+                    sMapMgr.DoForAllMapsWithMapId(data->mapid, worker);
+                }
+            }
+
+            if (internal_event_id < 0 || (size_t)internal_event_id >= mGameEventGameobjectGuids.size())
+            {
+                sLog.outError("GameEventMgr::GameEventUnspawn attempt access to out of range mGameEventGameobjectGuids element %i (size: " SIZEFMTD ")", internal_event_id, mGameEventGameobjectGuids.size());
+                return true;
+            }
+
+            for (GuidList::iterator itr = mGameEventGameobjectGuids[internal_event_id].begin(); itr != mGameEventGameobjectGuids[internal_event_id].end(); ++itr)
+            {
+                // Remove the gameobject from grid
+                if (GameObjectData const* data = sObjectMgr.GetGOData(*itr))
+                {
+                    // negative event id for pool element meaning unspawn in pool and exclude for next spawns
+                    if (event_id < 0)
+                    {
+                        if (uint16 poolid = sPoolMgr.IsPartOfAPool<GameObject>(*itr))
+                        {
+                            sPoolMgr.SetExcludeObject<GameObject>(poolid, *itr, true);
+                            sPoolMgr.UpdatePoolInMaps<GameObject>(poolid, *itr);
+                            continue;
+                        }
+                    }
+
+                    // Remove spawn data
+                    sObjectMgr.RemoveGameobjectFromGrid(*itr, data);
+
+                    // Remove spawned cases
+                    GameObject::AddToRemoveListInMaps(*itr, data);
+                }
+            }
+
+            if (event_id > 0)
+            {
+                if ((size_t)event_id >= mGameEventSpawnPoolIds.size())
+                {
+                    sLog.outError("GameEventMgr::GameEventUnspawn attempt access to out of range mGameEventSpawnPoolIds element %i (size: " SIZEFMTD ")", event_id, mGameEventSpawnPoolIds.size());
+                    return true;
+                }
+
+                for (IdList::iterator itr = mGameEventSpawnPoolIds[event_id].begin(); itr != mGameEventSpawnPoolIds[event_id].end(); ++itr)
+                    sPoolMgr.DespawnPoolInMaps(*itr);
+            }
+
+            return true;
+        }
+        default:
+        {
+            return false;
+        }
+    }
+}
+
+// La foire de sombrelune ne peut etre geree via la DB, du aux decalages avec les annees bisetiles, etc ...
+// "On peut voir les ouvriers commencer � travailler le matin du premier
+// vendredi de chaque mois, l'installation durera 3 jours.
+// Elle ouvre le Lundi pour une dur�e de 5 jours. Elle quitte les lieux
+// le samedi tot le matin."
+
+enum DarkmoonState
+{
+    DARKMOON_NONE               = 0,
+    DARKMOON_A2_INSTALLATION    = 100, // TODO (spawns, game_event)
+    DARKMOON_A2                 = 4,
+    DARKMOON_H2_INSTALLATION    = 101, // TODO (spawns, game_event)
+    DARKMOON_H2                 = 5,
+};
+
+uint32 FindMonthFirstMonday(bool &foireAlly, struct tm * timeinfo)
+{
+    foireAlly = timeinfo->tm_mon % 2;
+    // 36 = 7*5 + 1 (+1 because tm_mday starts with 1)
+    // tm_wday: days since Sunday [0-6]
+    uint8 firstDayType = (36 - timeinfo->tm_mday + timeinfo->tm_wday) % 7;
+    return (8 - firstDayType) % 7 + 1;
+}
+
+DarkmoonState GetDarkmoonState()
+{
+    bool foireAlly = true;
+    time_t rawtime;
+    time(&rawtime);
+    struct tm * timeinfo = localtime(&rawtime);
+    uint32 firstMonday = FindMonthFirstMonday(foireAlly, timeinfo);
+    uint8 tm_mday = timeinfo->tm_mday;
+
+    if (tm_mday + 3 < firstMonday)
+        return DARKMOON_NONE;
+    if (tm_mday < firstMonday)
+        return foireAlly ? DARKMOON_A2_INSTALLATION : DARKMOON_H2_INSTALLATION;
+    if (tm_mday < (firstMonday + 7))
+        return foireAlly ? DARKMOON_A2 : DARKMOON_H2;
+
+    return DARKMOON_NONE;
+}
+
+void GameEventMgr::UpdateDarkmoon()
+{
+    static const uint32 events[] =
+    {
+        DARKMOON_A2_INSTALLATION, DARKMOON_A2,
+        DARKMOON_H2_INSTALLATION, DARKMOON_H2
+    };
+    DarkmoonState event = GetDarkmoonState();
+
+    for (int i = 0; i < sizeof(events) / 4; ++i)
+    {
+        if (!IsValidEvent(events[i]))
+            continue;
+        if (events[i] == event)
+        {
+            if (!IsActiveEvent(events[i]))
+                StartEvent(events[i], true);
+        }
+        else if (IsActiveEvent(events[i]))
+            StopEvent(events[i], true);
+    }
+}
+//----Alita----
+//EVENT ELYSIUM
+//Event pnj 55! commence le 8e jour du mois et se termine le dernier jour du mois.
+// oppos� de l'event lvling ^^
+
+
+enum Lvl55RecruitementState
+{
+    LVL55_RECRUITEMENT_NONE     = 0,
+    LVL55_RECRUITEMENT          = 102
+};
+
+Lvl55RecruitementState GetLvl55RecruitementState()
+{
+    //bool Lvl55Recruitement = true;
+    time_t rawtime;
+    time(&rawtime);
+    struct tm * timeinfo = localtime(&rawtime);
+    uint32 TodayOfMonth = timeinfo->tm_mday;
+
+//    if (TodayOfMonth > 7)
+    return LVL55_RECRUITEMENT;
+
+//    return LVL55_RECRUITEMENT_NONE;
+}
+
+void GameEventMgr::UpdateLvl55Recruitement()
+{
+
+    Lvl55RecruitementState event = GetLvl55RecruitementState();
+
+    if (LVL55_RECRUITEMENT == event)
+    {
+        if (!IsActiveEvent(LVL55_RECRUITEMENT))
+            StartEvent(LVL55_RECRUITEMENT);
+    }
+    else if (IsActiveEvent(LVL55_RECRUITEMENT))
+        StopEvent(LVL55_RECRUITEMENT);
+}
+
+bool GameEventMgr::GetSilithusPVPEventCompleted()
 {
     return m_IsSilithusEventCompleted;
 }
@@ -1087,10 +1499,7 @@ void GameEventMgr::UpdateSilithusPVP()
     SilithusPVPEventState event;
     time_t rawtime;
     time(&rawtime);
-
-    struct tm *timeinfo;
-    timeinfo = localtime(&rawtime);
-
+    struct tm * timeinfo = localtime(&rawtime);
     uint32 TodayOfMonth = timeinfo->tm_mday;
 
     /** Event start every 6hours for 2hours */
@@ -1108,19 +1517,84 @@ void GameEventMgr::UpdateSilithusPVP()
         event = SILITHUS_PVP_EVENT_OFF;
     }
 
+
     if (event == SILITHUS_PVP_EVENT_ON)
     {
         if (!IsActiveEvent(SILITHUS_PVP_EVENT_ON))
         {
             sLog.out(LOG_BG, "[SilithusPVPEvent] started %u", SILITHUS_PVP_EVENT_ON);
             StartEvent(SILITHUS_PVP_EVENT_ON);
-            sWorld.SendGlobalText("Les collecteurs de Silithystes sont repares! Depechez vous de revenir en Silithus et reprenez le travail soldat!", nullptr);
+            sWorld.SendGlobalText("Les collecteurs de Silithystes sont repares! Depechez vous de revenir en Silithus et reprenez le travail soldat!", NULL);
         }
     }
     else if (IsActiveEvent(SILITHUS_PVP_EVENT_ON))
     {
         sLog.out(LOG_BG, "[SilithusPVPEvent] stopped %u", SILITHUS_PVP_EVENT_ON);
         StopEvent(SILITHUS_PVP_EVENT_ON);
-        sWorld.SendGlobalText("Le sable a enraille nos collecteurs de Silithystes, la collecte est interrompue en Silithus", nullptr);
+        sWorld.SendGlobalText("Le sable a enraille nos collecteurs de Silithystes, la collecte est interrompue en Silithus", NULL);
     }
+}
+
+enum LeprithusEventState
+{
+    LEPRITHUS_EVENT_NONE     = 0,
+    LEPRITHUS_EVENT_ONGOING  = 150
+};
+
+LeprithusEventState GetLeprithusState()
+{
+    time_t rawtime;
+    time(&rawtime);
+    struct tm * timeinfo = localtime(&rawtime);
+
+    if (timeinfo->tm_hour >= 22 || timeinfo->tm_hour <= 9)
+        return LEPRITHUS_EVENT_ONGOING;
+
+    return LEPRITHUS_EVENT_NONE;
+}
+
+void GameEventMgr::UpdateLeprithusState()
+{
+
+    LeprithusEventState event = GetLeprithusState();
+
+    if (event == LEPRITHUS_EVENT_ONGOING)
+    {
+        if (!IsActiveEvent(LEPRITHUS_EVENT_ONGOING))
+            StartEvent(LEPRITHUS_EVENT_ONGOING);
+    }
+    else if (IsActiveEvent(LEPRITHUS_EVENT_ONGOING))
+        StopEvent(LEPRITHUS_EVENT_ONGOING);
+}
+
+enum RuisseluneEventState
+{
+    RUISSELUNE_EVENT_NONE     = 0,
+    RUISSELUNE_EVENT_ONGOING  = 151
+};
+
+RuisseluneEventState GetRuisseluneState()
+{
+    time_t rawtime;
+    time(&rawtime);
+    struct tm * timeinfo = localtime(&rawtime);
+
+    if (timeinfo->tm_hour < 21 && timeinfo->tm_hour > 9)
+        return RUISSELUNE_EVENT_ONGOING;
+
+    return RUISSELUNE_EVENT_NONE;
+}
+
+void GameEventMgr::UpdateRuisseluneState()
+{
+
+    RuisseluneEventState event = GetRuisseluneState();
+
+    if (event == RUISSELUNE_EVENT_ONGOING)
+    {
+        if (!IsActiveEvent(RUISSELUNE_EVENT_ONGOING))
+            StartEvent(RUISSELUNE_EVENT_ONGOING);
+    }
+    else if (IsActiveEvent(RUISSELUNE_EVENT_ONGOING))
+        StopEvent(RUISSELUNE_EVENT_ONGOING);
 }

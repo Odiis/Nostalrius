@@ -135,7 +135,7 @@ bool QuestAccept_npc_kaya(Player* pPlayer, Creature* pCreature, Quest const* pQu
         DoScriptText(SAY_START, pCreature);
 
         if (npc_kayaAI* pEscortAI = dynamic_cast<npc_kayaAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -169,8 +169,8 @@ struct npc_piznikAI : public ScriptedAI
 
     void JustSummoned(Creature* pSummoned) override
     {
-        pSummoned->GetMotionMaster()->MovePoint(2, 959.93f, -261.39f, -5.75f,MOVE_PATHFINDING);
-        pSummoned->SetHomePosition(959.931335f, -261.39f, -5.74659f,  5.32f);
+        pSummoned->GetMotionMaster()->MovePoint(2, 959.93, -261.39, -5.75,MOVE_PATHFINDING);
+        pSummoned->SetHomePosition(959.931335, -261.39, -5.74659,  5.32);
     }
 
     void JustDied(Unit* /*pKiller*/) override

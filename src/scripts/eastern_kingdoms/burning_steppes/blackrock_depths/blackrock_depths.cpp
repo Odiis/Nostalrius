@@ -28,12 +28,17 @@ npc_grimstone
 mob_phalanx
 npc_kharan_mighthammer
 npc_lokhtos_darkbargainer
+EndContentData */
+
+/* Elysium : Chakor
 go_dark_keeper_portrait
 go_thunderbrew_laguer_keg
 go_relic_coffer_door
 npc_watchman_doomgrip
 npc_ribbly_fermevanne
 npc_golem_lord_argelmach
+*/
+/* Elysium : Ivina
 npc_GorShak
 */
 
@@ -63,6 +68,7 @@ bool GOHello_go_shadowforge_brazier(Player* pPlayer, GameObject* pGo)
 enum
 {
     NPC_GRIMSTONE       = 10096,
+    NPC_THELDREN        = 16059,
 
     //4 or 6 in total? 1+2+1 / 2+2+2 / 3+3. Depending on this, code should be changed.
     MAX_MOB_AMOUNT      = 8
@@ -277,7 +283,7 @@ struct npc_grimstoneAI : public npc_escortAI
                     case 0:
                         DoScriptText(-1000010, m_creature);
                         DoGate(DATA_ARENA4, 1);
-                        Start(false);
+                        Start(false, false);
                         CanWalk = true;
                         Event_Timer = 0;
                         break;
@@ -370,86 +376,30 @@ CreatureAI* GetAI_npc_grimstone(Creature* pCreature)
 ## mob_phalanx
 ######*/
 
-enum
-{
-    SPELL_THUNDERCLAP       = 15588,
-    SPELL_FIREBALLVOLLEY    = 15285,
-    SPELL_MIGHTYBLOW        = 14099,
-
-    YELL_PHALANX_AGGRO      = -1230041
-};
+#define SPELL_THUNDERCLAP       15588
+#define SPELL_FIREBALLVOLLEY    15285
+#define SPELL_MIGHTYBLOW        14099
 
 struct mob_phalanxAI : public ScriptedAI
 {
     mob_phalanxAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        m_bActivated           = false;
         Reset();
     }
-    ScriptedInstance* m_pInstance;
 
     uint32 ThunderClap_Timer;
     uint32 FireballVolley_Timer;
     uint32 MightyBlow_Timer;
 
-    uint32 m_uiCallPatrolTimer;
-
-    float m_fKeepDoorOrientation;
-    bool m_bActivated;
-
     void Reset()
     {
-        m_fKeepDoorOrientation = 2.06059f;
-        m_uiCallPatrolTimer    = 0;
-
-        ThunderClap_Timer      = 12000;
-        FireballVolley_Timer   = 0;
-        MightyBlow_Timer       = 15000;
-    }
-
-    void Activate()
-    { 
-        if (m_bActivated)
-            return;
-
-        if (m_pInstance->GetData(TYPE_PLUGGER) == DONE || m_pInstance->GetData(TYPE_PLUGGER) == IN_PROGRESS)
-        {
-            m_uiCallPatrolTimer = 10000;
-            m_pInstance->SetData(TYPE_PLUGGER, DONE);
-        }
-        DoScriptText(YELL_PHALANX_AGGRO, m_creature);
-        m_creature->SetHomePosition(868.122f, -223.884f, -43.695f, m_fKeepDoorOrientation);
-        m_creature->GetMotionMaster()->MovePoint(0, 865.555f, -219.056f, -43.70f);
-        m_creature->setFaction(14);
-        m_bActivated = true;
-    } 
-
-    void MovementInform(uint32 uiType, uint32 uiPointId)
-    {
-        if (uiType != POINT_MOTION_TYPE)
-            return;
-
-        if (uiPointId == 0)
-            m_creature->GetMotionMaster()->MovePoint(1, 868.122f, -223.884f, -43.695f, MOVE_PATHFINDING, 0, 2.06059f); 
+        ThunderClap_Timer = 12000;
+        FireballVolley_Timer = 0;
+        MightyBlow_Timer = 15000;
     }
 
     void UpdateAI(const uint32 diff)
     {
-        if (!m_pInstance)
-            return;
-
-        if (m_uiCallPatrolTimer)
-        {
-            if (m_uiCallPatrolTimer <= diff && m_pInstance->GetData(TYPE_PATROL) != DONE)
-            {
-                m_pInstance->SetData(TYPE_PATROL, IN_PROGRESS);
-                m_uiCallPatrolTimer = 0;
-            }
-            else
-                m_uiCallPatrolTimer -= diff;
-        }
-
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
@@ -623,196 +573,41 @@ bool GossipSelect_npc_lokhtos_darkbargainer(Player* pPlayer, Creature* pCreature
 }
 
 /*######
-## npc_mistress_nagmara
-######*/
-
-enum
-{
-    GOSSIP_ITEM_NAGMARA         = -3230003,
-    GOSSIP_ID_NAGMARA           = 2727,
-    GOSSIP_ID_NAGMARA_2         = 2729,
-    SPELL_POTION_LOVE           = 14928,
-    SPELL_NAGMARA_ROCKNOT       = 15064,
-
-    SAY_NAGMARA_1               = -1230071,
-    SAY_NAGMARA_2               = -1230072,
-    TEXTEMOTE_NAGMARA           = -1230073,
-    TEXTEMOTE_ROCKNOT           = -1230074,
-
-    QUEST_POTION_LOVE           = 4201
-};
-
-struct npc_mistress_nagmaraAI : public ScriptedAI
-{
-    npc_mistress_nagmaraAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-    Creature* pRocknot;
-
-    uint8 m_uiPhase;
-    uint32 m_uiPhaseTimer;
-
-    void Reset() override
-    {
-        m_uiPhase = 0;
-        m_uiPhaseTimer = 0;
-    }
-
-    void DoPotionOfLoveIfCan()
-    {
-        if (!m_pInstance)
-            return;
-
-        pRocknot = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_ROCKNOT));
-        if (!pRocknot)
-            return;
-
-        m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-        m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
-        pRocknot->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
-
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->GetMotionMaster()->MoveFollow(pRocknot, 2.0f, 0);
-        m_uiPhase = 1;
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        if (m_uiPhaseTimer)
-       {
-            if (m_uiPhaseTimer <= uiDiff)
-                m_uiPhaseTimer = 0;
-            else
-            {
-                m_uiPhaseTimer -= uiDiff;
-                return;
-            }
-        }
-
-        if (!pRocknot)
-            return;
-
-        switch (m_uiPhase)
-        {
-            case 0:     // Phase 0 : Nagmara patrols in the bar to serve patrons or is following Rocknot passively
-                break;
-            case 1:     // Phase 1 : Nagmara is moving towards Rocknot
-                if (m_creature->IsWithinDist2d(pRocknot->GetPositionX(), pRocknot->GetPositionY(), 5.0f))
-                {
-                    m_creature->GetMotionMaster()->MoveIdle();
-                    m_creature->SetFacingToObject(pRocknot);
-                    pRocknot->SetFacingToObject(m_creature);
-                    DoScriptText(SAY_NAGMARA_1, m_creature);
-                    m_uiPhase++;
-                    m_uiPhaseTimer = 5000;
-                }
-                else
-                    m_creature->GetMotionMaster()->MoveFollow(pRocknot, 2.0f, 0);
-                break;
-            case 2:     // Phase 2 : Nagmara is "seducing" Rocknot
-                DoScriptText(SAY_NAGMARA_2, m_creature);
-                m_uiPhaseTimer = 4000;
-                m_uiPhase++;
-                break;
-            case 3:     // Phase 3: Nagmara give potion to Rocknot and Rocknot escort AI will handle the next part of the event
-                if (DoCastSpellIfCan(m_creature, SPELL_POTION_LOVE) == CAST_OK)
-                {
-                    m_uiPhase = 0;
-                    m_pInstance->SetData(TYPE_NAGMARA, SPECIAL);
-                    m_creature->GetMotionMaster()->MoveFollow(pRocknot, 2.0f, 0);
-                }
-                break;
-            case 4:     // Phase 4 : make the lovers face each other
-                m_creature->SetFacingToObject(pRocknot);
-                pRocknot->SetFacingToObject(m_creature);
-                m_uiPhaseTimer = 4000;
-                m_uiPhase++;
-                m_pInstance->SetData(TYPE_NAGMARA, DONE);
-                break;
-            case 5:     // Phase 5 : Nagmara and Rocknot are under the stair kissing (this phase repeats endlessly)
-                DoScriptText(TEXTEMOTE_NAGMARA, m_creature);
-                DoScriptText(TEXTEMOTE_ROCKNOT, pRocknot);
-                DoCastSpellIfCan(m_creature, SPELL_NAGMARA_ROCKNOT);
-                pRocknot->CastSpell(pRocknot, SPELL_NAGMARA_ROCKNOT, false);
-                m_uiPhaseTimer = 12000;
-                break;
-        }
-    }
-};
-
-bool GossipHello_npc_mistress_nagmara(Player* pPlayer, Creature* pCreature)
-{
-    if (pCreature->isQuestGiver())
-        pPlayer->PrepareQuestMenu(pCreature->GetObjectGuid());
-
-    if (pPlayer->GetQuestRewardStatus(QUEST_POTION_LOVE))
-    {
-        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_NAGMARA, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-        pPlayer->SEND_GOSSIP_MENU(GOSSIP_ID_NAGMARA_2, pCreature->GetObjectGuid());
-    }
-    else
-        pPlayer->SEND_GOSSIP_MENU(GOSSIP_ID_NAGMARA, pCreature->GetObjectGuid());
-
-    return true;
-}
-
-bool GossipSelect_npc_mistress_nagmara(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
-{
-    switch (uiAction)
-    {
-        case GOSSIP_ACTION_INFO_DEF+1:
-            pPlayer->CLOSE_GOSSIP_MENU();
-            if (npc_mistress_nagmaraAI* pNagmaraAI = dynamic_cast<npc_mistress_nagmaraAI*>(pCreature->AI()))
-                pNagmaraAI->DoPotionOfLoveIfCan();
-            break;
-    }
-    return true;
-}
-
-bool QuestRewarded_npc_mistress_nagmara(Player* pPlayer, Creature* pCreature, Quest const* pQuest)
-{
-    ScriptedInstance* pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-
-    if (!pInstance)
-        return true;
-
-    if (pQuest->GetQuestId() == QUEST_POTION_LOVE)
-    {
-        if (npc_mistress_nagmaraAI* pNagmaraAI = dynamic_cast<npc_mistress_nagmaraAI*>(pCreature->AI()))
-            pNagmaraAI->DoPotionOfLoveIfCan();
-    }
-
-    return true;
-}
-
-CreatureAI* GetAI_npc_mistress_nagmara(Creature* pCreature)
-{
-    return new npc_mistress_nagmaraAI(pCreature);
-}
-
-/*######
 ## npc_rocknot
 ######*/
 
+#define SAY_GOT_BEER        -1230000
+#define SPELL_DRUNKEN_RAGE  14872
+#define QUEST_ALE           4295
+
+//positions when opening door for Nagmara
+struct sPositionInformation
+{
+    float fX, fY, fZ, fO;
+};
+static const sPositionInformation RocknotPositionsForNagmara[9] =
+{
+    {874.87359, -198.372, -43.703, 4.338482},
+    {866.8894, -205.99,   -43.7037, 4.86626},
+    {866.5805, -216.69,   -43.7037, 4.95816},
+    {868.7742, -228.3334, -43.7399, 5.23933}, //(pause: open door)
+    {872.9965, -233.0496, -43.752,  0.61177},
+    {889.4429, -221.512,  -49.944,  2.57212},
+    {885.3575, -218.535,  -49.9454, 3.64655},
+    {877.7158, -222.768,  -49.9736, 4.89768},
+    {878.592041, -226.941788, -49.982887, 3.619845} //(last point under stairs)
+};
 enum
 {
-    SAY_GOT_BEER       = -1230060,
-    SAY_MORE_BEER      = -1230061,
-    SAY_BARREL_1       = -1230062,
-    SAY_BARREL_2       = -1230063,
-    SAY_BARREL_3       = -1230064,
+    NPC_NAGMARA             = 9500,
+    NPC_ROCKNOT              = 9503,
 
-    SPELL_DRUNKEN_RAGE = 14872,
-
-    QUEST_ALE          = 4295
+    SPELL_LOVE_POTION    = 14928,
+    SPELL_NAGMARA_VANISH = 15341,
+    QUEST_LOVE_POTION    = 4201
 };
 
-static const float aPosNagmaraRocknot[3] = {878.1779f, -222.0662f, -49.96714f};
-
+void NagmaraEndFollowRocknot(Creature* pCreature);
 
 struct npc_rocknotAI : public npc_escortAI
 {
@@ -823,195 +618,160 @@ struct npc_rocknotAI : public npc_escortAI
     }
 
     ScriptedInstance* m_pInstance;
-    Creature* pNagmara;
 
-    uint32 m_uiBreakKegTimer;
-    uint32 m_uiBreakDoorTimer;
-    uint32 m_uiEmoteTimer;
-    uint32 m_uiBarReactTimer;
+    uint32 BreakKeg_Timer;
+    uint32 BreakDoor_Timer;
+    uint32 NagmaraEventTimer;
+    uint8 NagmaraEvent;
 
-    float m_fInitialOrientation;
-
+    bool noNagmaraEvent()
+    {
+        return !NagmaraEvent;
+    }
     void Reset()
     {
-        if (!m_pInstance)
-            return;
-
-        pNagmara = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(DATA_NAGMARA));
-
         if (HasEscortState(STATE_ESCORT_ESCORTING))
             return;
 
-        m_fInitialOrientation   = 3.21141f;
-        m_uiBreakKegTimer       = 0;
-        m_uiBreakDoorTimer      = 0;
-        m_uiEmoteTimer          = 0;
-        m_uiBarReactTimer       = 0;
+        BreakKeg_Timer = 0;
+        BreakDoor_Timer = 0;
+        NagmaraEvent = 0;
+    }
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
+    {
+        if (pSpell->Id == SPELL_LOVE_POTION)
+        {
+            if(NagmaraEvent == 0)
+            {
+                currPoint = 0;
+                NagmaraEvent = 1;
+                m_creature->GetMotionMaster()->MovePoint(1, RocknotPositionsForNagmara[0].fX, RocknotPositionsForNagmara[0].fY, RocknotPositionsForNagmara[0].fZ, MOVE_PATHFINDING, RocknotPositionsForNagmara[0].fO);
+            }
+        }
+    }
+    uint32 currPoint;
+    void MovementInform(uint32 uiType, uint32 uiPointId)
+    {
+        if(NagmaraEvent>0)
+        {
+            if (uiType == POINT_MOTION_TYPE)
+            {
+                currPoint = uiPointId;
+                if(uiPointId >0 && uiPointId <9 && uiPointId!=4)
+                {
+                    m_creature->GetMotionMaster()->MovePoint(uiPointId+1, RocknotPositionsForNagmara[uiPointId].fX, RocknotPositionsForNagmara[uiPointId].fY, RocknotPositionsForNagmara[uiPointId].fZ, MOVE_PATHFINDING, 0, RocknotPositionsForNagmara[uiPointId].fO);
+
+                }
+                if(uiPointId == 8)
+                {
+                    if(Creature* nagmara= m_creature->FindNearestCreature(NPC_NAGMARA, 40.0f))
+                        NagmaraEndFollowRocknot(nagmara);
+                }
+                if(uiPointId == 9)
+                {
+                    m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+                    m_creature->GetMotionMaster()->MoveIdle();
+                }
+                if(uiPointId == 4)
+                {
+                    NagmaraEventTimer = 4000;
+                }
+            }
+        }
+        else
+            npc_escortAI::MovementInform(uiType, uiPointId);
+    }
+    void UpdateAI(uint32 uiDiff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            if(NagmaraEvent == 1)
+            {
+                if(currPoint == 4)
+                {
+                    if (NagmaraEventTimer < uiDiff)
+                    {
+                        DoGo(DATA_GO_BAR_DOOR, 0);
+                        m_creature->GetMotionMaster()->MovePoint(currPoint+1, RocknotPositionsForNagmara[currPoint].fX, RocknotPositionsForNagmara[currPoint].fY, RocknotPositionsForNagmara[currPoint].fZ, MOVE_PATHFINDING);
+                        m_pInstance->SetData(TYPE_NAGMARA, DONE);
+                    }
+                    else {NagmaraEventTimer -= uiDiff;}
+                }
+            }
+        }
+        npc_escortAI::UpdateAI(uiDiff);
     }
 
-    void WaypointReached(uint32 uiPointId) override
+
+    void DoGo(uint32 id, uint32 state)
+    {
+        if (GameObject* pGo = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(id)))
+            pGo->SetGoState(GOState(state));
+    }
+
+    void WaypointReached(uint32 i)
     {
         if (!m_pInstance)
             return;
 
-        switch (uiPointId)
+        switch (i)
         {
-            case 0:     // if Nagmara and Potion of Love event is in progress, switch to second part of the escort
-                SetEscortPaused(true);
-                if (m_pInstance->GetData(TYPE_NAGMARA) == IN_PROGRESS)
-                    setCurrentWP(9);
-
-                SetEscortPaused(false);
+            case 1:
+                m_creature->HandleEmoteCommand(EMOTE_ONESHOT_KICK);
                 break;
             case 2:
-                DoScriptText(SAY_BARREL_1, m_creature);
+                m_creature->HandleEmoteCommand(EMOTE_ONESHOT_ATTACKUNARMED);
                 break;
             case 3:
-                DoScriptText(SAY_BARREL_2, m_creature);
+                m_creature->HandleEmoteCommand(EMOTE_ONESHOT_ATTACKUNARMED);
                 break;
             case 4:
-                DoScriptText(SAY_BARREL_2, m_creature);
+                m_creature->HandleEmoteCommand(EMOTE_ONESHOT_KICK);
                 break;
             case 5:
-                DoScriptText(SAY_BARREL_1, m_creature);
-                break;
-            case 6:
-                DoCastSpellIfCan(m_creature, SPELL_DRUNKEN_RAGE, false);
-                m_uiBreakKegTimer = 2000;
-                break;
-            case 8:     // Back home stop here
-                SetEscortPaused(true);
-                m_creature->SetFacingTo(m_fInitialOrientation);
-                break;
-            case 9:     // This step is the start of the "alternate" waypoint path used with Nagmara
-                // Make Nagmara follow Rocknot
-                if (!pNagmara)
-                {
-                    SetEscortPaused(true);
-                    setCurrentWP(8);
-                }
-                else
-                    pNagmara->GetMotionMaster()->MoveFollow(m_creature, 2.0f, 0);
-                break;
-            case 16:
-                // Open the bar back door if relevant
-                if (GameObject* pGo = m_pInstance->GetGameObject(m_pInstance->GetData64(DATA_GO_BAR_DOOR)))
-                {
-                    if (pGo->GetGoState() == GO_STATE_READY) // Closed
-                        pGo->SetGoState(GO_STATE_ACTIVE);
-                }
-                if (pNagmara)
-                    pNagmara->GetMotionMaster()->MoveFollow(m_creature, 2.0f, 0);
-                break;
-            case 33: // Reach under the stair, make Nagmara move to her position and give the handle back to Nagmara AI script
-                if (!pNagmara)
-                    break;
-
-                pNagmara->GetMotionMaster()->MoveIdle();
-                pNagmara->GetMotionMaster()->MovePoint(0, aPosNagmaraRocknot[0], aPosNagmaraRocknot[1], aPosNagmaraRocknot[2]);
-                if (npc_mistress_nagmaraAI* pNagmaraAI = dynamic_cast<npc_mistress_nagmaraAI*>(pNagmara->AI()))
-                {
-                    pNagmaraAI->m_uiPhase = 4;
-                    pNagmaraAI->m_uiPhaseTimer = 5000;
-                }
-                SetEscortPaused(true);
+                m_creature->HandleEmoteCommand(EMOTE_ONESHOT_KICK);
+                BreakKeg_Timer = 2000;
                 break;
         }
     }
 
-    void UpdateEscortAI(const uint32 uiDiff) override
+    void UpdateEscortAI(const uint32 diff)
     {
         if (!m_pInstance)
             return;
 
-        // When Nagmara is in Potion of Love event and reach Rocknot, she set TYPE_NAGMARA to SPECIAL
-        // in order to make Rocknot start the second part of his escort quest
-        if (m_pInstance->GetData(TYPE_NAGMARA) == SPECIAL)
+        if (BreakKeg_Timer)
         {
-            m_pInstance->SetData(TYPE_NAGMARA, IN_PROGRESS);
-            Start(false, ObjectGuid(), nullptr, true);
-            return;
+            if (BreakKeg_Timer <= diff)
+            {
+                DoGo(DATA_GO_BAR_KEG, 0);
+                BreakKeg_Timer = 0;
+                BreakDoor_Timer = 1000;
+            }
+            else BreakKeg_Timer -= diff;
         }
 
-        if (m_uiBreakKegTimer)
+        if (BreakDoor_Timer)
         {
-            if (m_uiBreakKegTimer <= uiDiff)
+            if (BreakDoor_Timer <= diff)
             {
-                if (GameObject* pGo = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(DATA_GO_BAR_KEG)))
-                {
-                    pGo->SetGoState(GO_STATE_ACTIVE);
-                    m_uiBreakKegTimer  = 0;
-                    m_uiBreakDoorTimer = 1000;
-                    m_uiBarReactTimer  = 5000;
-                }
-            }
-            else
-                m_uiBreakKegTimer -= uiDiff;
-        }
+                DoGo(DATA_GO_BAR_DOOR, 2);
+                DoGo(DATA_GO_BAR_KEG_TRAP, 0);              //doesn't work very well, leaving code here for future
+                //spell by trap has effect61, this indicate the bar go hostile
 
-        if (m_uiBreakDoorTimer)
-        {
-            if (m_uiBreakDoorTimer <= uiDiff)
-            {
-                // Open the bar back door if relevant
-                if (GameObject* pGo = m_pInstance->GetGameObject(m_pInstance->GetData64(DATA_GO_BAR_DOOR)))
+                if (Unit *tmp = m_creature->GetMap()->GetUnit(m_pInstance->GetData64(DATA_PHALANX)))
                 {
-                    if (pGo->GetGoState() == GO_STATE_READY) // Closed
-                    {
-                        pGo->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
-                    }
+                    tmp->GetMotionMaster()->MovePoint(1, 865.495850f, -219.225037f, -43.702477f);
+                    tmp->setFaction(14);
                 }
 
-                DoScriptText(SAY_BARREL_3, m_creature);
-                if (GameObject* pGo = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(DATA_GO_BAR_KEG_TRAP)))
-                    pGo->SetGoState(GO_STATE_ACTIVE);                  // doesn't work very well, leaving code here for future
-                // spell by trap has effect61
+                //for later, this event(s) has alot more to it.
+                //optionally, DONE can trigger bar to go hostile.
+                m_pInstance->SetData(TYPE_BAR, DONE);
 
-                m_uiBreakDoorTimer = 0;
+                BreakDoor_Timer = 0;
             }
-            else
-                m_uiBreakDoorTimer -= uiDiff;
-        }
-
-        if (m_uiBarReactTimer)
-        {
-            if (m_uiBarReactTimer <= uiDiff)
-            {
-                // Activate Phalanx and handle nearby patrons says
-                if (Unit *pPhalanx = m_creature->GetMap()->GetUnit(m_pInstance->GetData64(DATA_PHALANX)))
-                {
-                    if (mob_phalanxAI* pPhalanxAI = dynamic_cast<mob_phalanxAI*> (pPhalanx->AI()))
-                        if (pPhalanx->isAlive())
-                            pPhalanxAI->Activate();
-                }
-                m_pInstance->SetData(TYPE_ROCKNOT, DONE);
-
-                m_uiBarReactTimer = 0;
-            }
-            else
-                m_uiBarReactTimer -= uiDiff;
-        }
-
-        // Several times Rocknot is supposed to perform an action (text, spell cast...) followed closely by an emote
-        // we handle it here
-        if (m_uiEmoteTimer)
-        {
-            if (m_uiEmoteTimer <= uiDiff)
-            {
-                // If event is SPECIAL (Rocknot moving to barrel), then we want him to say a special text and start moving
-                // if not, he is still accepting beers, so we want him to cheer player
-                if (m_pInstance->GetData(TYPE_ROCKNOT) == SPECIAL)
-                {
-                    DoScriptText(SAY_MORE_BEER, m_creature);
-                    Start(false);
-                }
-                else
-                    m_creature->HandleEmote(EMOTE_ONESHOT_CHEER);
-
-                m_uiEmoteTimer = 0;
-            }
-            else
-                m_uiEmoteTimer -= uiDiff;
+            else BreakDoor_Timer -= diff;
         }
     }
 };
@@ -1028,28 +788,193 @@ bool QuestRewarded_npc_rocknot(Player* pPlayer, Creature* pCreature, Quest const
     if (!pInstance)
         return true;
 
-    if (pInstance->GetData(TYPE_ROCKNOT) == DONE || pInstance->GetData(TYPE_ROCKNOT) == SPECIAL)
+    if (pInstance->GetData(TYPE_BAR) == DONE)
+        return true;
+    if (pInstance->GetData(TYPE_NAGMARA) == IN_PROGRESS || pInstance->GetData(TYPE_NAGMARA) == DONE )
         return true;
 
     if (pQuest->GetQuestId() == QUEST_ALE)
     {
-        if (pInstance->GetData(TYPE_ROCKNOT) != IN_PROGRESS)
-            pInstance->SetData(TYPE_ROCKNOT, IN_PROGRESS);
+        pInstance->SetData(TYPE_BAR, IN_PROGRESS);
 
-        pCreature->SetFacingToObject(pPlayer);
-        DoScriptText(SAY_GOT_BEER, pCreature);
-        if (npc_rocknotAI* pEscortAI = dynamic_cast<npc_rocknotAI*>(pCreature->AI()))
-            pEscortAI->m_uiEmoteTimer = 1500;
+        //keep track of amount in instance script, returns SPECIAL if amount ok and event in progress
+        if (pInstance->GetData(TYPE_BAR) == SPECIAL)
+        {
+            DoScriptText(SAY_GOT_BEER, pCreature);
+            pCreature->CastSpell(pCreature, SPELL_DRUNKEN_RAGE, false);
 
-        // We keep track of amount of beers given in the instance script by setting data to SPECIAL
-        // Once the correct amount is reached, the script will also returns SPECIAL, if not, it returns IN_PROGRESS/DONE
-        // the return state and the following of the script are handled in the Update->emote part of the Rocknot NPC escort AI script
-        pInstance->SetData(TYPE_ROCKNOT, SPECIAL);
+            if (npc_rocknotAI* pEscortAI = dynamic_cast<npc_rocknotAI*>(pCreature->AI()))
+            {
+                if(pEscortAI->noNagmaraEvent() == true)
+                {
+                    pEscortAI->Start(false, false, 0, NULL, true);
+                }
+            }
+        }
     }
 
     return true;
 }
 
+struct npc_nagmaraAI : public ScriptedAI
+{
+    npc_nagmaraAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        Reset();
+        eventPhase = 0;
+        phaseTimer = 120000;
+    }
+    void Reset() { vanishTimer= urand(2000,9000);}
+    uint8 eventPhase;//0:nothing,
+    //1: waiting to be at right WP to start.
+    //2: at right WP, waiting.
+    //3: /follow rocknot (in Rocknot's code, when door opens, save to instance! stop from launching the other door opening events)
+    //4: last point & wait
+    //5: Ended (despawned)
+    uint32 phaseTimer;
+    uint64 GuidRocknot;
+    uint32 vanishTimer;
+
+    // bool CanStartEvent()
+    // {
+        // if (ScriptedInstance* pInstance = ((ScriptedInstance*)m_creature->GetInstanceData()))
+        // {
+            // if (pInstance->GetData(TYPE_BAR) == SPECIAL || pInstance->GetData(TYPE_BAR) == DONE)
+                // return false;
+        // }
+        // return !eventPhase;
+    // }
+    void MovementInform(uint32 uiType, uint32 uiPointId)
+    {
+        if (uiType == WAYPOINT_MOTION_TYPE)
+        {
+            if(uiPointId >1 && uiPointId <5)
+            {
+                if(eventPhase == 1)
+                {
+                    if(Creature* rocknot =  m_creature->FindNearestCreature(NPC_ROCKNOT, 20.0f))
+                    {
+                        GuidRocknot = rocknot->GetGUID();
+                        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->SetFacingToObject(rocknot);
+                        eventPhase=2;
+                        phaseTimer=5000;
+                    }
+                }
+            }
+        }
+        else if (uiType == POINT_MOTION_TYPE)
+        {
+            m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveIdle();
+        }
+    }
+    bool StartEvent()
+    {
+        if (eventPhase)
+            return false;
+        if (ScriptedInstance* pInstance = ((ScriptedInstance*)m_creature->GetInstanceData()))
+        {
+            if (pInstance->GetData(TYPE_BAR) == SPECIAL || pInstance->GetData(TYPE_BAR) == DONE || pInstance->GetData(TYPE_NAGMARA) == IN_PROGRESS || pInstance->GetData(TYPE_NAGMARA) == DONE )
+                return false;
+
+            pInstance->SetData(TYPE_NAGMARA,IN_PROGRESS);
+        }
+        eventPhase = 1;
+        if(Creature* rocknot =  m_creature->FindNearestCreature(NPC_ROCKNOT, 20.0f))
+        {
+            GuidRocknot = rocknot->GetGUID();
+            m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->SetFacingToObject(rocknot);
+            eventPhase=2;
+            phaseTimer=5000;
+        }
+        return true;
+    }
+    void stopFollow()
+    {
+        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+        m_creature->GetMotionMaster()->MovePoint(2, 877.065918f, -227.647369f, -49.993839f, MOVE_PATHFINDING,0,0.619626);
+        eventPhase = 4;
+        phaseTimer = 120000;
+    }
+
+    void UpdateAI(uint32 uiDiff)
+    {
+        if (eventPhase > 0)
+        {
+            if (eventPhase ==2)
+            {
+                if (phaseTimer < uiDiff)
+                {
+                    if (Creature* rocknot = m_creature->GetMap()->GetCreature(GuidRocknot))
+                    {
+                        DoCastSpellIfCan(rocknot, SPELL_LOVE_POTION);
+                        m_creature->GetMotionMaster()->MoveFollow(rocknot, 0.3, M_PI);//follow rocknot
+                        m_creature->SetSpeedRate(MOVE_WALK, 1, true);
+                        eventPhase = 3;
+                    }
+                }
+                else {phaseTimer -= uiDiff;}
+            }
+            if (eventPhase == 4)
+            {
+                if(phaseTimer<uiDiff)
+                {
+                    eventPhase = 5;
+                    if (Creature* rocknot = m_creature->GetMap()->GetCreature(GuidRocknot))
+                    {
+                        rocknot->DisappearAndDie();
+                        m_creature->DisappearAndDie();
+                    }
+                }
+                else {phaseTimer -= uiDiff;}
+            }
+        }
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+        if(vanishTimer<uiDiff)
+        {
+            DoCastSpellIfCan(m_creature, SPELL_LOVE_POTION);
+            vanishTimer= urand(2000,9000);
+        }
+        else {vanishTimer -= uiDiff;}
+        DoMeleeAttackIfReady();
+    }
+};
+CreatureAI* GetAI_npc_nagmara(Creature* pCreature)
+{
+    return new npc_nagmaraAI(pCreature);
+}
+
+void NagmaraEndFollowRocknot(Creature* pCreature)
+{
+    if (npc_nagmaraAI* pEmiAI = dynamic_cast<npc_nagmaraAI*>(pCreature->AI()))
+    {
+        pEmiAI->stopFollow();
+    }
+}
+
+bool GossipSelect_npc_nagmara(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
+{
+    if (pPlayer->GetQuestStatus(QUEST_LOVE_POTION) == QUEST_STATUS_COMPLETE)
+    {
+        if (npc_nagmaraAI* pEmiAI = dynamic_cast<npc_nagmaraAI*>(pCreature->AI()))
+        {
+            if (pEmiAI->StartEvent())
+            {
+                // send this gossip menu: 2075 //npc_text corresponding id 2728
+                pPlayer->SEND_GOSSIP_MENU(2728, pCreature->GetGUID());
+                return true;
+            }
+        }
+    }
+
+    pPlayer->CLOSE_GOSSIP_MENU();
+    return true;
+}
 /*######
 ## go_dark_keeper_portrait
 ######*/
@@ -1123,13 +1048,8 @@ bool GOHello_go_dark_keeper_portrait(Player* pPlayer, GameObject* pGo)
 
 enum
 {
-    NPC_HURLEY             = 9537,
-    NPC_HURLEY_CRONY       = 9541,
-
-    YELL_HURLEY_SPAWN      = -1230069,
-    SAY_HURLEY_AGGRO       = -1230070,
-
-    SPELL_FLAME_BREATH     = 9573
+    HURLEY_ENTRY    = 9537,
+    GUARDS_ENTRY    = 9541,
 };
 
 bool GOHello_go_thunderbrew_laguer_keg(Player* pPlayer, GameObject* pGo)
@@ -1147,107 +1067,30 @@ bool GOHello_go_thunderbrew_laguer_keg(Player* pPlayer, GameObject* pGo)
 
     if (pInstance->GetData(TYPE_THUNDERBREW) == DONE)
     {
-        // Summon Hurley Blackbreath
-        Creature* pHurley = pPlayer->SummonCreature(NPC_HURLEY,
-                             856.087f, -149.747f, -49.672f, 0.059f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
-        if (!pHurley)
-            return true;
+        Creature* pHurley = pPlayer->SummonCreature(HURLEY_ENTRY,
+                            892.42f, -145.03f, -49.76f, 0.44f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+        //pHurley->MonsterYell("Who dare stealing my beer?!", 0, pPlayer);
+        pHurley->MonsterYell(ELYSIUM_TEXT(252), 0, pPlayer);
+        pHurley->AI()->AttackStart(pPlayer);
 
-        DoScriptText(YELL_HURLEY_SPAWN, pHurley);
-        pHurley->SetWalk(false);
-        pHurley->GetMotionMaster()->MovePoint(0, 886.652f, -152.042f, -49.76f);
+        Creature* pGuards1 = pPlayer->SummonCreature(GUARDS_ENTRY,
+                             892.55f, -149.18f, -49.76f, 0.44f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+        pGuards1->AI()->AttackStart(pPlayer);
 
-        // Summon cronies around Hurley
-        for (uint8 i = 0; i < 4; ++i)
-        {
-            float fX, fY, fZ;
-            pPlayer->GetRandomPoint(856.087f, -149.747f, -49.672f, 2.0f, fX, fY, fZ);
-            if (Creature* pSummoned = pPlayer->SummonCreature(NPC_HURLEY_CRONY, fX, fY, fZ, 0.059f, TEMPSUMMON_DEAD_DESPAWN, 0))
-            {
-                pSummoned->GetMotionMaster()->MoveFollow(pHurley, 2.0f, 0);
-            }
-        }
+        Creature* pGuards2 = pPlayer->SummonCreature(GUARDS_ENTRY,
+                             891.57f, -146.99f, -49.76f, 0.44f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+        pGuards2->AI()->AttackStart(pPlayer);
+
+        Creature* pGuards3 = pPlayer->SummonCreature(GUARDS_ENTRY,
+                             890.44f, -144.86f, -49.76f, 0.44f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+        pGuards3->AI()->AttackStart(pPlayer);
+
+        Creature* pGuards4 = pPlayer->SummonCreature(GUARDS_ENTRY,
+                             889.56f, -143.23f, -49.76f, 0.44f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
+        pGuards4->AI()->AttackStart(pPlayer);
     }
 
     return false;
-}
-
-
-/*######
-## npc_hurley_blackbreath
-######*/
-
-struct npc_hurley_blackbreathAI : public ScriptedAI
-{
-    npc_hurley_blackbreathAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    uint32 uiFlameBreathTimer;
-    uint32 m_uiEventTimer;
-    bool   bIsEnraged;
-
-    void Reset() override
-    {
-        uiFlameBreathTimer = 5000;
-        bIsEnraged = false;
-    }
-
-
-    void MovementInform(uint32 uiType, uint32 uiPointId)
-    {
-        if (uiType != POINT_MOTION_TYPE)
-            return;
-
-        switch (uiPointId)
-        {
-            case 0:
-                m_creature->GetMotionMaster()->MovePoint(1, 902.31f, -140.33f, -49.75f);
-                break;
-            case 1:
-                m_creature->GetMotionMaster()->MovePoint(2, 910.31f, -156.713f, -49.759f);
-                break;
-            case 2:
-                m_creature->GetMotionMaster()->MoveTargetedHome();
-                break;
-        }
-    }
-
-    void Aggro(Unit* pWho) override
-    {
-        DoScriptText(SAY_HURLEY_AGGRO, m_creature);
-    }
-
-    void UpdateAI(const uint32 uiDiff)
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return; 
-
-        if (uiFlameBreathTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_FLAME_BREATH) == CAST_OK)
-                uiFlameBreathTimer = urand(8000, 12000);
-        }
-        else
-            uiFlameBreathTimer -= uiDiff;
-
-        if (m_creature->GetHealthPercent() <= 30.0f && !bIsEnraged)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_DRUNKEN_RAGE) == CAST_OK)
-                bIsEnraged = true;
-        }
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_npc_hurley_blackbreath(Creature* pCreature)
-{
-    return new npc_hurley_blackbreathAI(pCreature);
 }
 
 /*######
@@ -1277,7 +1120,7 @@ bool GOHello_go_relic_coffer_door(Player* pPlayer, GameObject* pGo)
                               819.45f, -348.96f, -50.49f, 0.35f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 300000);
 //        pCreature->MonsterYell("Ne les laissez pas s'emparer du Coeur de la montagne!!", 0, pPlayer);
         // pCreature->MonsterYell("Don't let them take the moutain hearth!", 0, pPlayer);
-        pCreature->MonsterYell(NOST_TEXT(153), 0, pPlayer);
+        pCreature->MonsterYell(ELYSIUM_TEXT(153), 0, pPlayer);
         pCreature->AI()->AttackStart(pPlayer);
     }
 
@@ -1290,7 +1133,6 @@ bool GOHello_go_relic_coffer_door(Player* pPlayer, GameObject* pGo)
 
 #define SPELL_BOIRE_LA_POTION_DE_SOINS    15504
 #define SPELL_FRACASSER_ARMURE    11971
-#define NPC_WARBRINGER_CONSTRUCT    8905
 
 struct npc_watchman_doomgripAI : public ScriptedAI
 {
@@ -1315,25 +1157,6 @@ struct npc_watchman_doomgripAI : public ScriptedAI
     {
         BoireLaPotionDeSoins_Timer = 0;
         FracasserArmure_Timer = 1000;
-    }
-
-    void Aggro(Unit* pWho)
-    {
-        std::list<Creature*> m_lGolems;
-        GetCreatureListWithEntryInGrid(m_lGolems, m_creature, NPC_WARBRINGER_CONSTRUCT, 20.0f);
-        if (!m_lGolems.empty())
-        {
-            for (std::list<Creature*>::iterator itr = m_lGolems.begin(); itr != m_lGolems.end(); ++itr)
-            {
-                if ((*itr)->isAlive())
-                {
-                    (*itr)->RemoveAurasDueToSpell(10255);
-                    (*itr)->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_PASSIVE);
-                    if (pWho)
-                        (*itr)->AI()->AttackStart(pWho);
-                }
-            }
-        }
     }
 
     void UpdateAI(const uint32 diff)
@@ -1373,17 +1196,11 @@ CreatureAI* GetAI_npc_watchman_doomgrip(Creature* pCreature)
 ## npc_ribbly_fermevanne
 ######*/
 
-
-enum
-{
-    NPC_RIBBLY_CRONY    = 10043,
-
-    SPELL_BRISE_GENOU   = 9080,
-    SPELL_SURINER       = 12540
-};
-
 //#define GOSSIP_ITEM_ATTAQUE  "On pay bien pour votre tête..."
-#define GOSSIP_ITEM_ATTAQUE "We will be paid well for your head..."
+#define GOSSIP_ITEM_ATTAQUE "We pay a lot for your head..."
+
+#define SPELL_BRISE_GENOU    9080
+#define SPELL_SURINER    12540
 
 struct npc_ribbly_fermevanneAI : public ScriptedAI
 {
@@ -1446,7 +1263,9 @@ bool GossipSelect_npc_ribbly_fermevanne(Player* pPlayer, Creature* pCreature, ui
     if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
     {
         pPlayer->CLOSE_GOSSIP_MENU();
-        pCreature->MonsterYell(NOST_TEXT(154), 0, pPlayer);
+//        pCreature->MonsterYell("Encore un coup de ma chère soeur, vous n'aurez pas ma tête si facilement!!", 0, pPlayer);
+//        pCreature->MonsterYell("Another drink, you won't have my head easily!", 0, pPlayer);
+        pCreature->MonsterYell(ELYSIUM_TEXT(154), 0, pPlayer);
         pCreature->setFaction(14);
         pCreature->AI()->AttackStart(pPlayer);
 
@@ -1483,7 +1302,7 @@ struct npc_golem_lord_argelmachAI : public ScriptedAI
     {
         m_creature->GetMotionMaster()->MovePoint(0, 846.801025f, 16.280600f, -53.639500f);
         //m_creature->MonsterYell("Golems, votre Seigneur a besoin de vous!", 0, pWho);
-        m_creature->MonsterYell(NOST_TEXT(155), 0, pWho);
+        m_creature->MonsterYell(ELYSIUM_TEXT(155), 0, pWho);
 
         if (m_pInstance)
             m_pInstance->SetData(DATA_ARGELMACH_AGGRO, IN_PROGRESS);
@@ -1541,7 +1360,7 @@ CreatureAI* GetAI_npc_golem_lord_argelmach(Creature* pCreature)
     return new npc_golem_lord_argelmachAI(pCreature);
 }
 
-// Nostalrius : Ivina
+// Elysium : Ivina
 
 /*######
 ## npc_GorShak
@@ -1697,7 +1516,7 @@ bool QuestAccept_npc_GorShak(Player* pPlayer, Creature* pCreature, const Quest* 
     return true;
 }
 
-// FIN Nostalrius : Ivina
+// FIN Elysium : Ivina
 //ALITA
 enum
 {
@@ -1745,912 +1564,6 @@ CreatureAI* GetAI_npc_ironhand_guardian(Creature* pCreature)
     return new npc_ironhand_guardianAI(pCreature);
 }
 
-/*######
-## at_shadowforge_bridge
-######*/
-
-static const float aGuardSpawnPositions[2][4] =
-{
-    {642.3660f, -274.5155f, -43.10918f, 0.4712389f},                // First guard spawn position
-    {740.1137f, -283.3448f, -42.75082f, 2.8623400f}                 // Second guard spawn position
-};
-
-enum
-{
-    NPC_ANVILRAGE_GUARDMAN             = 8891,
-    SAY_GUARD_AGGRO                    = -1230043
-};
-
-// When players cross the shadowforge bridge for the first time, two guards spawn and attack.
-bool AreaTrigger_at_shadowforge_bridge(Player* pPlayer, AreaTriggerEntry const* pAt)
-{
-    if (ScriptedInstance* pInstance = (ScriptedInstance*)pPlayer->GetInstanceData())
-    {
-        if (pPlayer->isGameMaster() || !pPlayer->isAlive() || pInstance->GetData(TYPE_BRIDGE) == DONE)
-            return false;
-
-        if (Creature* pMasterGuard = ((Creature*)pPlayer)->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[0][0], aGuardSpawnPositions[0][1], aGuardSpawnPositions[0][2], aGuardSpawnPositions[0][3], TEMPSUMMON_DEAD_DESPAWN, 0))
-        {
-            pMasterGuard->SetWalk(false);
-            pMasterGuard->GetMotionMaster()->MoveWaypoint();
-            DoScriptText(SAY_GUARD_AGGRO, pMasterGuard);
-            float fX, fY, fZ;
-            pPlayer->GetContactPoint(pMasterGuard, fX, fY, fZ);
-            pMasterGuard->GetMotionMaster()->MovePoint(1,fX, fY, fZ);
-
-            if (Creature* pSlaveGuard = ((Creature*)pPlayer)->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[1][0], aGuardSpawnPositions[1][1], aGuardSpawnPositions[1][2], aGuardSpawnPositions[1][3], TEMPSUMMON_DEAD_DESPAWN, 0))
-            {
-                pSlaveGuard->GetMotionMaster()->MoveFollow(pMasterGuard, 2.0f, 0);
-            }
-        }
-        pInstance->SetData(TYPE_BRIDGE, DONE);
-    }
-    return false;
-}
-
-
-/*######
-## boss_plugger_spazzring
-######*/
-
-enum
-{
-    SAY_OOC_1                       = -1230065,
-    SAY_OOC_2                       = -1230066,
-    SAY_OOC_3                       = -1230067,
-    SAY_OOC_4                       = -1230068,
-
-    YELL_STOLEN_1                   = -1230054,
-    YELL_STOLEN_2                   = -1230055,
-    YELL_STOLEN_3                   = -1230056,
-    
-    YELL_AGRRO_1                    = -1230057,
-    YELL_AGRRO_2                    = -1230058,
-    YELL_PICKPOCKETED               = -1230059,
-
-    // spells
-    SPELL_BANISH                    = 8994,
-    SPELL_CURSE_OF_TONGUES          = 13338,
-    SPELL_DEMON_ARMOR               = 13787,
-    SPELL_IMMOLATE                  = 12742,
-    SPELL_SHADOW_BOLT               = 12739,
-    SPELL_PICKPOCKET                = 921,
-};
-
-static const int aRandomSays[] = { SAY_OOC_1, SAY_OOC_2, SAY_OOC_3, SAY_OOC_4 };
-
-static const int aRandomYells[] = { YELL_STOLEN_1, YELL_STOLEN_2, YELL_STOLEN_3 };
-
-struct boss_plugger_spazzringAI : public ScriptedAI
-{
-
-    boss_plugger_spazzringAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
-        Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    uint32 m_uiOocSayTimer;
-    uint32 m_uiDemonArmorTimer;
-    uint32 m_uiBanishTimer;
-    uint32 m_uiImmolateTimer;
-    uint32 m_uiShadowBoltTimer;
-    uint32 m_uiCurseOfTonguesTimer;
-    uint32 m_uiPickpocketTimer;
-
-    void Reset() override
-    {
-        m_uiOocSayTimer          = 10000;
-        m_uiDemonArmorTimer      = 1000;
-        m_uiBanishTimer          = 0;
-        m_uiImmolateTimer        = 0;
-        m_uiShadowBoltTimer      = 0;
-        m_uiCurseOfTonguesTimer  = 0;
-        m_uiPickpocketTimer      = 0;
-    }
-
-    void Aggro(Unit* /*pWho*/) override
-    {
-        m_uiBanishTimer          = urand(9000, 15000);
-        m_uiImmolateTimer        = urand(5000, 8000);
-        m_uiShadowBoltTimer      = 1000;
-        m_uiCurseOfTonguesTimer  = 14000;
-    }
-
-    void JustDied(Unit* pKiller) override
-    {
-        if (!m_pInstance)
-            return;
-
-        // Activate Phalanx and handle patrons faction
-        m_pInstance->SetData(TYPE_PLUGGER, IN_PROGRESS); // The event is set IN_PROGRESS even if Plugger is dead because his death triggers more actions that are part of the event
-        m_pInstance->SetData(EVENT_BAR_PATRONS, PATRON_HOSTILE);
-        if (Unit *pPhalanx = m_creature->GetMap()->GetUnit(m_pInstance->GetData64(DATA_PHALANX)))
-        {
-            if (mob_phalanxAI* pPhalanxAI = dynamic_cast<mob_phalanxAI*> (pPhalanx->AI()))
-                if (pPhalanx->isAlive())
-                    pPhalanxAI->Activate();
-        }
-    }
-
-    void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
-    {
-        if (pCaster->GetTypeId() == TYPEID_PLAYER)
-        {
-            if (pSpell->Id == SPELL_PICKPOCKET)
-                m_uiPickpocketTimer = 5000;
-        }
-    }
-
-    // Players stole one of the ale mug/roasted boar: warn them
-    void WarnThief(Player* pPlayer)
-    {
-        DoScriptText(aRandomYells[urand(0, 2)], m_creature);
-        m_creature->SetFacingToObject(pPlayer);
-    }
-
-    // Players stole too much of the ale mug/roasted boar: attack them
-    void AttackThief(Player* pPlayer)
-    {
-        if (pPlayer)
-        {
-            DoScriptText(urand(0, 1) < 1 ? YELL_AGRRO_1 : YELL_AGRRO_2, m_creature);
-            m_creature->SetFacingToObject(pPlayer);
-            m_creature->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
-            AttackStart(pPlayer);
-        }
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        // Combat check
-        if (m_creature->SelectHostileTarget() && m_creature->getVictim())
-        {
-            if (m_uiBanishTimer < uiDiff)
-            {
-                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1))
-                {
-                    if (DoCastSpellIfCan(pTarget, SPELL_BANISH) == CAST_OK)
-                        m_uiBanishTimer = urand(26, 28) * 1000;
-                }
-            }
-            else
-                m_uiBanishTimer -= uiDiff;
-
-            if (m_uiImmolateTimer < uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_IMMOLATE) == CAST_OK)
-                    m_uiImmolateTimer = 25000;
-            }
-            else
-                m_uiImmolateTimer -= uiDiff;
-
-            if (m_uiShadowBoltTimer < uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHADOW_BOLT) == CAST_OK)
-                    m_uiShadowBoltTimer = urand(36, 63) * 100;
-            }
-            else
-                m_uiShadowBoltTimer -= uiDiff;
-
-            if (m_uiCurseOfTonguesTimer < uiDiff)
-            {
-                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, SPELL_CURSE_OF_TONGUES, SELECT_FLAG_POWER_MANA))
-                {
-                    if (DoCastSpellIfCan(pTarget, SPELL_CURSE_OF_TONGUES) == CAST_OK)
-                        m_uiCurseOfTonguesTimer = urand(19, 31) * 1000;
-                }
-            }
-            else
-                m_uiCurseOfTonguesTimer -= uiDiff;
-
-            DoMeleeAttackIfReady();
-        }
-        // Out of Combat (OOC)
-        else
-        {
-            if (m_uiOocSayTimer)
-            {
-                if (m_uiOocSayTimer <= uiDiff)
-                {
-                    DoScriptText(aRandomSays[urand(0, 3)], m_creature);
-                    m_uiOocSayTimer = urand(30000, 35000);
-                }
-                else
-                    m_uiOocSayTimer -= uiDiff;
-            }
-
-            if (m_uiPickpocketTimer)
-            {
-                if (m_uiPickpocketTimer <= uiDiff)
-                {
-                    DoScriptText(YELL_PICKPOCKETED, m_creature);
-                    m_creature->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
-                    m_uiPickpocketTimer = 0;
-                    m_uiOocSayTimer = 0;
-                }
-                else
-                    m_uiPickpocketTimer -= uiDiff;
-            }
-
-            if (m_uiDemonArmorTimer < uiDiff)
-            {
-                if (DoCastSpellIfCan(m_creature, SPELL_DEMON_ARMOR) == CAST_OK)
-                    m_uiDemonArmorTimer = 5*MINUTE*IN_MILLISECONDS;
-            }
-            else
-                m_uiDemonArmorTimer -= uiDiff;
-        }
-    }
-};
-
-CreatureAI* GetAI_boss_plugger_spazzring(Creature* pCreature)
-{
-    return new boss_plugger_spazzringAI(pCreature);
-}
-
-/*######
-## go_bar_ale_mug
-######*/
-
-bool GOUse_go_bar_ale_mug(Player* pPlayer, GameObject* pGo)
-{
-    if (ScriptedInstance* pInstance = (ScriptedInstance*)pGo->GetInstanceData())
-    {
-        if (pInstance->GetData(TYPE_PLUGGER) == IN_PROGRESS || pInstance->GetData(TYPE_PLUGGER) == DONE) // GOs despawning on use, this check should never be true but this is proper to have it there
-            return false;
-        else
-        {
-            if (Creature* pPlugger = pInstance->GetCreature(pInstance->GetData64(DATA_PLUGGER)))
-            {
-                if (boss_plugger_spazzringAI* pPluggerAI = dynamic_cast<boss_plugger_spazzringAI*>(pPlugger->AI()))
-                {
-                    // Every time we set the event to SPECIAL, the instance script increments the number of stolen mugs/boars, capping at 3
-                    pInstance->SetData(TYPE_PLUGGER, SPECIAL);
-                    // If the cap is reached the instance script changes the type from SPECIAL to IN_PROGRESS
-                    // Plugger then aggroes and engage players, else he just warns them
-                    if (pInstance->GetData(TYPE_PLUGGER) == IN_PROGRESS)
-                        pPluggerAI->AttackThief(pPlayer);
-                    else
-                        pPluggerAI->WarnThief(pPlayer);
-                }
-            }
-        }
-    }
-    return false;
-}
-
-
-/*######
-## quest_jail_break
-######*/
-
-enum
-{
-    SAY_DUGHAL_FREE             = -1230010,
-    SAY_WINDSOR_AGGRO1          = -1230011,
-    SAY_WINDSOR_AGGRO2          = -1230012,
-    SAY_WINDSOR_AGGRO3          = -1230013,
-    SAY_WINDSOR_1               = -1230014,
-    SAY_WINDSOR_4_1             = -1230015,
-    SAY_WINDSOR_4_2             = -1230016,
-    SAY_WINDSOR_4_3             = -1230017,
-    SAY_WINDSOR_6               = -1230018,
-    SAY_WINDSOR_9               = -1230019,
-
-    SAY_REGINALD_WINDSOR_0_1    = -1230020,
-    SAY_REGINALD_WINDSOR_0_2    = -1230021,
-    SAY_REGINALD_WINDSOR_5_1    = -1230022,
-    SAY_REGINALD_WINDSOR_5_2    = -1230023,
-    SAY_REGINALD_WINDSOR_5_3    = -1230040,
-    SAY_REGINALD_WINDSOR_7_1    = -1230024,
-    SAY_REGINALD_WINDSOR_7_2    = -1230025,
-    SAY_REGINALD_WINDSOR_7_3    = -1230026,
-    SAY_REGINALD_WINDSOR_7_4    = -1230037,
-    SAY_REGINALD_WINDSOR_13_1   = -1230027,
-    SAY_REGINALD_WINDSOR_13_2   = -1230028,
-    SAY_REGINALD_WINDSOR_13_3   = -1230029,
-    SAY_REGINALD_WINDSOR_14_1   = -1230030,
-    SAY_REGINALD_WINDSOR_14_2   = -1230031,
-    SAY_REGINALD_WINDSOR_20_1   = -1230032,
-    SAY_REGINALD_WINDSOR_20_2   = -1230033,
-
-    SAY_TOBIAS_FREE_1           = -1230034,
-    SAY_TOBIAS_FREE_2           = -1230039,
-
-    SAY_SHILL_DINGER            = -1230035,
-    SAY_CREST_KILLER            = -1230036,
-    SAY_OGRABISI                = -1230038,
-
-    NPC_REGINALD_WINDSOR        = 9682,
-    NPC_DUGHAL                  = 9022,
-    NPC_TOBIAS                  = 9679,
-
-    SPELL_WINDSORS_FRENZY       = 15167
-};
-
-#define GOSSIP_DUGHAL           "You\'re free, Dughal! Get out of here!"
-#define GOSSIP_TOBIAS           "Get out of here, Tobias, you\'re free!"
-
-struct npc_dughal_stormwingAI : npc_escortAI
-{
-    explicit npc_dughal_stormwingAI(Creature* m_creature) : npc_escortAI(m_creature)
-    {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_dughal_stormwingAI::Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    void Reset() override {}
-
-    void WaypointReached(uint32 uiPointId) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        switch (uiPointId)
-        {
-            case 0:
-                if (Player* pTemp = GetPlayerForEscort())
-                    DoScriptText(SAY_DUGHAL_FREE, m_creature, pTemp);
-                break;
-            case 1:
-                m_pInstance->SetData(TYPE_JAIL_DUGHAL, IN_PROGRESS);
-                break;
-            case 2:
-                m_pInstance->SetData(TYPE_JAIL_DUGHAL, DONE);
-                break;
-        }
-    }
-
-    void UpdateEscortAI(const uint32 uiDiff) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        if (m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == FAIL || 
-            m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == DONE || 
-            m_pInstance->GetData(TYPE_JAIL_DUGHAL) == DONE)
-        {
-            m_creature->SetVisibility(VISIBILITY_OFF);            
-        }
-        else
-             m_creature->SetVisibility(VISIBILITY_ON);
-
-        npc_escortAI::UpdateEscortAI(uiDiff);
-    }
-};
-
-bool GossipHello_npc_dughal_stormwing(Player* pPlayer, Creature* pCreature)
-{
-    ScriptedInstance * pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData());
-
-    if (pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE && pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == IN_PROGRESS)
-        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_DUGHAL, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
-    pPlayer->SEND_GOSSIP_MENU(2846, pCreature->GetObjectGuid());
-
-    return true;
-}
-
-bool GossipSelect_npc_dughal_stormwing(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
-{
-    if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
-    {
-        pPlayer->CLOSE_GOSSIP_MENU();
-        pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-        if (auto pEscortAI = dynamic_cast<npc_dughal_stormwingAI*>(pCreature->AI()))
-            pEscortAI->Start(true, pPlayer->GetObjectGuid());
-    }
-    return true;
-}
-
-CreatureAI* GetAI_npc_dughal_stormwing(Creature* pCreature)
-{
-    return new npc_dughal_stormwingAI(pCreature);
-}
-
-// npc_marshal_reginald_windsor
-struct npc_marshal_reginald_windsorAI : npc_escortAI
-{
-    explicit npc_marshal_reginald_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
-    {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_marshal_reginald_windsorAI::Reset();        
-    }
-
-    ScriptedInstance* m_pInstance;
-    uint32 m_uiWP;
-    bool m_bEncounterStarted;
-
-    void Reset() override
-    {
-        if (!HasEscortState(STATE_ESCORT_PAUSED))
-            m_uiWP = 0;
-        m_bEncounterStarted = false;
-    }
-
-    void DoJailBreakQuestCredit() const
-    {
-        Map::PlayerList const &PlayerList = m_creature->GetMap()->GetPlayers();
-
-        for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
-        {
-            Player* pPlayer = itr->getSource();
-            if (pPlayer && pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE)
-                pPlayer->AreaExploredOrEventHappens(QUEST_JAIL_BREAK);
-        }
-    }
-
-    void WaypointReached(uint32 uiPointId) override
-    {
-        Player* pPlayer = GetPlayerForEscort();
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS || !pPlayer)
-            return;
-
-        m_uiWP = uiPointId;
-        switch (uiPointId)
-        {
-            case 0:
-                DoScriptText(SAY_REGINALD_WINDSOR_0_1, m_creature, pPlayer);
-                m_creature->SetFacingToObject(pPlayer);
-                break;
-            case 1:
-                DoScriptText(SAY_REGINALD_WINDSOR_0_2, m_creature);
-                m_creature->SetFacingToObject(pPlayer);
-                break;
-            case 7:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_JAZ))
-                {
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                    DoScriptText(SAY_REGINALD_WINDSOR_5_1, m_creature);
-                }
-                SetEscortPaused(true);
-                break;
-            case 8:
-                DoScriptText(SAY_REGINALD_WINDSOR_5_2, m_creature);
-                break;
-            case 11:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_SHILL))
-                {
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                    DoScriptText(SAY_REGINALD_WINDSOR_7_1, m_creature);
-                }
-                SetEscortPaused(true);
-                break;
-            case 12:
-                DoScriptText(SAY_REGINALD_WINDSOR_7_2, m_creature);
-                break;
-            case 13:
-                DoScriptText(SAY_REGINALD_WINDSOR_7_3, m_creature);
-                break;
-            case 20:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_CREST))
-                {
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                    DoScriptText(SAY_REGINALD_WINDSOR_13_1, m_creature);
-                }
-                SetEscortPaused(true);
-                break;
-            case 21:
-                DoScriptText(SAY_REGINALD_WINDSOR_13_3, m_creature);
-                break;
-            case 23:
-                {
-                    if (!m_pInstance->GetData(GO_JAIL_DOOR_TOBIAS))
-                    {
-                        m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                        DoScriptText(SAY_REGINALD_WINDSOR_14_1, m_creature);
-                    }
-
-                    if (Creature* pTobias = m_creature->FindNearestCreature(NPC_TOBIAS, 200.0f))
-                        pTobias->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-                    SetEscortPaused(true);                    
-                }
-                break;
-            case 24:
-                DoScriptText(SAY_REGINALD_WINDSOR_14_2, m_creature, pPlayer);
-                break;
-            case 31:
-                DoScriptText(SAY_REGINALD_WINDSOR_20_1, m_creature);
-                break;
-            case 32:
-                DoScriptText(SAY_REGINALD_WINDSOR_20_2, m_creature);
-                Map::PlayerList const &PlayerList = m_creature->GetMap()->GetPlayers();
-
-                for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
-                {
-                    Player* m_pPlayer = itr->getSource();
-                    if (m_pPlayer && m_pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE)
-                        m_pPlayer->AreaExploredOrEventHappens(QUEST_JAIL_BREAK);
-                }
-                m_pInstance->SetData(TYPE_QUEST_JAIL_BREAK, DONE);
-                break;
-        }
-    }
-
-    void EnterCombat(Unit* pWho) override
-    {
-        m_creature->CastSpell(m_creature, SPELL_WINDSORS_FRENZY, true);
-
-        switch (pWho->GetEntry())
-        {
-            case NPC_OGRABISI:
-            case NPC_JAZ:
-                DoScriptText(SAY_REGINALD_WINDSOR_5_3, m_creature); break;
-            case NPC_CREST: 
-                DoScriptText(SAY_REGINALD_WINDSOR_13_2, m_creature); break;
-            case NPC_SHILL: 
-                DoScriptText(SAY_REGINALD_WINDSOR_7_4, m_creature); break;
-        }
-
-        npc_escortAI::EnterCombat(pWho);
-    }
-
-    void EnterEvadeMode() override
-    {
-        m_creature->RemoveAurasDueToSpell(SPELL_WINDSORS_FRENZY);
-        npc_escortAI::EnterEvadeMode();
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
-    {
-        m_pInstance->SetData(TYPE_QUEST_JAIL_BREAK, FAIL);
-    }
-
-    void UpdateEscortAI(const uint32 uiDiff) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        switch (m_uiWP)
-        {
-            case 7:
-            {
-                Creature* pJaz = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_JAZ));
-                Creature* pOgrabisi = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_OGRABISI));
-                if (pJaz && pOgrabisi && pJaz->isAlive() && pOgrabisi->isAlive() && m_pInstance->GetData(GO_JAIL_DOOR_JAZ) && !m_bEncounterStarted)
-                {
-                    pJaz->setFaction(54);
-                    pJaz->AI()->AttackStart(m_creature);
-                    pOgrabisi->setFaction(54);
-                    pOgrabisi->AI()->AttackStart(m_creature);
-                    m_pInstance->SetData(GO_JAIL_DOOR_JAZ, false);
-                    DoScriptText(SAY_OGRABISI, pOgrabisi);
-                    m_bEncounterStarted = true;
-                }
-                if (pJaz && pOgrabisi && pJaz->isDead() && pOgrabisi->isDead())
-                {
-                    SetEscortPaused(false);
-                    m_bEncounterStarted = false;
-                }
-                break;
-            }
-            case 11:
-            {
-                Creature* pShill = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_SHILL));
-                if (pShill && pShill->isAlive() && m_pInstance->GetData(GO_JAIL_DOOR_SHILL) && !m_bEncounterStarted)
-                {
-                    pShill->setFaction(54);
-                    pShill->AI()->AttackStart(m_creature);
-                    m_pInstance->SetData(GO_JAIL_DOOR_SHILL, false);
-                    DoScriptText(SAY_SHILL_DINGER, pShill);
-                    m_bEncounterStarted = true;
-                }
-                if (pShill && pShill->isDead())
-                {
-                    SetEscortPaused(false);
-                    m_bEncounterStarted = false;
-                }
-                break;
-            }
-            case 20:
-            {
-                Creature* pCrest = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_CREST));
-                if (pCrest && pCrest->isAlive() && m_pInstance->GetData(GO_JAIL_DOOR_CREST) && !m_bEncounterStarted)
-                {
-                    pCrest->setFaction(54);
-                    pCrest->AI()->AttackStart(m_creature);
-                    m_pInstance->SetData(GO_JAIL_DOOR_CREST, false);
-                    m_bEncounterStarted = true;
-                }
-                if (pCrest && pCrest->isDead())
-                {
-                    SetEscortPaused(false);
-                    m_bEncounterStarted = false;
-                }
-                break;
-            }
-        }
-
-        if (m_pInstance->GetData(TYPE_JAIL_TOBIAS) == IN_PROGRESS) 
-            SetEscortPaused(false);
-
-        npc_escortAI::UpdateEscortAI(uiDiff);
-    }
-};
-
-CreatureAI* GetAI_npc_marshal_reginald_windsor(Creature* pCreature)
-{
-    return new npc_marshal_reginald_windsorAI(pCreature);
-}
-
-// npc_marshal_windsor
-struct npc_marshal_windsorAI : npc_escortAI
-{
-    explicit npc_marshal_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
-    {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_marshal_windsorAI::Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-    uint32 m_uiWP;
-    bool m_uiSaidJustOnce;
-
-    void Reset() override
-    {
-        if (!HasEscortState(STATE_ESCORT_PAUSED))
-            m_uiWP = 0;
-        m_uiSaidJustOnce = false;
-    }
-
-    void WaypointReached(uint32 uiPointId) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        m_uiWP = uiPointId;
-        switch (uiPointId)
-        {
-            case 1:
-                DoScriptText(SAY_WINDSOR_1, m_creature);
-                break;
-            case 7:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_DUGHAL))
-                {
-                    if (Player* pTemp = GetPlayerForEscort())
-                        DoScriptText(SAY_WINDSOR_4_1, m_creature, pTemp);
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                }
-
-                if (Creature* pDughal = m_creature->FindNearestCreature(NPC_DUGHAL, 200.0f))
-                    pDughal->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-                SetEscortPaused(true);
-                break;
-            case 12:
-                if (Player* pTemp = GetPlayerForEscort())
-                    DoScriptText(SAY_WINDSOR_6, m_creature, pTemp);
-                m_pInstance->SetData(TYPE_JAIL_SUPPLY_ROOM, IN_PROGRESS);
-                break;
-            case 13:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_SUPPLY))
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_USESTANDING);
-                break;
-            case 14:
-                if (!m_pInstance->GetData(GO_JAIL_DOOR_SUPPLY))
-                    m_pInstance->DoUseDoorOrButton(m_pInstance->GetData64(GO_JAIL_DOOR_SUPPLY));
-                break;
-            case 16:
-                DoScriptText(SAY_WINDSOR_9, m_creature);
-                break;
-            case 17:
-                m_creature->HandleEmoteCommand(EMOTE_STATE_USESTANDING);
-                break;
-            case 18:
-                if (GameObject* pGo = m_pInstance->instance->GetGameObject(m_pInstance->GetData64(GO_JAIL_SUPPLY_CRATE)))
-                    pGo->Delete();
-                break;
-            case 19:
-                m_creature->SetVisibility(VISIBILITY_OFF);
-                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                if (Creature* pTemp = m_creature->SummonCreature(NPC_REGINALD_WINDSOR, 
-                    m_creature->GetPositionX(), 
-                    m_creature->GetPositionY(), 
-                    m_creature->GetPositionZ(), 3.600f, TEMPSUMMON_DEAD_DESPAWN, 0))
-                {
-                    if (auto pEscortAI = dynamic_cast<npc_marshal_reginald_windsorAI*>(pTemp->AI()))
-                    {
-                        pTemp->setFaction(11);
-                        m_pInstance->SetData(TYPE_JAIL_SUPPLY_ROOM, DONE);
-                        pEscortAI->Start(false, GetPlayerForEscort()->GetObjectGuid());
-                    }                    
-                }                    
-                break;
-        }
-    }
-
-    void Aggro(Unit* /*pWho*/) override
-    {
-        Player* pPlayer = GetPlayerForEscort();
-        if (!pPlayer)
-            return;
-
-        switch (urand(0, 2))
-        {
-            case 0: DoScriptText(SAY_WINDSOR_AGGRO1, m_creature); break;
-            case 1: DoScriptText(SAY_WINDSOR_AGGRO2, m_creature); break;
-            case 2: DoScriptText(SAY_WINDSOR_AGGRO3, m_creature, pPlayer); break;
-        }
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
-    {
-        m_pInstance->SetData(TYPE_QUEST_JAIL_BREAK, FAIL);
-    }
-
-    void UpdateEscortAI(const uint32 uiDiff) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        if (m_pInstance->GetData(GO_JAIL_DOOR_DUGHAL) && m_pInstance->GetData(TYPE_JAIL_DUGHAL) == NOT_STARTED && m_uiWP == 7)
-        {
-            DoScriptText(SAY_WINDSOR_4_2, m_creature);
-            m_pInstance->SetData(GO_JAIL_DOOR_DUGHAL, false);
-        }
-
-        if (m_pInstance->GetData(TYPE_JAIL_DUGHAL) == IN_PROGRESS && m_uiSaidJustOnce == false && m_uiWP == 7)
-        {
-            SetEscortPaused(false);
-            m_uiSaidJustOnce = true;
-            if (Player* pTemp = GetPlayerForEscort())
-                DoScriptText(SAY_WINDSOR_4_3, m_creature, pTemp);
-        }
-
-        npc_escortAI::UpdateEscortAI(uiDiff);
-    }
-
-};
-
-bool QuestAccept_npc_marshal_windsor(Player* pPlayer, Creature* pCreature, const Quest* pQuest)
-{
-    if (pQuest->GetQuestId() == QUEST_JAIL_BREAK)
-    {
-        if (auto pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData()))
-        {
-            if (pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == NOT_STARTED)
-            {
-                pInstance->SetData(TYPE_QUEST_JAIL_BREAK, IN_PROGRESS);
-                pCreature->setFaction(11);
-
-                if (auto pEscortAI = dynamic_cast<npc_marshal_windsorAI*>(pCreature->AI()))
-                    pEscortAI->Start(false, pPlayer->GetObjectGuid(), pQuest);
-            }
-        }
-    }
-
-    return true;
-}
-
-CreatureAI* GetAI_npc_marshal_windsor(Creature* pCreature)
-{
-    return new npc_marshal_windsorAI(pCreature);
-}
-
-// npc_tobias_seecher
-struct npc_tobias_seecherAI : npc_escortAI
-{
-    explicit npc_tobias_seecherAI(Creature* m_creature) : npc_escortAI(m_creature)
-    {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_tobias_seecherAI::Reset();
-    }
-
-    ScriptedInstance* m_pInstance;
-
-    void Reset() override {}
-
-    void WaypointReached(uint32 uiPointId) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        switch (uiPointId)
-        {
-            case 0:
-                switch (urand(0, 1))
-                {
-                    case 0: DoScriptText(SAY_TOBIAS_FREE_1, m_creature); break;
-                    case 1: DoScriptText(SAY_TOBIAS_FREE_2, m_creature); break;
-                }
-            case 2:
-                m_pInstance->SetData(TYPE_JAIL_TOBIAS, IN_PROGRESS);
-                break;
-            case 4:
-                m_pInstance->SetData(TYPE_JAIL_TOBIAS, DONE);
-                break;
-        }
-    }
-
-    void UpdateEscortAI(const uint32 uiDiff) override
-    {
-        if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
-            return;
-
-        if (m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == FAIL || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == DONE || m_pInstance->GetData(TYPE_JAIL_TOBIAS) == DONE)
-            m_creature->SetVisibility(VISIBILITY_OFF);
-        else
-             m_creature->SetVisibility(VISIBILITY_ON);
-
-        npc_escortAI::UpdateEscortAI(uiDiff);
-    }
-};
-
-bool GossipSelect_npc_tobias_seecher(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
-{
-    if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
-    {
-        pPlayer->CLOSE_GOSSIP_MENU();
-        pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-        if (auto pEscortAI = dynamic_cast<npc_tobias_seecherAI*>(pCreature->AI()))
-            pEscortAI->Start(true, pPlayer->GetObjectGuid());
-    }
-
-    return true;
-}
-
-bool GossipHello_npc_tobias_seecher(Player* pPlayer, Creature* pCreature)
-{
-    auto pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData());
-
-    if (pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE && pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == IN_PROGRESS)
-        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TOBIAS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
-    pPlayer->SEND_GOSSIP_MENU(2847, pCreature->GetObjectGuid());
-
-    return true;
-}
-
-CreatureAI* GetAI_npc_tobias_seecher(Creature* pCreature)
-{
-    return new npc_tobias_seecherAI(pCreature);
-}
-
-/*
- *
- */
-
-struct go_cell_doorAI : GameObjectAI
-{
-    explicit go_cell_doorAI(GameObject* pGo) : GameObjectAI(pGo)
-    {
-
-    }
-
-    bool OnUse(Unit* /*pCaster*/) override
-    {
-        auto pInstance = static_cast<ScriptedInstance*>(me->GetInstanceData());
-
-        if (!pInstance)
-            return true;
-
-        pInstance->SetData(me->GetEntry(), true);
-        Creature* pTemp = GetClosestCreatureWithEntry(me, NPC_CREST, 50.0f);
-
-        if (me->GetEntry() == GO_JAIL_DOOR_CREST && pTemp)
-            DoScriptText(SAY_CREST_KILLER, pTemp);
-
-        return false;
-    }
-};
-
-GameObjectAI* GetAI_go_cell_door(GameObject* pGo)
-{
-    return new go_cell_doorAI(pGo);
-}
-
-/*
- *
- */
 
 void AddSC_blackrock_depths()
 {
@@ -2726,74 +1639,22 @@ void AddSC_blackrock_depths()
     newscript->GetAI = &GetAI_npc_golem_lord_argelmach;
     newscript->RegisterSelf();
 
+    // Elysium : added by Ivina
     newscript = new Script;
     newscript->Name = "npc_GorShak";
     newscript->GetAI = &GetAI_npc_GorShak;
     newscript->pQuestAcceptNPC = &QuestAccept_npc_GorShak;
-    newscript->RegisterSelf();
+    newscript->RegisterSelf();//FIN
 
+    //Alita
     newscript = new Script;
     newscript->Name = "npc_ironhand_guardian";
     newscript->GetAI = &GetAI_npc_ironhand_guardian;
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "at_shadowforge_bridge";
-    newscript->pAreaTrigger = &AreaTrigger_at_shadowforge_bridge;
-    newscript->RegisterSelf();
-
-    // The Grim Guzzler
-    newscript = new Script;
-    newscript->Name = "npc_mistress_nagmara";
-    newscript->GetAI = &GetAI_npc_mistress_nagmara;
-    newscript->pGossipHello = &GossipHello_npc_mistress_nagmara;
-    newscript->pGossipSelect = &GossipSelect_npc_mistress_nagmara;
-    newscript->pQuestRewardedNPC = &QuestRewarded_npc_mistress_nagmara;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_hurley_blackbreath";
-    newscript->GetAI = &GetAI_npc_hurley_blackbreath;
-	newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "boss_plugger_spazzring";
-    newscript->GetAI = &GetAI_boss_plugger_spazzring;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_bar_ale_mug";
-    newscript->pGOHello = &GOUse_go_bar_ale_mug;
-    newscript->RegisterSelf();
-
-    // Jail Break!
-    newscript = new Script;
-    newscript->Name = "npc_dughal_stormwing";
-    newscript->GetAI = &GetAI_npc_dughal_stormwing;
-    newscript->pGossipHello =  &GossipHello_npc_dughal_stormwing;
-    newscript->pGossipSelect = &GossipSelect_npc_dughal_stormwing;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_marshal_reginald_windsor";
-    newscript->GetAI = &GetAI_npc_marshal_reginald_windsor;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_marshal_windsor";
-    newscript->GetAI = &GetAI_npc_marshal_windsor;
-    newscript->pQuestAcceptNPC = &QuestAccept_npc_marshal_windsor;
-    newscript->RegisterSelf();    
-
-    newscript = new Script;
-    newscript->Name = "npc_tobias_seecher";
-    newscript->GetAI = &GetAI_npc_tobias_seecher;
-    newscript->pGossipHello =  &GossipHello_npc_tobias_seecher;
-    newscript->pGossipSelect = &GossipSelect_npc_tobias_seecher;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_cell_door";
-    newscript->GOGetAI = &GetAI_go_cell_door;
+    newscript->Name = "npc_nagmara";
+    newscript->GetAI = &GetAI_npc_nagmara;
+    newscript->pGossipSelect = &GossipSelect_npc_nagmara;
     newscript->RegisterSelf();
 }

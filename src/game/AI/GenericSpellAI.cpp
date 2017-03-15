@@ -517,7 +517,7 @@ void LoadGenericAISpellsData()
 {
     GenericSpellMobData.clear();
     QueryResult* pResult = WorldDatabase.PQuery("SELECT entry, spell, minCD, maxCD, target FROM creature_spells");
-    sLog.outString("Nostalrius: Loading 'creature_spells'");
+    sLog.outString("Elysium: Loading 'creature_spells'");
 
     if (pResult)
     {

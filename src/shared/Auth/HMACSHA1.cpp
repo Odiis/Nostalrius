@@ -32,12 +32,7 @@ HMACSHA1::~HMACSHA1()
 
 void HMACSHA1::UpdateBigNumber(BigNumber *bn)
 {
-    UpdateData(bn->AsByteArray());
-}
-
-void HMACSHA1::UpdateData(const std::vector<uint8>& data)
-{
-    HMAC_Update(&m_ctx, data.data(), data.size());
+    UpdateData(bn->AsByteArray(), bn->GetNumBytes());
 }
 
 void HMACSHA1::UpdateData(const uint8 *data, int length)
@@ -59,8 +54,7 @@ void HMACSHA1::Finalize()
 
 uint8 *HMACSHA1::ComputeHash(BigNumber *bn)
 {
-    auto byteArray = bn->AsByteArray();
-    HMAC_Update(&m_ctx, byteArray.data(), byteArray.size());
+    HMAC_Update(&m_ctx, bn->AsByteArray(), bn->GetNumBytes());
     Finalize();
     return (uint8*)m_digest;
 }

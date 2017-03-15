@@ -108,8 +108,7 @@ enum eScriptCommand
 enum SummonCreatureFlags
 {
     SUMMON_CREATURE_ACTIVE      = 0x1,
-    SUMMON_CREATURE_UNIQUE      = 0x2,                      // not actually unique, just checks for same entry in certain range
-    SUMMON_CREATURE_UNIQUE_TEMP = 0x4,                      // same as 0x2 but check for TempSummon only creatures
+    SUMMON_CREATURE_UNIQUE      = 0x2,
 };
 
 struct ScriptInfo
@@ -190,8 +189,8 @@ struct ScriptInfo
         {
             uint32 creatureEntry;                           // datalong
             uint32 despawnDelay;                            // datalong2
-            uint32 uniqueLimit;                             // datalong3
-            uint32 uniqueDistance;                          // datalong4
+            uint32 unused1;                                 // datalong3
+            uint32 unused2;                                 // datalong4
             uint32 flags;                                   // data_flags
         } summonCreature;
 
@@ -458,14 +457,15 @@ struct TSpellSummary
 struct Script
 {
     Script() :
-        Name(""), pGossipHello(nullptr), pGOGossipHello(nullptr), pQuestAcceptNPC(nullptr),
-        pGossipSelect(nullptr), pGOGossipSelect(nullptr),
-        pGossipSelectWithCode(nullptr), pGOGossipSelectWithCode(nullptr), pQuestComplete(nullptr),
-        pNPCDialogStatus(nullptr), pGODialogStatus(nullptr), pQuestRewardedNPC(nullptr), pQuestRewardedGO(nullptr), pGOHello(nullptr), pAreaTrigger(nullptr),
-        pProcessEventId(nullptr), pItemQuestAccept(nullptr), pGOQuestAccept(nullptr),
-        pItemUse(nullptr), pEffectDummyCreature(nullptr), pEffectDummyGameObj(nullptr), pEffectDummyItem(nullptr),
-        pEffectAuraDummy(nullptr), GOOpen(nullptr),
-        GOGetAI(nullptr), GetAI(nullptr), GetInstanceData(nullptr)
+        pGossipHello(NULL), pGOGossipHello(NULL), pGossipSelect(NULL), pGOGossipSelect(NULL),
+        pGossipSelectWithCode(NULL), pGOGossipSelectWithCode(NULL),
+        pQuestComplete(NULL), pNPCDialogStatus(NULL), pGODialogStatus(NULL),
+        pQuestRewardedNPC(NULL), pQuestRewardedGO(NULL), pGOHello(NULL), pAreaTrigger(NULL), pProcessEventId(NULL), pItemQuestAccept(NULL),
+        pQuestAcceptNPC(NULL), pGOQuestAccept(NULL), pItemUse(NULL),
+        pEffectDummyCreature(NULL), pEffectDummyGameObj(NULL), pEffectDummyItem(NULL), pEffectAuraDummy(NULL),
+        GetAI(NULL), GetInstanceData(NULL),
+        // Elysium
+        GOOpen(NULL), GOGetAI(NULL), Name("")
     {}
 
     std::string Name;
@@ -496,6 +496,7 @@ struct Script
     bool (*pEffectDummyGameObj      )(Unit*, uint32, SpellEffectIndex, GameObject*);
     bool (*pEffectDummyItem         )(Unit*, uint32, SpellEffectIndex, Item*);
     bool (*pEffectAuraDummy         )(const Aura*, bool);
+    // Elysium
     bool (*GOOpen                   )(Player* pUser, GameObject* gobj);
     GameObjectAI* (*GOGetAI         )(GameObject* pGo);
 
@@ -550,7 +551,7 @@ class ScriptMgr
             TextDataMap::const_iterator itr = m_mTextDataMap.find(uiTextId);
 
             if (itr == m_mTextDataMap.end())
-                return nullptr;
+                return NULL;
 
             return &itr->second;
         }
@@ -560,7 +561,7 @@ class ScriptMgr
             EscortDataMap::const_iterator itr = m_mEscortDataMap.find(creature_id);
 
             if (itr == m_mEscortDataMap.end())
-                return nullptr;
+                return NULL;
 
             return &itr->second;
         }
@@ -569,7 +570,7 @@ class ScriptMgr
         {
             static std::vector<ScriptPointMove> vEmpty;
 
-            auto itr = m_mPointMoveMap.find(uiCreatureEntry);
+            PointMoveMap::const_iterator itr = m_mPointMoveMap.find(uiCreatureEntry);
 
             if (itr == m_mPointMoveMap.end())
                 return vEmpty;
@@ -637,7 +638,7 @@ class ScriptMgr
 };
 
 //Generic scripting text function
-void DoScriptText(int32 textEntry, WorldObject* pSource, Unit* target = nullptr);
+void DoScriptText(int32 textEntry, WorldObject* pSource, Unit* target = NULL);
 
 #define sScriptMgr MaNGOS::Singleton<ScriptMgr>::Instance()
 

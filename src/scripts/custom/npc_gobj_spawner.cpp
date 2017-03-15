@@ -53,7 +53,7 @@ CreatureAI* GetAI_npc_gobj_spawner(Creature* pCreature)
     return new npc_gobj_spawnerAI(pCreature);
 }
 
-void AddSC_event_nostalrius()
+void AddSC_event_elysium()
 {
     Script* pNewScript;
     pNewScript = new Script;

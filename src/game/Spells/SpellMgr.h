@@ -40,7 +40,7 @@ class Spell;
 class Unit;
 struct SpellModifier;
 
-// Nostalrius : Champs 'Custom' de SpellEntry
+// Elysium : Champs 'Custom' de SpellEntry
 enum
 {
     SPELL_CUSTOM_NONE                       = 0x000,
@@ -51,7 +51,6 @@ enum
     SPELL_CUSTOM_POSITIVE                   = 0x004,
     SPELL_CUSTOM_CHAN_NO_DIST_LIMIT         = 0x008,
     SPELL_CUSTOM_FIXED_DAMAGE               = 0x010,
-    SPELL_CUSTOM_IGNORE_ARMOR               = 0x020
 };
 
 // only used in code
@@ -96,7 +95,6 @@ inline float GetSpellRadius(SpellRadiusEntry const *radius) { return (radius ? r
 uint32 GetSpellCastTime(SpellEntry const* spellInfo, Spell* spell = NULL);
 uint32 GetSpellCastTimeForBonus( SpellEntry const *spellProto, DamageEffectType damagetype );
 float CalculateDefaultCoefficient(SpellEntry const *spellProto, DamageEffectType const damagetype);
-float CalculateCustomCoefficient(SpellEntry const *spellProto,  Unit const* caster, DamageEffectType const damageType, float coeff, Spell* spell);
 inline float GetSpellMinRange(SpellRangeEntry const *range) { return (range ? range->minRange : 0); }
 inline float GetSpellMaxRange(SpellRangeEntry const *range) { return (range ? range->maxRange : 0); }
 inline uint32 GetSpellRecoveryTime(SpellEntry const *spellInfo) { return spellInfo->RecoveryTime > spellInfo->CategoryRecoveryTime ? spellInfo->RecoveryTime : spellInfo->CategoryRecoveryTime; }
@@ -186,13 +184,13 @@ bool IsNoStackAuraDueToAura(uint32 spellId_1, uint32 spellId_2);
 inline bool IsSealSpell(SpellEntry const *spellInfo)
 {
     //Collection of all the seal family flags. No other paladin spell has any of those.
-    return spellInfo->IsFitToFamily<SPELLFAMILY_PALADIN, CF_PALADIN_SEAL_OF_THE_CRUSADER, CF_PALADIN_SEAL_OF_COMMAND, CF_PALADIN_SEALS>();
+    return spellInfo->IsFitToFamily(SPELLFAMILY_PALADIN, UI64LIT(0x000000000A000200));
 }
 
 inline bool IsElementalShield(SpellEntry const *spellInfo)
 {
     // family flags 10 (Lightning), 42 (Earth), 37 (Water), proc shield from T2 8 pieces bonus
-    return spellInfo->IsFitToFamilyMask<CF_SHAMAN_LIGHTNING_SHIELD>() || spellInfo->Id == 23552;
+    return (spellInfo->SpellFamilyFlags & UI64LIT(0x00000000400)) || spellInfo->Id == 23552;
 }
 
 int32 CompareAuraRanks(uint32 spellId_1, uint32 spellId_2);
@@ -227,7 +225,7 @@ inline bool IsDeathOnlySpell(SpellEntry const *spellInfo)
 
 inline bool IsDeathPersistentSpell(SpellEntry const *spellInfo)
 {
-    return spellInfo->HasAttribute(SPELL_ATTR_EX3_DEATH_PERSISTENT);
+    return (spellInfo->AttributesEx3 & SPELL_ATTR_EX3_DEATH_PERSISTENT) || (spellInfo->Attributes & 0x80);
 }
 
 inline bool IsNonCombatSpell(SpellEntry const *spellInfo)
@@ -433,7 +431,7 @@ inline bool IsNeedCastSpellAtFormApply(SpellEntry const* spellInfo, ShapeshiftFo
 inline bool IsReflectableSpell(SpellEntry const* spellInfo)
 {
     return spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && !spellInfo->HasAttribute(SPELL_ATTR_IS_ABILITY)
-      && !spellInfo->HasAttribute(SPELL_ATTR_EX_CANT_BE_REFLECTED) && !spellInfo->HasAttribute(SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+      && !spellInfo->HasAttribute(SPELL_ATTR_EX_NEGATIVE) && !spellInfo->HasAttribute(SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
       && !spellInfo->HasAttribute(SPELL_ATTR_PASSIVE) && !IsPositiveSpell(spellInfo);
 }
 
@@ -527,8 +525,8 @@ enum ProcFlags
     PROC_FLAG_TAKEN_OFFHAND_HIT             = 0x00400000,   // 22 Taken off-hand melee attacks(not used)
     PROC_FLAG_SUCCESSFUL_OFFHAND_HIT        = 0x00800000,   // 23 Successful off-hand melee attacks
 
-    PROC_FLAG_SUCCESSFUL_AOE                = 0x01000000,   // 24 Nostalrius: AoE casted. Triggered only once, whatever the number of targets.
-    PROC_FLAG_SUCCESSFUL_SPELL_CAST         = 0x02000000    // 25 Nostalrius: Spell cast successful (procs only once for AoE)
+    PROC_FLAG_SUCCESSFUL_AOE                = 0x01000000,   // 24 Elysium: AoE casted. Triggered only once, whatever the number of targets.
+    PROC_FLAG_SUCCESSFUL_SPELL_CAST         = 0x02000000    // 25 Elysium: Spell cast successful (procs only once for AoE)
 };
 
 #define MELEE_BASED_TRIGGER_MASK (PROC_FLAG_SUCCESSFUL_MELEE_HIT        | \
@@ -905,7 +903,7 @@ class SpellMgr
             return rule;
         }
 
-        // Fin Spell Groups - ameliorations Nostalrius.
+        // Fin Spell Groups - ameliorations Elysium.
         // Gestion de "Un sort plus puissant est deja actif"
         bool ListMorePowerfullSpells(uint32 spellId, std::list<uint32>&) const;
         bool ListLessPowerfullSpells(uint32 spellId, std::list<uint32>&) const;

@@ -164,6 +164,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature &creature)
 
     if (m_isArrivalDone)
     {
+        // Ivina < Elysium > : added repeat option
         if ((i_currentNode == i_path->size() - 1) && !m_repeating) // If that's our last waypoint
         {
             creature.SetHomePosition(i_path->at(i_currentNode).x, i_path->at(i_currentNode).y, i_path->at(i_currentNode).z, i_path->at(i_currentNode).orientation);

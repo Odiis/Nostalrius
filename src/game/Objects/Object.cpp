@@ -49,8 +49,6 @@
 #include "Anticheat.h"
 
 #include "packet_builder.h"
-#include "MovementBroadcaster.h"
-#include "PlayerBroadcaster.h"
 
 ////////////////////////////////////////////////////////////
 // Methods of class MovementInfo
@@ -101,7 +99,7 @@ void MovementInfo::Read(ByteBuffer &data)
 
 void MovementInfo::CorrectData(Unit* mover)
 {
-    // Nostalrius: remove incompatible flags, causing client freezes for example
+    // Elysium: remove incompatible flags, causing client freezes for example
 #define REMOVE_VIOLATING_FLAGS(check, maskToRemove) \
         if (check) \
             RemoveMovementFlag(MovementFlags(maskToRemove));
@@ -179,8 +177,8 @@ Object::Object() : m_updateFlag(0)
     m_objectTypeId      = TYPEID_OBJECT;
     m_objectType        = TYPEMASK_OBJECT;
 
-    m_uint32Values      = nullptr;
-    m_uint32Values_mirror = nullptr;
+    m_uint32Values      = 0;
+    m_uint32Values_mirror = 0;
     m_valuesCount       = 0;
 
     m_inWorld           = false;
@@ -506,12 +504,6 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
             updateMask->SetBit(GAMEOBJECT_ANIMPROGRESS);
         }
     }
-    if (isType(TYPEMASK_GAMEOBJECT))
-    {
-        target->m_visibleGobjsQuestAct_lock.acquire();
-        target->m_visibleGobjQuestActivated[GetObjectGuid()] = IsActivateToQuest;
-        target->m_visibleGobjsQuestAct_lock.release();
-    }
 
     MANGOS_ASSERT(updateMask && updateMask->GetCount() == m_valuesCount);
 
@@ -649,8 +641,8 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
                 }
                 else if (target == this && (index == PLAYER_TRACK_CREATURES || index == PLAYER_TRACK_RESOURCES))
                 {
-                    //if (WardenInterface* base = target->GetSession()->GetWarden())
-                        //base->TrackingUpdateSent(index, m_uint32Values[index]);
+                    if (WardenInterface* base = target->GetSession()->GetWarden())
+                        base->TrackingUpdateSent(index, m_uint32Values[index]);
                     *data << m_uint32Values[index];
                 }
                 else
@@ -766,7 +758,7 @@ void Object::_LoadIntoDataField(std::string const& data, uint32 startOffset, uin
 
     for (uint32 index = 0; index < count; ++index)
     {
-        m_uint32Values[startOffset + index] = strtoul(tokens[index], nullptr, 10);
+        m_uint32Values[startOffset + index] = strtoul(tokens[index], NULL, 10);
         m_uint32Values_mirror[startOffset + index] = m_uint32Values[startOffset + index] + 1;
     }
 }
@@ -1001,7 +993,7 @@ void Object::RemoveShortFlag(uint16 index, bool highpart, uint16 oldFlag)
 
 bool Object::PrintIndexError(uint32 index, bool set) const
 {
-    sLog.nostalrius("%s nonexistent value field: %u (count: %u) for object typeid: %u type mask: %u",
+    sLog.elysium("%s nonexistent value field: %u (count: %u) for object typeid: %u type mask: %u",
                     (set ? "set value to" : "get value from"), index, m_valuesCount, GetTypeId(), m_objectType);
 
     // ASSERT must fail after function call
@@ -1082,12 +1074,12 @@ void Object::ExecuteDelayedActions()
 }
 
 WorldObject::WorldObject()
-    : m_isActiveObject(false), m_currMap(nullptr), m_mapId(0), m_InstanceId(0)
+    : m_isActiveObject(false), m_currMap(NULL), m_mapId(0), m_InstanceId(0)
 {
     // Phasing
     worldMask = WORLD_DEFAULT_OBJECT;
-    m_zoneScript = nullptr;
-    m_transport = nullptr;
+    m_zoneScript = NULL;
+    m_transport = NULL;
     m_movementInfo.time = WorldTimer::getMSTime();
 }
 
@@ -1438,7 +1430,8 @@ bool WorldObject::HasInArc(const float arcangle, const float x, const float y) c
     return ((angle >= lborder) && (angle <= rborder));
 }
 
-bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj, float offset) const
+// Elysium: 'obj' peut etre NULL.
+bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj) const
 {
     // always have self in arc
     if (obj == this)
@@ -1450,7 +1443,7 @@ bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj, float o
     arc = MapManager::NormalizeOrientation(arc);
 
     float angle = GetAngle(obj);
-    angle -= m_position.o + offset;
+    angle -= m_position.o;
 
     // move angle to range -pi ... +pi
     angle = MapManager::NormalizeOrientation(angle);
@@ -1624,7 +1617,7 @@ namespace MaNGOS
 class MonsterChatBuilderFormat
 {
 public:
-    MonsterChatBuilderFormat(WorldObject const& obj, ChatMsg msgtype, int32 textId, uint32 language, Unit* target, va_list* vaList = nullptr)
+    MonsterChatBuilderFormat(WorldObject const& obj, ChatMsg msgtype, int32 textId, uint32 language, Unit* target, va_list* vaList = NULL)
         : i_object(obj), i_msgtype(msgtype), i_textId(textId), i_language(language), i_target(target), i_vaList(vaList) {}
     void operator()(WorldPacket& data, int32 loc_idx)
     {
@@ -1647,12 +1640,12 @@ private:
 };
 }
 
-void WorldObject::PMonsterSay(int32 textId, ...) const
+void WorldObject::PMonsterSay(int32 textId, ...)
 {
     va_list ap;
     va_start(ap, textId);
     float range = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY);
-    MaNGOS::MonsterChatBuilderFormat say_build(*this, CHAT_MSG_MONSTER_SAY, textId, 0, nullptr, &ap);
+    MaNGOS::MonsterChatBuilderFormat say_build(*this, CHAT_MSG_MONSTER_SAY, textId, 0, NULL, &ap);
     MaNGOS::LocalizedPacketDo<MaNGOS::MonsterChatBuilderFormat> say_do(say_build);
     MaNGOS::CameraDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::MonsterChatBuilderFormat> > say_worker(this, range, say_do);
     Cell::VisitWorldObjects(this, say_worker, range);
@@ -1669,12 +1662,12 @@ void WorldObject::PMonsterSay(const char* text, ...)
     MonsterSay(str);
 }
 
-void WorldObject::PMonsterYell(int32 textId, ...) const
+void WorldObject::PMonsterYell(int32 textId, ...)
 {
     va_list ap;
     va_start(ap, textId);
     float range = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_YELL);
-    MaNGOS::MonsterChatBuilderFormat say_build(*this, CHAT_MSG_MONSTER_SAY, textId, 0, nullptr, &ap);
+    MaNGOS::MonsterChatBuilderFormat say_build(*this, CHAT_MSG_MONSTER_SAY, textId, 0, NULL, &ap);
     MaNGOS::LocalizedPacketDo<MaNGOS::MonsterChatBuilderFormat> say_do(say_build);
     MaNGOS::CameraDistWorker<MaNGOS::LocalizedPacketDo<MaNGOS::MonsterChatBuilderFormat> > say_worker(this, range, say_do);
     Cell::VisitWorldObjects(this, say_worker, range);
@@ -1713,7 +1706,7 @@ void WorldObject::MonsterTextEmote(const char* text, Unit* target, bool IsBossEm
     SendMessageToSetInRange(&data, sWorld.getConfig(IsBossEmote ? CONFIG_FLOAT_LISTEN_RANGE_YELL : CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE), true);
 }
 
-void WorldObject::MonsterWhisper(const char* text, Unit* target, bool IsBossWhisper) const
+void WorldObject::MonsterWhisper(const char* text, Unit* target, bool IsBossWhisper)
 {
     if (!target || target->GetTypeId() != TYPEID_PLAYER)
         return;
@@ -1726,29 +1719,28 @@ void WorldObject::MonsterWhisper(const char* text, Unit* target, bool IsBossWhis
 
 namespace MaNGOS
 {
-    class MonsterChatBuilder
+class MonsterChatBuilder
+{
+public:
+    MonsterChatBuilder(WorldObject const& obj, ChatMsg msgtype, int32 textId, uint32 language, Unit* target)
+        : i_object(obj), i_msgtype(msgtype), i_textId(textId), i_language(language), i_target(target) {}
+    void operator()(WorldPacket& data, int32 loc_idx)
     {
-    public:
-        MonsterChatBuilder(WorldObject const& obj, ChatMsg msgtype, int32 textId, uint32 language, Unit* target)
-            : i_object(obj), i_msgtype(msgtype), i_textId(textId), i_language(language), i_target(target) {}
-        void operator()(WorldPacket& data, int32 loc_idx) const
-        {
-            char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
+        char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
 
-            WorldObject::BuildMonsterChat(&data, i_object.GetObjectGuid(), i_msgtype, text, i_language, i_object.GetNameForLocaleIdx(loc_idx), 
-                i_target ? i_target->GetObjectGuid() : ObjectGuid(), i_target ? i_target->GetNameForLocaleIdx(loc_idx) : "");
-        }
+        WorldObject::BuildMonsterChat(&data, i_object.GetObjectGuid(), i_msgtype, text, i_language, i_object.GetNameForLocaleIdx(loc_idx), i_target ? i_target->GetObjectGuid() : ObjectGuid(), i_target ? i_target->GetNameForLocaleIdx(loc_idx) : "");
+    }
 
-    private:
-        WorldObject const& i_object;
-        ChatMsg i_msgtype;
-        int32 i_textId;
-        uint32 i_language;
-        Unit* i_target;
-    };
+private:
+    WorldObject const& i_object;
+    ChatMsg i_msgtype;
+    int32 i_textId;
+    uint32 i_language;
+    Unit* i_target;
+};
 }                                                           // namespace MaNGOS
 
-void WorldObject::MonsterSay(int32 textId, uint32 language, Unit* target) const
+void WorldObject::MonsterSay(int32 textId, uint32 language, Unit* target)
 {
     float range = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY);
     MaNGOS::MonsterChatBuilder say_build(*this, CHAT_MSG_MONSTER_SAY, textId, language, target);
@@ -1757,7 +1749,7 @@ void WorldObject::MonsterSay(int32 textId, uint32 language, Unit* target) const
     Cell::VisitWorldObjects(this, say_worker, range);
 }
 
-void WorldObject::MonsterYell(int32 textId, uint32 language, Unit* target) const
+void WorldObject::MonsterYell(int32 textId, uint32 language, Unit* target)
 {
     float range = sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_YELL);
     MaNGOS::MonsterChatBuilder say_build(*this, CHAT_MSG_MONSTER_YELL, textId, language, target);
@@ -1766,20 +1758,20 @@ void WorldObject::MonsterYell(int32 textId, uint32 language, Unit* target) const
     Cell::VisitWorldObjects(this, say_worker, range);
 }
 
-void WorldObject::MonsterYellToZone(int32 textId, uint32 language, Unit* target) const
+void WorldObject::MonsterYellToZone(int32 textId, uint32 language, Unit* target)
 {
     MaNGOS::MonsterChatBuilder say_build(*this, CHAT_MSG_MONSTER_YELL, textId, language, target);
     MaNGOS::LocalizedPacketDo<MaNGOS::MonsterChatBuilder> say_do(say_build);
 
     uint32 zoneid = GetZoneId();
 
-    auto const& pList = GetMap()->GetPlayers();
-    for (auto itr = pList.begin(); itr != pList.end(); ++itr)
+    Map::PlayerList const& pList = GetMap()->GetPlayers();
+    for (Map::PlayerList::const_iterator itr = pList.begin(); itr != pList.end(); ++itr)
         if (itr->getSource()->GetZoneId() == zoneid)
             say_do(itr->getSource());
 }
 
-void WorldObject::MonsterTextEmote(int32 textId, Unit* target, bool IsBossEmote) const
+void WorldObject::MonsterTextEmote(int32 textId, Unit* target, bool IsBossEmote)
 {
     float range = sWorld.getConfig(IsBossEmote ? CONFIG_FLOAT_LISTEN_RANGE_YELL : CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE);
 
@@ -1789,7 +1781,7 @@ void WorldObject::MonsterTextEmote(int32 textId, Unit* target, bool IsBossEmote)
     Cell::VisitWorldObjects(this, say_worker, range);
 }
 
-void WorldObject::MonsterWhisper(int32 textId, Unit* target, bool IsBossWhisper) const
+void WorldObject::MonsterWhisper(int32 textId, Unit* target, bool IsBossWhisper)
 {
     if (!target || target->GetTypeId() != TYPEID_PLAYER)
         return;
@@ -1808,7 +1800,7 @@ void WorldObject::BuildMonsterChat(WorldPacket *data, ObjectGuid senderGuid, uin
 {
     *data << uint8(msgtype);
     *data << uint32(language);
-    // Nostalrius : Fix emotes des mobs.
+    // Elysium : Fix emotes des mobs.
     switch (msgtype)
     {
         case CHAT_MSG_MONSTER_EMOTE:
@@ -1847,7 +1839,7 @@ struct MANGOS_DLL_DECL ObjectViewersDeliverer
     explicit ObjectViewersDeliverer(WorldObject* sender, WorldPacket *msg, WorldObject* except) : i_message(msg), i_sender(sender), i_except(except) {}
     void Visit(CameraMapType &m)
     {
-        for (auto iter = m.begin(); iter != m.end(); ++iter)
+        for (CameraMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
             if (Player* player = iter->getSource()->GetOwner())
                 if (player != i_except && player != i_sender)
                     if (player->IsInVisibleList_Unsafe(i_sender))
@@ -1881,19 +1873,6 @@ void WorldObject::SendObjectMessageToSet(WorldPacket *data, bool self, WorldObje
     cell.Visit(p, message, *GetMap(), *this, GetMap()->GetVisibilityDistance());
 }
 
-void WorldObject::SendMovementMessageToSet(WorldPacket data, bool self, WorldObject* except)
-{
-    if (!IsPlayer() || !sWorld.GetBroadcaster()->IsEnabled())
-        SendObjectMessageToSet(&data, true, except);
-    else
-    {
-        auto player_broadcast = ToPlayer()->m_broadcaster;
-
-        if (player_broadcast)
-            player_broadcast->QueuePacket(std::move(data), self, except ? except->GetObjectGuid() : ObjectGuid());
-    }
-}
-
 void WorldObject::SendMessageToSetInRange(WorldPacket *data, float dist, bool /*bToSelf*/)
 {
     //if object is in world, map for it already created!
@@ -1918,11 +1897,11 @@ void WorldObject::SendObjectDeSpawnAnim(ObjectGuid guid)
     SendObjectMessageToSet(&data, true);
 }
 
-void WorldObject::SendGameObjectCustomAnim(ObjectGuid guid, uint32 animId /*= 0*/)
+void WorldObject::SendGameObjectCustomAnim(ObjectGuid guid)
 {
     WorldPacket data(SMSG_GAMEOBJECT_CUSTOM_ANIM, 8 + 4);
     data << ObjectGuid(guid);
-    data << uint32(animId);
+    data << uint32(0);                                      // not known what this is
     SendObjectMessageToSet(&data, true);
 }
 
@@ -1971,7 +1950,7 @@ Creature *Map::SummonCreature(uint32 entry, float x, float y, float z, float ang
 {
     CreatureInfo const* pInf = sObjectMgr.GetCreatureTemplate(entry);
     if (!pInf)
-        return nullptr;
+        return NULL;
 
     TemporarySummon* pCreature = new TemporarySummon();
 
@@ -1982,7 +1961,7 @@ Creature *Map::SummonCreature(uint32 entry, float x, float y, float z, float ang
     if (!pCreature->Create(GenerateLocalLowGuid(HIGHGUID_UNIT), pos, pInf, team))
     {
         delete pCreature;
-        return nullptr;
+        return NULL;
     }
 
     pCreature->SetSummonPoint(pos);
@@ -2000,7 +1979,7 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     if (!cinfo)
     {
         sLog.outErrorDb("WorldObject::SummonCreature: Creature (Entry: %u) not existed for summoner: %s. ", id, GetGuidStr().c_str());
-        return nullptr;
+        return NULL;
     }
 
     TemporarySummon* pCreature = new TemporarySummon(GetObjectGuid());
@@ -2017,7 +1996,7 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     if (!pCreature->Create(GetMap()->GenerateLocalLowGuid(cinfo->GetHighGuid()), pos, cinfo, team))
     {
         delete pCreature;
-        return nullptr;
+        return NULL;
     }
 
     pCreature->SetSummonPoint(pos);
@@ -2033,24 +2012,24 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
     // return the creature therewith the summoner has access to it
     return pCreature;
 }
-// Nostalrius
+// Elysium
 GameObject* WorldObject::SummonGameObject(uint32 entry, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 respawnTime, bool attach)
 {
     if (!IsInWorld())
-        return nullptr;
+        return NULL;
 
     GameObjectInfo const* goinfo = sObjectMgr.GetGameObjectInfo(entry);
     if (!goinfo)
     {
         sLog.outErrorDb("Gameobject template %u not found in database!", entry);
-        return nullptr;
+        return NULL;
     }
     Map *map = GetMap();
     GameObject *go = new GameObject();
     if (!go->Create(map->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT), entry, map, x, y, z, ang, rotation0, rotation1, rotation2, rotation3, 100, GO_STATE_READY))
     {
         delete go;
-        return nullptr;
+        return NULL;
     }
     go->SetRespawnTime(respawnTime);
     if (attach && (GetTypeId() == TYPEID_PLAYER || GetTypeId() == TYPEID_UNIT)) //not sure how to handle this
@@ -2298,7 +2277,7 @@ void WorldObject::GetNearPoint(WorldObject const* searcher, float &x, float &y, 
 
 void WorldObject::PlayDistanceSound(uint32 sound_id, Player* target /*= NULL*/)
 {
-    // Nostalrius: ignored by client if unit is not loaded
+    // Elysium: ignored by client if unit is not loaded
     WorldPacket data(SMSG_PLAY_OBJECT_SOUND, 4 + 8);
     data << uint32(sound_id);
     data << GetObjectGuid();
@@ -2357,7 +2336,7 @@ struct WorldObjectChangeAccumulator
 
     void Visit(CameraMapType &m)
     {
-        for (auto iter = m.begin(); iter != m.end(); ++iter)
+        for (CameraMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
         {
             Player* owner = iter->getSource()->GetOwner();
             if (owner != &i_object && owner->IsInVisibleList_Unsafe(&i_object))
@@ -2394,7 +2373,7 @@ bool WorldObject::IsControlledByPlayer() const
     }
 }
 
-// Nostalrius
+// Elysium
 void Object::ForceValuesUpdateAtIndex(uint16 i)
 {
     m_uint32Values_mirror[i] = GetUInt32Value(i) + 1; // makes server think the field changed
@@ -2405,7 +2384,7 @@ void WorldObject::SetWorldMask(uint32 newMask)
 {
     if (this)
         worldMask = newMask;
-    // Backup - Player::SaveToDb
+    // Sauvegarde dans la DB dans Player::SaveToDb
 }
 bool WorldObject::CanSeeInWorld(WorldObject const* other) const
 {
@@ -2457,15 +2436,12 @@ void WorldObject::DestroyForNearbyPlayers()
 
         DestroyForPlayer(plr);
         plr->m_visibleGUIDs.erase(GetGUID());
-
-        if (ToPlayer() && ToPlayer()->m_broadcaster)
-            ToPlayer()->m_broadcaster->RemoveListener(plr);
     }
 }
 
 Creature* WorldObject::FindNearestCreature(uint32 uiEntry, float range, bool alive)
 {
-    Creature* pCreature = nullptr;
+    Creature* pCreature = NULL;
 
     CellPair pair(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
     Cell cell(pair);
@@ -2483,7 +2459,7 @@ Creature* WorldObject::FindNearestCreature(uint32 uiEntry, float range, bool ali
 
 GameObject* WorldObject::FindNearestGameObject(uint32 uiEntry, float fMaxSearchRange)
 {
-    GameObject* pGo = nullptr;
+    GameObject* pGo = NULL;
 
     CellPair pair(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
     Cell cell(pair);
@@ -2631,10 +2607,10 @@ bool WorldObject::PrintCoordinatesError(float x, float y, float z, char const* d
     return false;                                           // always false for continue assert fail
 }
 
-// Look for Db GUID
-Creature* WorldObject::FindNearCreature(uint32 guid, float range)
+// Recherche par Db GUID.
+Creature*   WorldObject::FindNearCreature(uint32 guid, float range)
 {
-    Creature* creature = nullptr;
+    Creature* creature = NULL;
     CellPair p(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
     Cell cell(p);
     cell.SetNoCreate();
@@ -2650,7 +2626,7 @@ Creature* WorldObject::FindNearCreature(uint32 guid, float range)
 
 GameObject* WorldObject::FindNearGameObject(uint32 guid, float range)
 {
-    GameObject* gameObject = nullptr;
+    GameObject* gameObject = NULL;
 
     CellPair p(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
     Cell cell(p);

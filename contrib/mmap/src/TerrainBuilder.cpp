@@ -309,11 +309,7 @@ namespace MMAP
         int* ttris = ttriangles.getCArray();
 
         if (ltriangles.size() + ttriangles.size() == 0)
-        {
-            delete [] liquid_type;
-            delete [] liquid_flags;
             return false;
-        }
 
         // make a copy of liquid vertices
         // used to pad right-bottom frame due to lost vertex data at extraction
@@ -436,7 +432,7 @@ namespace MMAP
                             minTLevel = h;
                     }
 
-                    // [Nostalrius] We keep terrain data to make navmesh, and we need liquid to know that the terrain under is water.
+                    // [Elysium] We keep terrain data to make navmesh, and we need liquid to know that the terrain under is water.
                     // terrain under the liquid?
                     //if (minLLevel > maxTLevel)
                     //    useTerrain = false;
@@ -464,10 +460,8 @@ namespace MMAP
             }
         }
 
-        if (lverts_copy) {
-            delete [] liquid_flags;
+        if (lverts_copy)
             delete [] lverts_copy;
-        }
 
         return meshData.solidTris.size() || meshData.liquidTris.size();
     }
@@ -887,7 +881,6 @@ namespace MMAP
                 for (int j = 0; j < 3; ++j)
                     meshData.solidTris[i*3+j] = 0;
         }
-        delete [] terrainInsideModelsVerts;
         return true;
     }
     void TerrainBuilder::unloadVMap(uint32 mapID, uint32 tileX, uint32 tileY)

@@ -215,7 +215,7 @@ bool QuestAccept_npc_dorius_stonetender(Player* pPlayer, Creature* pCreature, co
             // ToDo: research if there is any text here
             pCreature->SetStandState(UNIT_STAND_STATE_STAND);
             pCreature->SetFactionTemporary(FACTION_ESCORT_A_NEUTRAL_PASSIVE, TEMPFACTION_RESTORE_RESPAWN);
-            pStonetenderAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pStonetenderAI->Start(false, false, pPlayer->GetGUID(), pQuest);
         }
         return true;
     }
@@ -301,7 +301,7 @@ struct npc_obsidionAI : public ScriptedAI
         Reset();
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(uint32 uiDiff) override
     {
         if (!m_IsEventRunning)
             return;

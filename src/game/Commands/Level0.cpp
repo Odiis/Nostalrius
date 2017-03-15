@@ -118,7 +118,9 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
     uint32 maxQueuedClientsNum = sWorld.GetMaxQueuedSessionCount();
     std::string str = secsToTimeString(sWorld.GetUptime());
 
-    SendSysMessage("Core revision: " _FULLVERSION);
+    SendSysMessage("Elysium Server");
+    PSendSysMessage("Core revision: %s" _FULLVERSION);
+    SendSysMessage("https://elysium-project.org/");
     PSendSysMessage(LANG_UPTIME, str.c_str());
 
     return true;
@@ -292,24 +294,4 @@ bool ChatHandler::HandleServerMotdCommand(char* /*args*/)
 {
     PSendSysMessage(LANG_MOTD_CURRENT, sWorld.GetMotd());
     return true;
-}
-
-bool ChatHandler::HandleWhisperRestrictionCommand(char* args)
-{
-    if (!*args)
-    {
-        PSendSysMessage("Whisper restriction is %s", GetSession()->GetPlayer()->isEnabledWhisperRestriction() ? "ON" : "OFF");
-        return true;
-    }
-
-    bool value;
-    if (!ExtractOnOff(&args, value))
-    {
-        SendSysMessage(LANG_USE_BOL);
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    GetSession()->GetPlayer()->setWhisperRestriction(value);
-    PSendSysMessage("Whisper restriction is %s", value ? "ON" : "OFF");
 }

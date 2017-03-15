@@ -44,9 +44,6 @@
 #include "MoveMap.h"
 #include "SocialMgr.h"
 #include "Chat.h"
-#include "MovementBroadcaster.h"
-#include "PlayerBroadcaster.h"
-#include "GridSearchers.h"
 
 #define MAX_GRID_LOAD_TIME      50
 
@@ -82,7 +79,7 @@ void Map::LoadMapAndVMap(int gx, int gy)
 }
 
 Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
-    : i_mapEntry(sMapStorage.LookupEntry<MapEntry>(id)),
+    : i_mapEntry(sMapStore.LookupEntry(id)),
       i_id(id), i_InstanceId(InstanceId), m_unloadTimer(0),
       m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE), m_persistentState(NULL),
       m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
@@ -117,7 +114,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
     m_persistentState->SetUsedByMapState(this);
 }
 
-// Nostalrius
+// Elysium
 // Active objects system
 class ActiveObjectsGridLoader
 {
@@ -299,7 +296,7 @@ bool Map::EnsureGridLoaded(const Cell &cell)
 
     if (grid == NULL)
     {
-        sLog.nostalrius("[Map%u][CRASH] Grid [%u:%u] NOT loaded !!", i_id, cell.GridX(), cell.GridY());
+        sLog.elysium("[Map%u][CRASH] Grid [%u:%u] NOT loaded !!", i_id, cell.GridX(), cell.GridY());
         throw new std::string("Crash AT EnsureGridLoaded");
         ASSERT(false);
     }
@@ -359,18 +356,13 @@ bool Map::Add(Player *player)
         i_data->OnPlayerEnter(player);
 
     player->GetSession()->ClearIncomingPacketsByType(PACKET_PROCESS_MOVEMENT);
-    player->m_broadcaster->SetInstanceId(GetInstanceId());
     return true;
 }
 
 void Map::ExistingPlayerLogin(Player* player)
 {
-    // Reset visibility list
-    for (ObjectGuidSet::const_iterator it = player->m_visibleGUIDs.begin(); it != player->m_visibleGUIDs.end(); ++it)
-        if (Player* other = GetPlayer(*it))
-            other->m_broadcaster->RemoveListener(player);
+    // Visibility update
     player->m_visibleGUIDs.clear();
-
     SendInitTransports(player);
     SendInitSelf(player);
     CellPair p = MaNGOS::ComputeCellPair(player->GetPositionX(), player->GetPositionY());
@@ -932,15 +924,9 @@ void Map::Update(uint32 t_diff)
     if (i_data)
         i_data->Update(t_diff);
 
-    bool packetBroadcastSlow = sWorld.GetBroadcaster()->IsMapSlow(GetInstanceId());
     if (sWorld.getConfig(CONFIG_UINT32_PERFLOG_SLOW_MAP_UPDATE) && updateMapTime > sWorld.getConfig(CONFIG_UINT32_PERFLOG_SLOW_MAP_UPDATE))
-        sLog.out(LOG_PERFORMANCE, "Update single map %3u inst %2u: %3ums "
-            "[sess %3ums|players %3ums|cells %3ums|sendObjUpdates %3ums"
-            "|relocations %3ums|players2 %3ums|wait%2u %3ums] %s",
-            GetId(), GetInstanceId(), updateMapTime,
-                 sessionsUpdateTime, playersUpdateTime, activeCellsUpdateTime, objectsUpdateTime,
-                 visibilityUpdateTime, playersUpdateTime2, additionnalUpdateCounts, additionnalWaitTime,
-                packetBroadcastSlow ? "SLOWBCAST" : "");
+        sLog.out(LOG_PERFORMANCE, "Update single map %3u inst %2u: %3ums [sess %3ums|players %3ums|cells %3ums|sendObjUpdates %3ums|relocations %3ums|players2 %3ums|wait%2u %3ums]", GetId(), GetInstanceId(), updateMapTime,
+                 sessionsUpdateTime, playersUpdateTime, activeCellsUpdateTime, objectsUpdateTime, visibilityUpdateTime, playersUpdateTime2, additionnalUpdateCounts, additionnalWaitTime);
     // Continent only
     if (IsContinent())
     {
@@ -956,9 +942,7 @@ void Map::Update(uint32 t_diff)
             if (m_GridActivationDistance > World::GetMaxVisibleDistanceOnContinents())
                 m_GridActivationDistance = World::GetMaxVisibleDistanceOnContinents();
         }
-        if (packetBroadcastSlow ||
-            (sWorld.getConfig(CONFIG_UINT32_MAPUPDATE_TICK_LOWER_VISIBILITY_DISTANCE) &&
-            updateMapTime > sWorld.getConfig(CONFIG_UINT32_MAPUPDATE_TICK_LOWER_VISIBILITY_DISTANCE)))
+        if (sWorld.getConfig(CONFIG_UINT32_MAPUPDATE_TICK_LOWER_VISIBILITY_DISTANCE) && updateMapTime > sWorld.getConfig(CONFIG_UINT32_MAPUPDATE_TICK_LOWER_VISIBILITY_DISTANCE))
         {
             --m_VisibleDistance;
             if (m_VisibleDistance < sWorld.getConfig(CONFIG_UINT32_MAPUPDATE_MIN_VISIBILITY_DISTANCE))
@@ -1025,10 +1009,6 @@ void Map::Remove(Player *player, bool remove)
     RemoveRelocatedUnit(player);
     RemoveUnitFromMovementUpdate(player);
     player->m_needUpdateVisibility = false;
-
-    for (ObjectGuidSet::const_iterator it = player->m_visibleGUIDs.begin(); it != player->m_visibleGUIDs.end(); ++it)
-        if (Player* other = GetPlayer(*it))
-            other->m_broadcaster->RemoveListener(player);
 
     player->ResetMap();
     if (remove)
@@ -1353,7 +1333,7 @@ bool Map::CheckGridIntegrity(Creature* c, bool moved) const
 
 const char* Map::GetMapName() const
 {
-    return i_mapEntry ? i_mapEntry->name : "UNNAMEDMAP\x0";
+    return i_mapEntry ? i_mapEntry->name[sWorld.GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
 }
 
 void Map::UpdateObjectVisibility(WorldObject* obj, Cell cell, CellPair cellpair)
@@ -1607,13 +1587,22 @@ void Map::RemoveFromActive(WorldObject* obj)
 
 void Map::CreateInstanceData(bool load)
 {
-    if (i_data)
+    if (i_data != NULL)
         return;
 
-    if (!i_mapEntry->scriptId)
-        return;
+    if (Instanceable())
+    {
+        if (InstanceTemplate const* mInstance = ObjectMgr::GetInstanceTemplate(GetId()))
+            i_script_id = mInstance->script_id;
+    }
+    else
+    {
+        if (WorldTemplate const* mInstance = ObjectMgr::GetWorldTemplate(GetId()))
+            i_script_id = mInstance->script_id;
+    }
 
-    i_script_id = i_mapEntry->scriptId;
+    if (!i_script_id)
+        return;
 
     i_data = sScriptMgr.CreateInstanceData(this);
     if (!i_data)
@@ -1741,7 +1730,7 @@ bool DungeonMap::CanEnter(Player *player)
 
     if (m_resetAfterUnload)
     {
-        sLog.nostalrius("[DungeonReset] %s attempted to enter map %u, instance %u during reset", player->GetName(), i_InstanceId);
+        sLog.elysium("[DungeonReset] %s attempted to enter map %u, instance %u during reset", player->GetName(), i_InstanceId);
         return false;
     }
 
@@ -1749,7 +1738,7 @@ bool DungeonMap::CanEnter(Player *player)
     Group *pGroup = player->GetGroup();
     if (pGroup && pGroup->InCombatToInstance(GetInstanceId()) && player->isAlive() && player->GetMapId() != GetId())
     {
-        if (GetId() == 249 || GetId() == 531)        // Hack : Ustaag <Nostalrius> : concerne uniquement Onyxia's Lair
+        if (GetId() == 249 || GetId() == 531)        // Hack : Ustaag <Elysium> : concerne uniquement Onyxia's Lair
         {
             player->SendTransferAborted(GetId(), TRANSFER_ABORT_ZONE_IN_COMBAT);
             return false;
@@ -2001,7 +1990,10 @@ void DungeonMap::SetResetSchedule(bool on)
 
 uint32 DungeonMap::GetMaxPlayers() const
 {
-    return i_mapEntry->maxPlayers;
+    InstanceTemplate const* iTemplate = ObjectMgr::GetInstanceTemplate(GetId());
+    if (!iTemplate)
+        return 0;
+    return iTemplate->maxPlayers;
 }
 
 DungeonPersistentState* DungeonMap::GetPersistanceState() const
@@ -2660,31 +2652,11 @@ void Map::ScriptsProcess()
                 float z = step.script->z;
                 float o = step.script->o;
 
-                if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE || step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE_TEMP)
-                {
-                    float dist = step.script->summonCreature.uniqueDistance ? step.script->summonCreature.uniqueDistance : (summoner->GetDistance(x, y, z) + 50.0f) * 2;
-                    std::list<Creature*> foundCreatures;
+                if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE)
+                    if (summoner->FindNearestCreature(step.script->summonCreature.creatureEntry, (summoner->GetDistance(x, y, z) + 50) * 2))
+                        break;
 
-                    GetCreatureListWithEntryInGrid(foundCreatures, summoner, step.script->summonCreature.creatureEntry, dist);
-
-                    if (!foundCreatures.empty())
-                    {
-                        uint32 exAmount = 0;
-                        uint32 reqAmount = step.script->summonCreature.uniqueLimit ? step.script->summonCreature.uniqueLimit : 1;
-
-                        if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE)
-                            exAmount = foundCreatures.size();
-                        else
-                            exAmount = count_if(foundCreatures.begin(), foundCreatures.end(), [&](Creature* c) { return c->IsTemporarySummon(); });
-
-                        if (exAmount >= reqAmount)
-                            break;
-                    }
-                }
-
-                Creature* pCreature = summoner->SummonCreature(step.script->summonCreature.creatureEntry, x, y, z, o, 
-                    TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, step.script->summonCreature.despawnDelay, step.script->summonCreature.flags & SUMMON_CREATURE_ACTIVE);
-
+                Creature* pCreature = summoner->SummonCreature(step.script->summonCreature.creatureEntry, x, y, z, o, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, step.script->summonCreature.despawnDelay, step.script->summonCreature.flags & SUMMON_CREATURE_ACTIVE);
                 if (!pCreature)
                 {
                     sLog.outError("SCRIPT_COMMAND_TEMP_SUMMON (script id %u) failed for creature (entry: %u).", step.script->id, step.script->summonCreature.creatureEntry);
@@ -2717,7 +2689,7 @@ void Map::ScriptsProcess()
                     break;
                 }
 
-                int32 time_to_close = step.script->openDoor.resetDelay < 3 ? 3 : step.script->openDoor.resetDelay; // Ustaag <Nostalrius> : duree minimale de reset fixee a 3 sec au lieu de 15
+                int32 time_to_close = step.script->openDoor.resetDelay < 3 ? 3 : step.script->openDoor.resetDelay; // Ustaag <Elysium> : duree minimale de reset fixee a 3 sec au lieu de 15
 
                 uint32 guidlow = step.script->openDoor.goGuid;
                 GameObjectData const* goData = sObjectMgr.GetGOData(guidlow);
@@ -2771,7 +2743,7 @@ void Map::ScriptsProcess()
                     break;
                 }
 
-                int32 time_to_open = step.script->closeDoor.resetDelay < 3 ? 3 : step.script->closeDoor.resetDelay; // Ustaag <Nostalrius> : duree minimale de reset fixee a 3 sec au lieu de 15
+                int32 time_to_open = step.script->closeDoor.resetDelay < 3 ? 3 : step.script->closeDoor.resetDelay; // Ustaag <Elysium> : duree minimale de reset fixee a 3 sec au lieu de 15
 
                 uint32 guidlow = step.script->closeDoor.goGuid;
                 GameObjectData const* goData = sObjectMgr.GetGOData(guidlow);
@@ -3950,7 +3922,7 @@ void Map::PlayDirectSoundToMap(uint32 soundId)
 }
 
 
-// NOSTALRIUS: GameObjectCollision
+// ELYSIUM: GameObjectCollision
 bool Map::isInLineOfSight(float x1, float y1, float z1, float x2, float y2, float z2, bool checkDynLos) const
 {
     ASSERT(MaNGOS::IsValidMapCoord(x1, y1, z1));

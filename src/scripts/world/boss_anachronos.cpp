@@ -1,4 +1,4 @@
-/* Copyright (C) 2010 - 2011 Nostalrius
+/* Copyright (C) 2010 - 2011 Elysium
  * This program is not aimed to be redistributed and/or modified.
  *
  * There is no ANY WARRANTY; without even the implied warranty of
@@ -8,7 +8,7 @@
 /* ScriptData
 SDName: Anachronos
 SD%Complete: 0
-SDComment: scripted by Ivina < Nostalrius >
+SDComment: scripted by Ivina < Elysium >
 SDCategory: Bosses
 EndScriptData */
 /*

@@ -44,9 +44,9 @@ struct boss_gehennasAI : public ScriptedAI
 
     void Reset()
     {
-        ShadowBolt_Timer = 5000;
-        RainOfFire_Timer = 7000;
-        GehennasCurse_Timer = 8000;
+        ShadowBolt_Timer = 6000;
+        RainOfFire_Timer = 10000;
+        GehennasCurse_Timer = 12000;
 
         if (m_pInstance && m_creature->isAlive())
             m_pInstance->SetData(TYPE_GEHENNAS, NOT_STARTED);

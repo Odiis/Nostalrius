@@ -42,7 +42,7 @@ ScriptMapMap sCreatureMovementScripts;
 
 INSTANTIATE_SINGLETON_1(ScriptMgr);
 
-ScriptMgr::ScriptMgr() : m_scheduledScripts(0), m_spellSummary(nullptr)
+ScriptMgr::ScriptMgr() : m_scheduledScripts(0)
 {
 }
 
@@ -171,7 +171,7 @@ void ScriptMgr::LoadScripts(ScriptMapMap& scripts, const char* tablename)
             }
             case SCRIPT_COMMAND_TELEPORT_TO:
             {
-                if (!sMapStorage.LookupEntry<MapEntry>(tmp.teleportTo.mapId))
+                if (!sMapStore.LookupEntry(tmp.teleportTo.mapId))
                 {
                     sLog.outErrorDb("Table `%s` has invalid map (Id: %u) in SCRIPT_COMMAND_TELEPORT_TO for script id %u", tablename, tmp.teleportTo.mapId, tmp.id);
                     continue;
@@ -830,7 +830,9 @@ void ScriptMgr::LoadScriptNames()
                               "UNION "
                               "SELECT DISTINCT(ScriptName) FROM scripted_event_id WHERE ScriptName <> '' "
                               "UNION "
-                              "SELECT DISTINCT(ScriptName) FROM map_template WHERE ScriptName <> ''");
+                              "SELECT DISTINCT(ScriptName) FROM instance_template WHERE ScriptName <> '' "
+                              "UNION "
+                              "SELECT DISTINCT(ScriptName) FROM world_template WHERE ScriptName <> ''");
 
     if (!result)
     {
@@ -897,9 +899,10 @@ CreatureAI* ScriptMgr::GetCreatureAI(Creature* pCreature)
     Script* pTempScript = m_scripts[pCreature->GetScriptId()];
 
     if (!pTempScript || !pTempScript->GetAI)
-        return nullptr;
+        return NULL;
 
     return pTempScript->GetAI(pCreature);
+
 }
 
 GameObjectAI* ScriptMgr::GetGameObjectAI(GameObject* pGobj)
@@ -907,7 +910,7 @@ GameObjectAI* ScriptMgr::GetGameObjectAI(GameObject* pGobj)
     Script* pTempScript = m_scripts[pGobj->GetGOInfo()->ScriptId];
 
     if (!pTempScript || !pTempScript->GOGetAI)
-        return nullptr;
+        return NULL;
 
     return pTempScript->GOGetAI(pGobj);
 }
@@ -917,7 +920,7 @@ InstanceData* ScriptMgr::CreateInstanceData(Map* pMap)
     Script* pTempScript = m_scripts[pMap->GetScriptId()];
 
     if (!pTempScript || !pTempScript->GetInstanceData)
-        return nullptr;
+        return NULL;
 
     return pTempScript->GetInstanceData(pMap);
 }
@@ -1209,7 +1212,7 @@ void ScriptMgr::Initialize()
     sLog.outString("");
 
     // Resize script ids to needed ammount of assigned ScriptNames (from core)
-    m_scripts.resize(GetScriptIdsCount(), nullptr);
+    m_scripts.resize(GetScriptIdsCount(), NULL);
 
     FillSpellSummary();
 
@@ -1499,31 +1502,34 @@ void ScriptMgr::LoadEscortData()
 void ScriptMgr::CollectPossibleEventIds(std::set<uint32>& eventIds)
 {
     // Load all possible script entries from gameobject
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (uint32 i = 1; i < sGOStorage.MaxEntry; ++i)
     {
-        switch (itr->type)
+        if (GameObjectInfo const* goInfo = sGOStorage.LookupEntry<GameObjectInfo>(i))
         {
+            switch (goInfo->type)
+            {
             case GAMEOBJECT_TYPE_GOOBER:
-                eventIds.insert(itr->goober.eventId);
+                eventIds.insert(goInfo->goober.eventId);
                 break;
             case GAMEOBJECT_TYPE_CHEST:
-                eventIds.insert(itr->chest.eventId);
+                eventIds.insert(goInfo->chest.eventId);
                 break;
             case GAMEOBJECT_TYPE_CAMERA:
-                eventIds.insert(itr->camera.eventID);
+                eventIds.insert(goInfo->camera.eventID);
                 break;
             case GAMEOBJECT_TYPE_CAPTURE_POINT:
-                eventIds.insert(itr->capturePoint.neutralEventID1);
-                eventIds.insert(itr->capturePoint.neutralEventID2);
-                eventIds.insert(itr->capturePoint.contestedEventID1);
-                eventIds.insert(itr->capturePoint.contestedEventID2);
-                eventIds.insert(itr->capturePoint.progressEventID1);
-                eventIds.insert(itr->capturePoint.progressEventID2);
-                eventIds.insert(itr->capturePoint.winEventID1);
-                eventIds.insert(itr->capturePoint.winEventID2);
+                eventIds.insert(goInfo->capturePoint.neutralEventID1);
+                eventIds.insert(goInfo->capturePoint.neutralEventID2);
+                eventIds.insert(goInfo->capturePoint.contestedEventID1);
+                eventIds.insert(goInfo->capturePoint.contestedEventID2);
+                eventIds.insert(goInfo->capturePoint.progressEventID1);
+                eventIds.insert(goInfo->capturePoint.progressEventID2);
+                eventIds.insert(goInfo->capturePoint.winEventID1);
+                eventIds.insert(goInfo->capturePoint.winEventID2);
                 break;
             default:
                 break;
+            }
         }
     }
 
@@ -1636,8 +1642,6 @@ void Script::RegisterSelf(bool bReportError)
 
 void ScriptMgr::FillSpellSummary()
 {
-    delete[] m_spellSummary;
-
     m_spellSummary = new TSpellSummary[sSpellStore.GetNumRows()];
 
     DBCSpellEntry const* pTempSpell;

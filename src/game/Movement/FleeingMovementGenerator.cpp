@@ -106,7 +106,7 @@ bool FleeingMovementGenerator<T>::_getPoint(T &owner, float &x, float &y, float 
         angle = frand(0, 2 * M_PI_F);
     }
 
-    // Nostalrius: pathfinding pour trouver la position de fear (seulement si disponible)
+    // Elysium: pathfinding pour trouver la position de fear (seulement si disponible)
     owner.GetSafePosition(x, y, z);
     x += dist * cos(angle);
     y += dist * sin(angle);

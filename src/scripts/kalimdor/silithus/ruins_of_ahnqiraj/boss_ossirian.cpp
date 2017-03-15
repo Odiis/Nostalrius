@@ -231,17 +231,17 @@ struct boss_ossirianAI : public ScriptedAI
     {
         static SpawnLocations CrystalSpawn[] =
         {
-            { -9407.164062f, 1959.240845f, 85.558998f },
-            { -9357.931641f, 1930.596802f, 85.556198f },
-            { -9383.113281f, 2011.042725f, 85.556389f },
-            { -9243.36f, 1979.04f, 85.556f },
-            { -9281.68f, 1886.66f, 85.5558f },
-            { -9241.8f, 1806.39f, 85.5557f },
-            { -9366.78f, 1781.76f, 85.5561f },
-            { -9297.668945f, 1747.256348f, 85.5566f },
-            { -9430.37f, 1786.86f, 85.557f },
-            { -9187.087891f, 1940.501099f, 85.5564f },
-            { -9406.73f, 1863.13f, 85.5558f }
+            { -9407.164062, 1959.240845, 85.558998 },
+            { -9357.931641, 1930.596802, 85.556198 },
+            { -9383.113281, 2011.042725, 85.556389 },
+            { -9243.36, 1979.04, 85.556 },
+            { -9281.68, 1886.66, 85.5558 },
+            { -9241.8, 1806.39, 85.5557 },
+            { -9366.78, 1781.76, 85.5561 },
+            { -9297.668945, 1747.256348, 85.5566 },
+            { -9430.37, 1786.86, 85.557 },
+            { -9187.087891, 1940.501099, 85.5564 },
+            { -9406.73, 1863.13, 85.5558 }
         };
 
         GameObject* pCrystal = m_creature->SummonGameObject(GO_OSSIRIAN_CRYSTAL,
@@ -428,7 +428,7 @@ struct ossirian_crystalAI : public GameObjectAI
 
         if (!m_pInstance)
         {
-            sLog.nostalrius("[OSSIRIAN/Crystal][Inst %03u] ERROR: No instance", user->GetInstanceId());
+            sLog.elysium("[OSSIRIAN/Crystal][Inst %03u] ERROR: No instance", user->GetInstanceId());
             return false;
         }
 
@@ -436,19 +436,19 @@ struct ossirian_crystalAI : public GameObjectAI
 
         if (!ossirian)
         {
-            sLog.nostalrius("[OSSIRIAN/Crystal][Inst %03u] ERROR: No Ossirian found (guid %u)", user->GetInstanceId(), m_pInstance->GetData64(DATA_OSSIRIAN));
+            sLog.elysium("[OSSIRIAN/Crystal][Inst %03u] ERROR: No Ossirian found (guid %u)", user->GetInstanceId(), m_pInstance->GetData64(DATA_OSSIRIAN));
             return false;
         }
 
         if (!ossirian->SelectHostileTarget() || !ossirian->getVictim())
         {
-            sLog.nostalrius("[OSSIRIAN/Crystal][Inst %03u] ERROR: Ossirian not in combat", user->GetInstanceId(), m_pInstance->GetData64(DATA_OSSIRIAN));
+            sLog.elysium("[OSSIRIAN/Crystal][Inst %03u] ERROR: Ossirian not in combat", user->GetInstanceId(), m_pInstance->GetData64(DATA_OSSIRIAN));
             return true;
         }
 
         if (me->FindNearCreature(CRYSTAL_TRIGGER, 10.0f))
         {
-            sLog.nostalrius("[OSSIRIAN/Crystal][Inst %03u] ERROR: Crystal already activated. Race condition attempt.", user->GetInstanceId());
+            sLog.elysium("[OSSIRIAN/Crystal][Inst %03u] ERROR: Crystal already activated. Race condition attempt.", user->GetInstanceId());
             return true;
         }
 

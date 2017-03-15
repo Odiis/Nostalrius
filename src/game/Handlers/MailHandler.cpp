@@ -73,7 +73,8 @@ public:
         WorldSession* sess = sWorld.FindSession(accountId);
         if (!sess || !sess->GetPlayer() || sess->GetPlayer()->GetObjectGuid() != senderGuid || !sess->GetPlayer()->IsInWorld())
         {
-            delete result;
+            if (result)
+                delete result;
             delete this;
             return;
         }
@@ -137,18 +138,11 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data)
     recv_data >> unk4;                                      // const 0
 
     // packet read complete, now do check
+
     if (req->subject.size() > 64)
-    {
-        delete req;
         return;
-    }
-
     if (req->body.size() > 500)
-    {
-        delete req;
         return;
-    }
-
     if (req->COD && sWorld.getConfig(CONFIG_UINT32_COD_FORCE_TAG_MAX_LEVEL) &&
         sWorld.getConfig(CONFIG_UINT32_COD_FORCE_TAG_MAX_LEVEL) > GetAccountMaxLevel())
         req->subject = "(COD) " + req->subject;

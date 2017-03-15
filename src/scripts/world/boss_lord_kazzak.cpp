@@ -36,14 +36,14 @@ enum
     SAY_INTRO                   = -1000147,
     SAY_AGGRO1                  = -1000148,
     SAY_AGGRO2                  = -1000149,
-    SAY_AGGRO3                  = -1000159,
+    SAY_AGGRO3		 	= -1000159,
     SAY_SUPREME1                = -1000150,
     SAY_SUPREME2                = -1000151,
-    SAY_SUPREME3                = -1000161,
-  //SAY_KILL1                   = -1000152,
-  //SAY_KILL2                   = -1000153,
-  //SAY_KILL3                   = -1000154,
-    SAY_KILL                    = -1000160,
+    SAY_SUPREME3		= -1000161,
+    SAY_KILL1                   = -1000152,
+    SAY_KILL2                   = -1000153,
+    SAY_KILL3                   = -1000154,
+    SAY_KILL4			= -1000160,
     SAY_DEATH                   = -1000155,
     EMOTE_FRENZY                = -1000156,
     SAY_RAND1                   = -1000157,
@@ -119,9 +119,11 @@ struct boss_lordkazzakAI : public ScriptedAI
     uint32 Twisted_Reflection_Timer;
     bool Mode_Enrage;
     bool first_aggro;
+    uint32 m_respawn_delay_Timer;
 
     void Reset()
     {
+        m_respawn_delay_Timer = urand(4, 7) * DAY + urand(0, 23) * HOUR;
         first_aggro = true;
         ShadowVolley_Timer = urand(8000, 12000);
         Cleave_Timer = 3000;
@@ -131,6 +133,14 @@ struct boss_lordkazzakAI : public ScriptedAI
         Enrage_Timer = 180000;
         Twisted_Reflection_Timer = 12000;
         Mode_Enrage = false;
+
+        /** DRRS */
+        if (m_creature->GetSpawnFlags() & SPAWN_FLAG_DYNAMIC_RESPAWN_TIME &&
+            sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
+            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
+
+       m_creature->SetRespawnDelay(m_respawn_delay_Timer);
+       m_creature->SetRespawnTime(m_respawn_delay_Timer);
     }
 
     void JustRespawned()
@@ -198,24 +208,26 @@ struct boss_lordkazzakAI : public ScriptedAI
 
         DoCastSpellIfCan(m_creature, SPELL_CAPTURESOUL);
 
-        DoScriptText(SAY_KILL, m_creature);
+        switch (rand() % 4)
+        {
+            case 0:
+                DoScriptText(SAY_KILL1, m_creature);
+                break;
+            case 1:
+                DoScriptText(SAY_KILL2, m_creature);
+                break;
+            case 2:
+                DoScriptText(SAY_KILL3, m_creature);
+                break;
+            case 3:
+                DoScriptText(SAY_KILL4, m_creature);
+                break;
+        }
     }
 
-    void JustDied(Unit* /*pKiller*/)
+    void JustDied(Unit *victim)
     {
         DoScriptText(SAY_DEATH, m_creature);
-
-        uint32 m_respawn_delay_Timer = urand(3, 6)*DAY + urand(0, 24*HOUR);
-
-        /** DRRS */
-        if (m_creature->GetSpawnFlags() & SPAWN_FLAG_DYNAMIC_RESPAWN_TIME &&
-             sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
-
-            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
-
-       m_creature->SetRespawnDelay(m_respawn_delay_Timer);
-       m_creature->SetRespawnTime(m_respawn_delay_Timer);
-       m_creature->SaveRespawnTime();
     }
 
     void UpdateAI(const uint32 diff)

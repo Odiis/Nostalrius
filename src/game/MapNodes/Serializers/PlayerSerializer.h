@@ -116,15 +116,10 @@ void Player::Serialize(OP& buf)
 
     buf(m_deathExpireTime);
 
-    uint8 rank = m_honorMgr.GetHighestRank().rank;
-    uint32 standing = m_honorMgr.GetStanding();
-    float rp = m_honorMgr.GetRankPoints();
-    uint32 dk = m_honorMgr.GetStoredDK();
-
-    buf(rank);
-    buf(standing);
-    buf(rp);
-    buf(dk);
+    buf(m_highest_rank.rank);
+    buf(m_standing_pos);
+    buf(m_stored_honor);
+    buf(m_stored_dishonorableKills);
 
     buf(m_homebindX);
     buf(m_homebindY);
@@ -135,20 +130,18 @@ void Player::Serialize(OP& buf)
     buf(m_teleport_dest);
     buf(mSemaphoreTeleport_Far);
 
-    // Nostalrius
+    // Elysium
     buf(worldMask);
     buf(customFlags);
-
-    uint32 lastWeekHK = m_honorMgr.GetLastWeekHK();
-    float lastWeekCP = m_honorMgr.GetLastWeekCP();
-    buf(lastWeekHK);
-    buf(lastWeekCP);
+    buf(m_lastweek_honorable_kills);
+    buf(m_lastweek_honor);
 
     if (buf.IsRead())
     {
         InitPlayerDisplayIds();
         setFactionForRace(getRace());
         SetCharm(NULL);
+        m_highest_rank  = MaNGOS::Honor::CalculateRankInfo(m_highest_rank);
     }
 
     if (buf.IsRead())

@@ -1,5 +1,5 @@
-/* Copyright (C) 2009 - 2010 Nostalrius <http://nostalrius.ath.cx/>
- * Auteur        : Daemon
+/* Copyright (C) 2009 - 2010 Elysium <https://elysium-project.org/>
+ * 1.12
  * All rights reserved */
 
 #include "scriptPCH.h"

@@ -112,7 +112,7 @@ void Player::Serialize(OP& buf)
     buf<uint32>(m_stored_dishonorableKills);
     buf<uint32>(m_stored_honorableKills);
 
-    // Nostalrius
+    // Elysium
     buf<uint32>(worldMask);
     buf<uint32>(customFlags);
     buf<uint32>(m_lastweek_honorable_kills);

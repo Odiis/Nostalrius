@@ -66,10 +66,8 @@ int main(int argc, char **argv)
         Header header;
 
         printf("* Reading header (%u bytes) ... ", size);
-        if (!fread(&header, size, 1, file)) {
-            fclose(file);
+        if (!fread(&header, size, 1, file))
             FAIL();
-        }
         OK();
 
         printf("- MAGIC : `%s`\n", std::string(header.magic).substr(0, 8).c_str());
@@ -82,10 +80,8 @@ int main(int argc, char **argv)
     {
         printf("* Reading header (magic) ... ");
         char magic[8] = {0};
-        if (fread(&magic, 1, 8, file) != 8) {
-            fclose(file);
+        if (fread(&magic, 1, 8, file) != 8)
             FAIL();
-        }
         OK();
         printf("- MAGIC : `%s`\n", std::string(magic).substr(0, 8).c_str());
     }
@@ -117,10 +113,7 @@ int main(int argc, char **argv)
             {
                 pBranches = new uint32[branches-1];
                 if (fread(pBranches, 4, branches-1, file) != (branches-1))
-                {
-                    delete[] pBranches;
-                    FAIL();
-                }
+                   FAIL();
             }
             OK();
             printf("- %u branches / %u indexes.\n", branches, indexes);
@@ -135,10 +128,7 @@ int main(int argc, char **argv)
 
             pIndexes = new uint16[indexes];
             if (fread(pIndexes, sizeof(uint16), indexes, file) != indexes)
-            {
-                delete[] pIndexes;
                 FAIL();
-            }
             OK();
         }
         else if (sChk == "VERT")
@@ -149,10 +139,7 @@ int main(int argc, char **argv)
                 delete[] pVertices;
             pVertices = new Vertex[nVertices];
             if (fread(pVertices, sizeof(Vertex), nVertices, file) != nVertices)
-            {
-                delete[] pVertices;
                 FAIL();
-            }
             OK();
         }
         else if (sChk == "WMOD")

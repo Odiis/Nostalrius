@@ -54,7 +54,7 @@ bool NodesMgr::OnServerStartup()
     sLog.outString("# Maps clustering enabled.                               #");
     sLog.outString("#   Listen on: %20s:%5u        %6s  #", nodesListenAddress.c_str(), nodesListenPort, listenStatus);
     sLog.outString("#   Master   : %20s:%5u        %6s  #", m_masterListenAddress.c_str(), m_masterListenPort, masterStatus);
-    sLog.outString("#                                  Nostalrius Begins     #");
+    sLog.outString("#                                  Elysium Begins     #");
     sLog.outString("##########################################################");
 
     return retValue;

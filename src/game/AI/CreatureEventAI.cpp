@@ -425,7 +425,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
 
             if (temp)
             {
-                Unit* target = nullptr;
+                Unit* target = NULL;
 
                 if (pActionInvoker)
                 {
@@ -544,7 +544,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             Unit* target = GetTargetByType(action.summon.target, pActionInvoker);
 
-            Creature* pCreature = nullptr;
+            Creature* pCreature = NULL;
 
             if (action.summon.duration)
                 pCreature = m_creature->SummonCreature(action.summon.creatureId, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, action.summon.duration);
@@ -617,7 +617,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     if (Unit* victim = m_creature->getVictim())
                         m_creature->SendMeleeAttackStart(victim);
                 m_creature->SetCasterChaseDistance(0.0f);
-                // Ustaag <Nostalrius> : le mob pourra de nouveau poursuivre le joueur s'il reste bloqué
+                // Ustaag <Elysium> : le mob pourra de nouveau poursuivre le joueur s'il reste bloqué
                 if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == IDLE_MOTION_TYPE ||
                         (!m_creature->IsMoving() && (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)))
                 {
@@ -710,7 +710,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 return;
             }
 
-            Creature* pCreature = nullptr;
+            Creature* pCreature = NULL;
             if ((*i).second.SpawnTimeSecs)
                 pCreature = m_creature->SummonCreature(action.summon_id.creatureId, (*i).second.position_x, (*i).second.position_y, (*i).second.position_z, (*i).second.orientation, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, (*i).second.SpawnTimeSecs);
             else
@@ -783,7 +783,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 sLog.outErrorDb("CreatureEventAI: Event %d ACTION_T_DIE on dead creature. Creature %d", EventId, m_creature->GetEntry());
                 return;
             }
-            m_creature->DealDamage(m_creature, m_creature->GetMaxHealth(), nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
+            m_creature->DealDamage(m_creature, m_creature->GetMaxHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
             break;
         case ACTION_T_ZONE_COMBAT_PULSE:
         {
@@ -864,11 +864,6 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     m_creature->GetMotionMaster()->MoveWaypoint();
                     break;
             }
-            break;
-        }
-        case ACTION_T_SET_VARIABLE:
-        {
-            sObjectMgr.SetSavedVariable(action.setVariable.variableEntry, action.setVariable.value, true);
             break;
         }
     }
@@ -1087,8 +1082,8 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
                 if (m_creature->IsWithinDistInMap(who, fMaxAllowedRange))
                 {
                     //if friendly event&&who is not hostile OR hostile event&&who is hostile
-                    if ((*itr).Event.ooc_los.noHostile && !m_creature->IsHostileTo(who) ||
-                            !(*itr).Event.ooc_los.noHostile && m_creature->IsHostileTo(who))
+                    if (((*itr).Event.ooc_los.noHostile && !m_creature->IsHostileTo(who)) ||
+                            ((!(*itr).Event.ooc_los.noHostile) && m_creature->IsHostileTo(who)))
                         if (m_creature->IsWithinLOSInMap(who))
                             ProcessEvent(*itr, who);
                 }
@@ -1096,7 +1091,7 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
         }
     }
 
-    if (m_creature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_AGGRO || m_creature->IsNeutralToAll())
+    if ((m_creature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_AGGRO) || m_creature->IsNeutralToAll())
         return;
 
     // Check this now to prevent calling expensive functions (isInAccessablePlaceFor / IsWithinLOSInMap)
@@ -1105,8 +1100,7 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
 
     if (!m_creature->CanFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
         return;
-
-    if (m_creature->CanInitiateAttack() && who->isTargetableForAttack())
+    if (m_creature->CanInitiateAttack() && who->isTargetableForAttack() && who->isTargetableForAttack())
     {
         float attackRadius = m_creature->GetAttackDistance(who);
         if (m_creature->IsWithinDistInMap(who, attackRadius) && m_creature->IsHostileTo(who))
@@ -1217,7 +1211,7 @@ void CreatureEventAI::UpdateAI(const uint32 diff)
     }
 
     //Melee Auto-Attack
-    if (Combat && m_MeleeEnabled && m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
+    if (Combat && m_MeleeEnabled)
         DoMeleeAttackIfReady();
 }
 
@@ -1249,7 +1243,7 @@ inline int32 CreatureEventAI::GetRandActionParam(uint32 rnd, int32 param1, int32
     return 0;
 }
 
-inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoker) const
+inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoker)
 {
     switch (Target)
     {
@@ -1268,12 +1262,12 @@ inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoke
         case TARGET_T_ACTION_INVOKER:
             return pActionInvoker;
     }
-    return nullptr;
+    return NULL;
 }
 
 Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff)
 {
-    Unit* pUnit = nullptr;
+    Unit* pUnit = NULL;
 
     MaNGOS::MostHPMissingInRangeCheck u_check(m_creature, range, MinHPDiff);
     MaNGOS::UnitLastSearcher<MaNGOS::MostHPMissingInRangeCheck> searcher(pUnit, u_check);
@@ -1392,7 +1386,7 @@ bool CreatureEventAI::CanCast(Unit* Target, SpellEntry const *Spell, bool Trigge
     if (!Triggered && m_creature->GetPower((Powers)Spell->powerType) < Spell::CalculatePowerCost(Spell, m_creature))
         return false;
 
-    SpellRangeEntry const *TempRange = nullptr;
+    SpellRangeEntry const *TempRange = NULL;
 
     TempRange = GetSpellRangeStore()->LookupEntry(Spell->rangeIndex);
 

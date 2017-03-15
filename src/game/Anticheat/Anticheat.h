@@ -1,9 +1,7 @@
+#pragma once
 /**
 * Contains interface and calls that have to be implemented by the anticheat lib.
 */
-
-#ifndef ANTICHEAT_H
-#define ANTICHEAT_H
 
 #include "Common.h"
 #include "Unit.h"
@@ -27,10 +25,10 @@ class ChatHandler;
 class WardenInterface;
 class PlayerAnticheatInterface;
 class AccountPersistentData;
-struct AreaEntry;
+struct AreaTableEntry;
 
 // Generic class for Warden memory queries
-/*class WardenMemoryQuery
+class WardenMemoryQuery
 {
 public:
     WardenMemoryQuery(uint32 address, uint32 length): _address(address), _length(length) {}
@@ -43,7 +41,7 @@ public:
 private:
     uint32 _address;
     uint32 _length;
-};*/
+};
 
 class WardenInterface
 {
@@ -51,17 +49,19 @@ class WardenInterface
         WardenInterface() {}
         virtual ~WardenInterface() {}
         virtual void HandleWardenDataOpcode(WorldPacket & recv_data) {}
+
+        virtual void Init(WorldSession *pClient, BigNumber *K) {}
         virtual void Update() {}
 
-        //virtual void SendSpeedChange(UnitMoveType moveType, float newSpeed) {}
-        //virtual void TrackingUpdateSent(uint32 field, uint32 value) {}
+        virtual void SendSpeedChange(UnitMoveType moveType, float newSpeed) {}
+        virtual void TrackingUpdateSent(uint32 field, uint32 value) {}
 
         virtual WorldSession* GetSession() { return NULL; }
 
-        //virtual void HandleInfoCommand(ChatHandler* handler) {}
+        virtual void HandleInfoCommand(ChatHandler* handler) {}
 
         // Must be reimplemented
-        //virtual void AddMemoryQuery(WardenMemoryQuery* query) { query->DataRead(NULL, this); delete query; }
+        virtual void AddMemoryQuery(WardenMemoryQuery* query) { query->DataRead(NULL, this); delete query; }
 };
 
 class PlayerAnticheatInterface
@@ -80,7 +80,7 @@ class PlayerAnticheatInterface
         virtual void AddCheats(uint32 cheats, uint32 count = 1) {}
         virtual void Unreachable(Unit* attacker) {}
         virtual void HandleCommand(ChatHandler* handler) {}
-        virtual void OnExplore(AreaEntry const* p) {}
+        virtual void OnExplore(AreaTableEntry const* p) {}
         virtual void OnTransport(Player* plMover, ObjectGuid transportGuid) {}
 
         virtual bool HandleAnticheatTests(MovementInfo& movementInfo, WorldSession* session, WorldPacket* packet) { return true; }
@@ -90,63 +90,35 @@ class PlayerAnticheatInterface
         virtual void OrderSent(WorldPacket const* data) {}
 
         virtual bool InterpolateMovement(MovementInfo const& mi, uint32 diffMs, float &x, float &y, float &z, float &o) { return true; }
-
-        virtual bool CheckTeleport(uint32 opcode, MovementInfo& movementInfo) { return true; }
-};
-
-class AntispamInterface
-{
-public:
-    virtual ~AntispamInterface() {}
-
-    virtual void loadData() {}
-    virtual void loadConfig() {}
-
-    virtual std::string normalizeMessage(const std::string &msg, uint32 mask = 0) { return msg; }
-    virtual bool filterMessage(const std::string &msg) { return false; }
-
-    virtual void addMessage(const std::string& msg, uint32 type, PlayerPointer from, PlayerPointer to) {}
-
-    virtual bool isMuted(uint32 accountId, bool checkChatType = false, uint32 chatType = 0) const { return false; }
-    virtual void mute(uint32 accountId) {}
-    virtual void unmute(uint32 accountId) {}
-    virtual void showMuted(WorldSession* session) {}
 };
 
 class AnticheatLibInterface
 {
 public:
     virtual ~AnticheatLibInterface() {}
-    virtual WardenInterface* CreateWardenFor(WorldSession* client, BigNumber* K)
+    virtual WardenInterface* CreateWardenFor(WorldSession const* client)
     {
-        return new WardenInterface();
+        return NULL;
     }
     virtual PlayerAnticheatInterface* CreateAnticheatFor(Player* player)
     {
         return new PlayerAnticheatInterface();
     }
     virtual void LoadAnticheatData() {}
-    virtual void LoadConfig() {}
+    virtual void AnticheatLoadConfig() {}
     virtual void MapAccountUpdate(WorldSession* sess) {}
     virtual void SessionAdded(WorldSession* sess) {}
     virtual void OnPlayerLevelUp(Player* player) {}
-    virtual void OnClientHashComputed(WorldSession* sess) {}
-
-    // Antispam wrappers
-    virtual AntispamInterface* GetAntispam() const { return nullptr; }
+    // Returns true to drop the chat message
+    virtual bool FilterChatMessage(WorldSession* sess, uint32 type, std::string msg, std::string channel, std::string to) { return false; }
     virtual bool CanWhisper(AccountPersistentData const& data, MasterPlayer* player) { return true; }
+    virtual void OnClientHashComputed(WorldSession* sess) {}
 };
-
-#ifndef USE_ANTICHEAT
 
 class AnticheatDefaultLib: public AnticheatLibInterface
 {
 };
 
-#endif
-
 AnticheatLibInterface* GetAnticheatLib();
 
 #define sAnticheatLib (GetAnticheatLib())
-
-#endif

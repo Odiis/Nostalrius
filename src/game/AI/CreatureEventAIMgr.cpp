@@ -371,11 +371,11 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                         case SPAWNED_EVENT_ALWAY:
                             break;
                         case SPAWNED_EVENT_MAP:
-                            if (!sMapStorage.LookupEntry<MapEntry>(temp.spawned.conditionValue1))
+                            if (!sMapStore.LookupEntry(temp.spawned.conditionValue1))
                                 sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'map specific' but map (param2: %u) does not exist. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
                             break;
                         case SPAWNED_EVENT_ZONE:
-                            if (!AreaEntry::GetById(temp.spawned.conditionValue1))
+                            if (!GetAreaEntryByAreaID(temp.spawned.conditionValue1))
                                 sLog.outErrorDb("CreatureEventAI:  Creature %u are using spawned event(%u) with param1 = %u 'area specific' but area (param2: %u) does not exist. Event will never repeat.", temp.creature_id, i, temp.spawned.condition, temp.spawned.conditionValue1);
                             break;
                         default:
@@ -807,7 +807,6 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                     case ACTION_T_COMBAT_MOVEMENT:          //AllowCombatMovement (0 = stop combat based movement, anything else continue attacking)
                     case ACTION_T_RANGED_MOVEMENT:          //Distance, Angle
                     case ACTION_T_CALL_FOR_HELP:            //Distance
-                    case ACTION_T_SET_VARIABLE:             // VariableEntry, Value
                         break;
 
                     case ACTION_T_RANDOM_SAY:

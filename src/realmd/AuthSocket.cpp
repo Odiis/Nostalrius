@@ -22,8 +22,6 @@
 */
 
 #include "Common.h"
-#include "Auth/Hmac.h"
-#include "Auth/base32.h"
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
 #include "Log.h"
@@ -31,10 +29,8 @@
 #include "AuthSocket.h"
 #include "AuthCodes.h"
 #include "PatchHandler.h"
-#include "Util.h"
 
 #include <openssl/md5.h>
-#include <ctime>
 //#include "Util.h" -- for commented utf8ToUpperOnlyLatin
 
 #include <ace/OS_NS_unistd.h>
@@ -42,6 +38,12 @@
 #include <ace/OS_NS_sys_stat.h>
 
 extern DatabaseType LoginDatabase;
+
+enum eStatus
+{
+    STATUS_CONNECTED = 0,
+    STATUS_AUTHED
+};
 
 enum AccountFlags
 {
@@ -163,14 +165,26 @@ typedef struct AuthHandler
 #pragma pack(pop)
 #endif
 
+const AuthHandler table[] =
+{
+    { CMD_AUTH_LOGON_CHALLENGE,     STATUS_CONNECTED, &AuthSocket::_HandleLogonChallenge    },
+    { CMD_AUTH_LOGON_PROOF,         STATUS_CONNECTED, &AuthSocket::_HandleLogonProof        },
+    { CMD_AUTH_RECONNECT_CHALLENGE, STATUS_CONNECTED, &AuthSocket::_HandleReconnectChallenge},
+    { CMD_AUTH_RECONNECT_PROOF,     STATUS_CONNECTED, &AuthSocket::_HandleReconnectProof    },
+    { CMD_REALM_LIST,               STATUS_AUTHED,    &AuthSocket::_HandleRealmList         },
+    { CMD_XFER_ACCEPT,              STATUS_CONNECTED, &AuthSocket::_HandleXferAccept        },
+    { CMD_XFER_RESUME,              STATUS_CONNECTED, &AuthSocket::_HandleXferResume        },
+    { CMD_XFER_CANCEL,              STATUS_CONNECTED, &AuthSocket::_HandleXferCancel        }
+};
+
 #define AUTH_TOTAL_COMMANDS sizeof(table)/sizeof(AuthHandler)
 
 /// Constructor - set the N and g values for SRP6
-AuthSocket::AuthSocket() : gridSeed(0), promptPin(false), _accountId(0), _lastRealmListRequest(0)
+AuthSocket::AuthSocket()
 {
     N.SetHexStr("894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7");
     g.SetDword(7);
-    _status = STATUS_CHALLENGE;
+    _authed = false;
 
     _accountDefaultSecurityLevel = SEC_PLAYER;
 
@@ -202,19 +216,6 @@ void AuthSocket::OnAccept()
 /// Read the packet from the client
 void AuthSocket::OnRead()
 {
-    // benchmarking has demonstrated that this lookup method is faster than std::map
-    const static AuthHandler table[] =
-    {
-        { CMD_AUTH_LOGON_CHALLENGE,     STATUS_CHALLENGE,   &AuthSocket::_HandleLogonChallenge },
-        { CMD_AUTH_LOGON_PROOF,         STATUS_LOGON_PROOF, &AuthSocket::_HandleLogonProof },
-        { CMD_AUTH_RECONNECT_CHALLENGE, STATUS_CHALLENGE,   &AuthSocket::_HandleReconnectChallenge },
-        { CMD_AUTH_RECONNECT_PROOF,     STATUS_RECON_PROOF, &AuthSocket::_HandleReconnectProof },
-        { CMD_REALM_LIST,               STATUS_AUTHED,      &AuthSocket::_HandleRealmList },
-        { CMD_XFER_ACCEPT,              STATUS_PATCH,       &AuthSocket::_HandleXferAccept },
-        { CMD_XFER_RESUME,              STATUS_PATCH,       &AuthSocket::_HandleXferResume },
-        { CMD_XFER_CANCEL,              STATUS_PATCH,       &AuthSocket::_HandleXferCancel }
-    };
-
     uint8 _cmd;
     while (1)
     {
@@ -226,28 +227,22 @@ void AuthSocket::OnRead()
         ///- Circle through known commands and call the correct command handler
         for (i = 0; i < AUTH_TOTAL_COMMANDS; ++i)
         {
-            if (table[i].cmd != _cmd)
-                continue;
-
-            // unauthorized
-            DEBUG_LOG("[Auth] Status %u, table status %u", _status, table[i].status);
-
-            if (table[i].status != _status)
+            if ((uint8)table[i].cmd == _cmd &&
+                    (table[i].status == STATUS_CONNECTED ||
+                     (_authed && table[i].status == STATUS_AUTHED)))
             {
-                DEBUG_LOG("[Auth] Received unauthorized command %u length %u", _cmd, (uint32)recv_len());
-                return;
+                DEBUG_LOG("[Auth] got data for cmd %u recv length %u",
+                        (uint32)_cmd, (uint32)recv_len());
+
+                if (!(*this.*table[i].handler)())
+                {
+                    DEBUG_LOG("Command handler failed for cmd %u recv length %u",
+                            (uint32)_cmd, (uint32)recv_len());
+
+                    return;
+                }
+                break;
             }
-
-            DEBUG_LOG("[Auth] Got data for cmd %u recv length %u", _cmd, (uint32)recv_len());
-
-            if (!(*this.*table[i].handler)())
-            {
-                DEBUG_LOG("[Auth] Command handler failed for cmd %u recv length %u", _cmd, (uint32)recv_len());
-                close_connection();
-                return;
-            }
-
-            break;
         }
 
         ///- Report unknown commands in the debug log
@@ -271,12 +266,12 @@ void AuthSocket::_SetVSFields(const std::string& rI)
     uint8 mDigest[SHA_DIGEST_LENGTH];
     memset(mDigest, 0, SHA_DIGEST_LENGTH);
     if (I.GetNumBytes() <= SHA_DIGEST_LENGTH)
-        memcpy(mDigest, I.AsByteArray().data(), I.GetNumBytes());
+        memcpy(mDigest, I.AsByteArray(), I.GetNumBytes());
 
     std::reverse(mDigest, mDigest + SHA_DIGEST_LENGTH);
 
     Sha1Hash sha;
-    sha.UpdateData(s.AsByteArray());
+    sha.UpdateData(s.AsByteArray(), s.GetNumBytes());
     sha.UpdateData(mDigest, SHA_DIGEST_LENGTH);
     sha.Finalize();
     BigNumber x;
@@ -297,7 +292,6 @@ void AuthSocket::SendProof(Sha1Hash sha)
     {
         case 5875:                                          // 1.12.1
         case 6005:                                          // 1.12.2
-        case 6141:                                          // 1.12.3
         {
             sAuthLogonProof_S_BUILD_6005 proof;
             memcpy(proof.M2, sha.GetDigest(), 20);
@@ -343,15 +337,12 @@ bool AuthSocket::_HandleLogonChallenge()
 
     recv((char *)&buf[0], 4);
 
-    EndianConvert(*((uint16*)(&buf[0])));
+    EndianConvert(*((uint16*)(buf[0])));
     uint16 remaining = ((sAuthLogonChallenge_C *)&buf[0])->size;
     DEBUG_LOG("[AuthChallenge] got header, body is %#04x bytes", remaining);
 
     if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || (recv_len() < remaining))
         return false;
-
-    ///- Session is closed unless overriden
-    _status = STATUS_CLOSED;
 
     //No big fear of memory outage (size is int16, i.e. < 65536)
     buf.resize(remaining + buf.size() + 1);
@@ -367,6 +358,7 @@ bool AuthSocket::_HandleLogonChallenge()
     // size already converted
     EndianConvert(*((uint32*)(&ch->gamename[0])));
     EndianConvert(ch->build);
+    EndianConvert(*((uint32*)(&ch->platform[0])));
     EndianConvert(*((uint32*)(&ch->os[0])));
     EndianConvert(*((uint32*)(&ch->country[0])));
     EndianConvert(ch->timezone_bias);
@@ -376,9 +368,6 @@ bool AuthSocket::_HandleLogonChallenge()
 
     _login = (const char*)ch->I;
     _build = ch->build;
-
-    memcpy(&_os, ch->os, sizeof(_os));
-    memcpy(&_platform, ch->platform, sizeof(_platform));
 
     ///- Normalize account name
     //utf8ToUpperOnlyLatin(_login); -- client already send account in expected form
@@ -409,16 +398,14 @@ bool AuthSocket::_HandleLogonChallenge()
         ///- Get the account details from the account table
         // No SQL injection (escaped user name)
 
-        result = LoginDatabase.PQuery("SELECT sha_pass_hash,id,locked,last_ip,v,s,security FROM account WHERE username = '%s'",_safelogin.c_str ());
+        result = LoginDatabase.PQuery("SELECT sha_pass_hash,id,locked,last_ip,v,s FROM account WHERE username = '%s'",_safelogin.c_str ());
         if (result)
         {
             Field* fields = result->Fetch();
             ///- If the IP is 'locked', check that the player comes indeed from the correct IP address
             bool locked = false;
-            lockFlags = (LockFlag)(*result)[2].GetUInt32();
-            securityInfo = (*result)[6].GetCppString();
-
-            if((lockFlags & IP_LOCK) == IP_LOCK)
+            bool ip_lock = fields[2].GetUInt8();
+            if (ip_lock)
             {
                 const char* last_ip = fields[3].GetString();
                 DEBUG_LOG("[AuthChallenge] Account '%s' is locked to IP - '%s'", _login.c_str(), last_ip);
@@ -426,12 +413,8 @@ bool AuthSocket::_HandleLogonChallenge()
                 if (strcmp(last_ip, get_remote_address().c_str()))
                 {
                     DEBUG_LOG("[AuthChallenge] Account IP differs");
-
-                    // account is IP locked and the player does not have 2FA enabled
-                    if (((lockFlags & TOTP) != TOTP && (lockFlags & FIXED_PIN) != FIXED_PIN))
-                        pkt << (uint8) WOW_FAIL_SUSPENDED;
-
-                    locked = true;
+                    pkt << (uint8) WOW_FAIL_SUSPENDED;
+                    locked=true;
                 }
                 else
                 {
@@ -443,12 +426,12 @@ bool AuthSocket::_HandleLogonChallenge()
                 DEBUG_LOG("[AuthChallenge] Account '%s' is not locked to ip", _login.c_str());
             }
 
-            if (!locked || (locked && ((lockFlags & FIXED_PIN) == FIXED_PIN || (lockFlags & TOTP) == TOTP)))
+            if (!locked)
             {
                 uint32 account_id = fields[1].GetUInt32();
                 ///- If the account is banned, reject the logon attempt
                 QueryResult *banresult = LoginDatabase.PQuery("SELECT bandate,unbandate FROM account_banned WHERE "
-                    "id = %u AND active = 1 AND (unbandate > UNIX_TIMESTAMP() OR unbandate = bandate) LIMIT 1", account_id);
+                    "id = %u AND active = 1 AND (unbandate > UNIX_TIMESTAMP() OR unbandate = bandate)", account_id);
                 if (banresult)
                 {
                     if((*banresult)[0].GetUInt64() == (*banresult)[1].GetUInt64())
@@ -497,39 +480,35 @@ bool AuthSocket::_HandleLogonChallenge()
                     pkt << uint8(WOW_SUCCESS);
 
                     // B may be calculated < 32B so we force minimal length to 32B
-                    pkt.append(B.AsByteArray(32));      // 32 bytes
+                    pkt.append(B.AsByteArray(32), 32);      // 32 bytes
                     pkt << uint8(1);
-                    pkt.append(g.AsByteArray());
+                    pkt.append(g.AsByteArray(), 1);
                     pkt << uint8(32);
-                    pkt.append(N.AsByteArray(32));
-                    pkt.append(s.AsByteArray());        // 32 bytes
-                    pkt.append(unk3.AsByteArray(16));
+                    pkt.append(N.AsByteArray(32), 32);
+                    pkt.append(s.AsByteArray(), s.GetNumBytes());// 32 bytes
+                    pkt.append(unk3.AsByteArray(16), 16);
+                    uint8 securityFlags = 0;
+                    pkt << uint8(securityFlags);            // security flags (0x0...0x04)
 
-                    // figure out whether we need to display the PIN grid
-                    promptPin = locked; // always prompt if the account is IP locked & 2FA is enabled
-
-                    if (!locked && ((lockFlags & ALWAYS_ENFORCE) == ALWAYS_ENFORCE))
+                    if(securityFlags & 0x01)                // PIN input
                     {
-                        promptPin = true; // prompt if the lock hasn't been triggered but ALWAYS_ENFORCE is set
+                        pkt << uint32(0);
+                        pkt << uint64(0) << uint64(0);      // 16 bytes hash?
                     }
 
-                    if (promptPin)
-                    {
-                        BASIC_LOG("[AuthChallenge] account %s is using PIN authentication", _login.c_str());
-
-                        uint32 gridSeedPkt = gridSeed = static_cast<uint32>(rand32());
-                        EndianConvert(gridSeedPkt);
-                        serverSecuritySalt.SetRand(16 * 8); // 16 bytes random
-
-                        pkt << uint8(1); // securityFlags, only '1' is available in classic (PIN input)
-                        pkt << gridSeedPkt;
-                        pkt.append(serverSecuritySalt.AsByteArray(16).data(), 16);
-                    }
-                    else
+                    if(securityFlags & 0x02)                // Matrix input
                     {
                         pkt << uint8(0);
+                        pkt << uint8(0);
+                        pkt << uint8(0);
+                        pkt << uint8(0);
+                        pkt << uint64(0);
                     }
 
+                    if(securityFlags & 0x04)                // Security token input
+                    {
+                        pkt << uint8(1);
+                    }
 
                     _localizationName.resize(4);
                     for(int i = 0; i < 4; ++i)
@@ -537,11 +516,6 @@ bool AuthSocket::_HandleLogonChallenge()
 
                     LoadAccountSecurityLevels(account_id);
                     BASIC_LOG("[AuthChallenge] account %s is using '%c%c%c%c' locale (%u)", _login.c_str (), ch->country[3], ch->country[2], ch->country[1], ch->country[0], GetLocaleByName(_localizationName));
-
-                    _accountId = account_id;
-
-                    ///- All good, await client's proof
-                    _status = STATUS_LOGON_PROOF;
                 }
             }
             delete result;
@@ -564,19 +538,8 @@ bool AuthSocket::_HandleLogonProof()
     if(!recv((char *)&lp, sizeof(sAuthLogonProof_C)))
         return false;
 
-    PINData pinData;
-
-    if (lp.securityFlags)
-    {
-        if (!recv((char*)&pinData, sizeof(pinData)))
-            return false;
-    }
-
     ///- Check if the client has one of the expected version numbers
     bool valid_version = FindBuildInfo(_build) != NULL;
-
-    ///- Session is closed unless overriden
-    _status = STATUS_CLOSED;
 
     /// <ul><li> If the client has no valid version
     if(!valid_version)
@@ -647,9 +610,6 @@ bool AuthSocket::_HandleLogonProof()
     if (A.isZero())
         return false;
 
-    if ((A % N).isZero())
-        return false;
-
     Sha1Hash sha;
     sha.UpdateBigNumbers(&A, &B, NULL);
     sha.Finalize();
@@ -660,7 +620,7 @@ bool AuthSocket::_HandleLogonProof()
     uint8 t[32];
     uint8 t1[16];
     uint8 vK[40];
-    memcpy(t, S.AsByteArray(32).data(), 32);
+    memcpy(t, S.AsByteArray(32), 32);
     for (int i = 0; i < 16; ++i)
     {
         t1[i] = t[i * 2];
@@ -715,54 +675,15 @@ bool AuthSocket::_HandleLogonProof()
     BigNumber M;
     M.SetBinary(sha.GetDigest(), 20);
 
-    ///- Check PIN data is correct
-    bool pinResult = true;
-
-    if (promptPin && !lp.securityFlags)
-        pinResult = false; // expected PIN data but did not receive it
-
-    if (promptPin && lp.securityFlags)
-    {
-        if ((lockFlags & FIXED_PIN) == FIXED_PIN)
-        {
-            pinResult = VerifyPinData(std::stoi(securityInfo), pinData);
-            BASIC_LOG("PIN result: %u", pinResult);
-        }
-        else if ((lockFlags & TOTP) == TOTP)
-        {
-            for (int i = -2; i != 2; ++i)
-            {
-                auto pin = GenerateTotpPin(securityInfo, i);
-
-                if (pin == uint32(-1))
-                    break;
-
-                if ((pinResult = VerifyPinData(pin, pinData)))
-                    break;
-            }
-        } 
-        else
-        {
-            pinResult = false;
-            sLog.outError("[ERROR] Invalid PIN flags set for user %s - user cannot log-in until fixed", _login.c_str());
-        }
-    }
-
-    // reject credentials on unexpected build to confuse custom client authors
-    auto const approvedBuild = _platform == X86 && (_os == Win || _os == OSX);
-
     ///- Check if SRP6 results match (password is correct), else send an error
-    if (!memcmp(M.AsByteArray().data(), lp.M1, 20) && pinResult && approvedBuild)
+    if (!memcmp(M.AsByteArray(), lp.M1, 20))
     {
         BASIC_LOG("User '%s' successfully authenticated", _login.c_str());
 
         ///- Update the sessionkey, last_ip, last login time and reset number of failed logins in the account table for this account
         // No SQL injection (escaped user name) and IP address as received by socket
         const char* K_hex = K.AsHexStr();
-        const char *os = reinterpret_cast<char *>(&_os);    // no injection as there are only two possible values
-        auto result = LoginDatabase.PQuery("UPDATE account SET sessionkey = '%s', last_ip = '%s', last_login = NOW(), locale = '%u', failed_logins = 0, os = '%s' WHERE username = '%s'",
-            K_hex, get_remote_address().c_str(), GetLocaleByName(_localizationName), os, _safelogin.c_str() );
-        delete result;
+        LoginDatabase.PExecute("UPDATE account SET sessionkey = '%s', last_ip = '%s', last_login = NOW(), locale = '%u', failed_logins = 0 WHERE username = '%s'", K_hex, get_remote_address().c_str(), GetLocaleByName(_localizationName), _safelogin.c_str() );
         OPENSSL_free((void*)K_hex);
 
         ///- Finish SRP6 and send the final result to the client
@@ -772,8 +693,8 @@ bool AuthSocket::_HandleLogonProof()
 
         SendProof(sha);
 
-        ///- Set _status to authed!
-        _status = STATUS_AUTHED;
+        ///- Set _authed to true!
+        _authed = true;
     }
     else
     {
@@ -844,15 +765,12 @@ bool AuthSocket::_HandleReconnectChallenge()
 
     recv((char *)&buf[0], 4);
 
-    EndianConvert(*((uint16*)(&buf[0])));
+    EndianConvert(*((uint16*)(buf[0])));
     uint16 remaining = ((sAuthLogonChallenge_C *)&buf[0])->size;
     DEBUG_LOG("[ReconnectChallenge] got header, body is %#04x bytes", remaining);
 
     if ((remaining < sizeof(sAuthLogonChallenge_C) - buf.size()) || (recv_len() < remaining))
         return false;
-
-    ///- Session is closed unless overriden
-    _status = STATUS_CLOSED;
 
     //No big fear of memory outage (size is int16, i.e. < 65536)
     buf.resize(remaining + buf.size() + 1);
@@ -872,7 +790,7 @@ bool AuthSocket::_HandleReconnectChallenge()
     EndianConvert(ch->build);
     _build = ch->build;
 
-    QueryResult *result = LoginDatabase.PQuery ("SELECT sessionkey,id FROM account WHERE username = '%s'", _safelogin.c_str ());
+    QueryResult *result = LoginDatabase.PQuery ("SELECT sessionkey FROM account WHERE username = '%s'", _safelogin.c_str ());
 
     // Stop if the account is not found
     if (!result)
@@ -884,18 +802,14 @@ bool AuthSocket::_HandleReconnectChallenge()
 
     Field* fields = result->Fetch ();
     K.SetHexStr (fields[0].GetString ());
-    _accountId = fields[1].GetUInt32();
     delete result;
-
-    ///- All good, await client's proof
-    _status = STATUS_RECON_PROOF;
 
     ///- Sending response
     ByteBuffer pkt;
     pkt << (uint8)  CMD_AUTH_RECONNECT_CHALLENGE;
     pkt << (uint8)  0x00;
     _reconnectProof.SetRand(16 * 8);
-    pkt.append(_reconnectProof.AsByteArray(16));            // 16 bytes random
+    pkt.append(_reconnectProof.AsByteArray(16),16);         // 16 bytes random
     pkt << (uint64) 0x00 << (uint64) 0x00;                  // 16 bytes zeros
     send((char const*)pkt.contents(), pkt.size());
     return true;
@@ -909,9 +823,6 @@ bool AuthSocket::_HandleReconnectProof()
     sAuthReconnectProof_C lp;
     if(!recv((char *)&lp, sizeof(sAuthReconnectProof_C)))
         return false;
-
-    ///- Session is closed unless overriden
-    _status = STATUS_CLOSED;
 
     if (_login.empty() || !_reconnectProof.GetNumBytes() || !K.GetNumBytes())
         return false;
@@ -931,10 +842,11 @@ bool AuthSocket::_HandleReconnectProof()
         ByteBuffer pkt;
         pkt << (uint8)  CMD_AUTH_RECONNECT_PROOF;
         pkt << (uint8)  0x00;
+        pkt << (uint16) 0x00;                               // 2 bytes zeros
         send((char const*)pkt.contents(), pkt.size());
 
-        ///- Set _status to authed!
-        _status = STATUS_AUTHED;
+        ///- Set _authed to true!
+        _authed = true;
 
         return true;
     }
@@ -955,29 +867,27 @@ bool AuthSocket::_HandleRealmList()
 
     recv_skip(5);
 
-    // this shouldn't be possible, but just in case
-    if (!_accountId)
-        return false;
+    ///- Get the user id (else close the connection)
+    // No SQL injection (escaped user name)
 
-    // check for too frequent requests
-    auto const minDelay = sConfig.GetIntDefault("MinRealmListDelay", 1);
-    auto const now = time(nullptr);
-    auto const delay = now - _lastRealmListRequest;
-
-    _lastRealmListRequest = now;
-
-    if (delay < minDelay)
+    QueryResult *result = LoginDatabase.PQuery("SELECT id,sha_pass_hash FROM account WHERE username = '%s'",_safelogin.c_str());
+    if(!result)
     {
-        sLog.outError("[ERROR] user %s IP %s is sending CMD_REALM_LIST too frequently.  Delay = %d seconds", _login.c_str(), get_remote_address().c_str(), delay);
+        sLog.outError("[ERROR] user %s tried to login and we cannot find him in the database.",_login.c_str());
+        close_connection();
         return false;
     }
+
+    uint32 id = (*result)[0].GetUInt32();
+    std::string rI = (*result)[1].GetCppString();
+    delete result;
 
     ///- Update realm list if need
     sRealmList.UpdateIfNeed();
 
     ///- Circle through realms in the RealmList and construct the return packet (including # of user characters in each realm)
     ByteBuffer pkt;
-    LoadRealmlist(pkt);
+    LoadRealmlist(pkt, id);
 
     ByteBuffer hdr;
     hdr << (uint8) CMD_REALM_LIST;
@@ -989,13 +899,12 @@ bool AuthSocket::_HandleRealmList()
     return true;
 }
 
-void AuthSocket::LoadRealmlist(ByteBuffer &pkt)
+void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
 {
     switch(_build)
     {
         case 5875:                                          // 1.12.1
         case 6005:                                          // 1.12.2
-        case 6141:                                          // 1.12.3
         {
             pkt << uint32(0);                               // unused value
             pkt << uint8(sRealmList.size());
@@ -1005,7 +914,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt)
                 uint8 AmountOfCharacters;
 
                 // No SQL injection. id of realm is controlled by the database.
-                QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, _accountId);
+                QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, acctid);
                 if( result )
                 {
                     Field *fields = result->Fetch();
@@ -1066,7 +975,7 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt)
                 uint8 AmountOfCharacters;
 
                 // No SQL injection. id of realm is controlled by the database.
-                QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, _accountId);
+                QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, acctid);
                 if( result )
                 {
                     Field *fields = result->Fetch();
@@ -1177,110 +1086,6 @@ bool AuthSocket::_HandleXferAccept()
     InitPatch();
 
     return true;
-}
-
-/// Verify PIN entry data
-bool AuthSocket::VerifyPinData(uint32 pin, const PINData& clientData)
-{
-    // remap the grid to match the client's layout
-    std::vector<uint8> grid { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    std::vector<uint8> remappedGrid(grid.size());
-
-    uint8* remappedIndex = remappedGrid.data();
-    uint32 seed = gridSeed;
-
-    for (size_t i = grid.size(); i > 0; --i)
-    {
-        auto remainder = seed % i;
-        seed /= i;
-        *remappedIndex = grid[remainder];
-
-        size_t copySize = i;
-        copySize -= remainder;
-        --copySize;
-
-        uint8* srcPtr = grid.data() + remainder + 1;
-        uint8* dstPtr = grid.data() + remainder;
-
-        std::copy(srcPtr, srcPtr + copySize, dstPtr);
-        ++remappedIndex;
-    }
-
-    // convert the PIN to bytes (for ex. '1234' to {1, 2, 3, 4})
-    std::vector<uint8> pinBytes;
-	    
-    while (pin != 0)
-    {
-        pinBytes.push_back(pin % 10);
-        pin /= 10;
-    }
-
-    std::reverse(pinBytes.begin(), pinBytes.end());
-
-    // validate PIN length
-    if (pinBytes.size() < 4 || pinBytes.size() > 10)
-        return false; // PIN outside of expected range
-
-    // remap the PIN to calculate the expected client input sequence
-    for (size_t i = 0; i < pinBytes.size(); ++i)
-    {
-        auto index = std::find(remappedGrid.begin(), remappedGrid.end(), pinBytes[i]);
-        pinBytes[i] = std::distance(remappedGrid.begin(), index);
-    }
-
-    // convert PIN bytes to their ASCII values
-    for (size_t i = 0; i < pinBytes.size(); ++i)
-        pinBytes[i] += 0x30;
-
-    // validate the PIN, x = H(client_salt | H(server_salt | ascii(pin_bytes)))
-    Sha1Hash sha;
-    sha.UpdateData(serverSecuritySalt.AsByteArray());
-    sha.UpdateData(pinBytes.data(), pinBytes.size());
-    sha.Finalize();
-    
-    BigNumber hash, clientHash;
-    hash.SetBinary(sha.GetDigest(), sha.GetLength());
-    clientHash.SetBinary(clientData.hash, 20);
-
-    sha.Initialize();
-    sha.UpdateData(clientData.salt, sizeof(clientData.salt));
-    sha.UpdateData(hash.AsByteArray());
-    sha.Finalize();
-    hash.SetBinary(sha.GetDigest(), sha.GetLength());
-
-    return !memcmp(hash.AsDecStr(), clientHash.AsDecStr(), 20);
-}
-
-uint32 AuthSocket::GenerateTotpPin(const std::string& secret, int interval) {
-    std::vector<uint8> decoded_key((secret.size() + 7) / 8 * 5);
-    int key_size = base32_decode((const uint8_t*)secret.data(), decoded_key.data(), decoded_key.size());
-
-    if (key_size == -1)
-    {
-        DEBUG_LOG("Unable to base32 decode TOTP key for user %s", _safelogin.c_str());
-        return -1;
-    }
-
-    // not guaranteed by the standard to be the UNIX epoch but it is on all supported platforms
-    auto time = std::time(NULL);
-    uint64 now = static_cast<uint64>(time);
-    uint64 step = static_cast<uint64>((floor(now / 30))) + interval;
-    EndianConvertReverse(step);
-    
-    HmacHash hmac(decoded_key.data(), key_size);
-    hmac.UpdateData((uint8*)&step, sizeof(step));
-    hmac.Finalize();
-
-    auto hmac_result = hmac.GetDigest();
-
-    unsigned int offset = hmac_result[19] & 0xF;
-    std::uint32_t pin = (hmac_result[offset] & 0x7f) << 24 | (hmac_result[offset + 1] & 0xff) << 16
-        | (hmac_result[offset + 2] & 0xff) << 8 | (hmac_result[offset + 3] & 0xff);
-    EndianConvert(pin);
-
-    pin &= 0x7FFFFFFF;
-    pin %= 1000000;
-    return pin;
 }
 
 void AuthSocket::InitPatch()

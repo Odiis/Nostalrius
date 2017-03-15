@@ -24,9 +24,6 @@ EndScriptData */
 #include "scriptPCH.h"
 #include "scholomance.h"
 
-#define SAY_GANDLING_SPAWN    -1289000
-#define SAY_GANDLING_DEATH    -1289001
-
 #define SPELL_ARCANEMISSILES           15790
 #define SPELL_SHADOWSHIELD             22417                //Not right ID. But 12040 is wrong either.
 #define SPELL_CURSE                    18702
@@ -57,10 +54,6 @@ struct boss_darkmaster_gandlingAI : public ScriptedAI
     {
         m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
-        DoScriptText(SAY_GANDLING_SPAWN, m_creature);
-        // display Christmas Hat Gandling during Feast of Winter Veil
-        if (sGameEventMgr.IsActiveEvent(2))
-            m_creature->SetDisplayId(15732);
     }
 
     ScriptedInstance* m_pInstance;
@@ -72,8 +65,6 @@ struct boss_darkmaster_gandlingAI : public ScriptedAI
     bool bShadowPortalCasted;
     uint64 ShadowPortalTargetGUID;
 
-    uint32 m_uiArcaneTriggerTimer;
-
     void Reset()
     {
         ArcaneMissiles_Timer = 4500;
@@ -82,16 +73,12 @@ struct boss_darkmaster_gandlingAI : public ScriptedAI
         Teleport_Timer = 16000;
         bShadowPortalCasted = false;
         ShadowPortalTargetGUID = 0;
-
-        m_uiArcaneTriggerTimer = 0;
     }
 
     void JustDied(Unit *killer)
     {
         if (m_pInstance)
             m_pInstance->SetData(TYPE_GANDLING, DONE);
-
-        DoScriptText(SAY_GANDLING_DEATH, m_creature);
     }
 
     void JustReachedHome()
@@ -105,26 +92,11 @@ struct boss_darkmaster_gandlingAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        // hack fix Gandling Arcane Missiles periodic trigger
-        if (m_creature->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
-        {
-            if (m_uiArcaneTriggerTimer <= diff)
-            {
-                m_creature->CastSpell(m_creature->getVictim(), 15791, true);
-                m_uiArcaneTriggerTimer = 1000;
-            }
-            else
-                m_uiArcaneTriggerTimer -= diff;
-        }
-
         //ArcaneMissiles_Timer
         if (ArcaneMissiles_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_ARCANEMISSILES) == CAST_OK)
-            {
                 ArcaneMissiles_Timer = urand(10000, 16000);
-                m_uiArcaneTriggerTimer = 0;
-            }
         }
         else ArcaneMissiles_Timer -= diff;
 

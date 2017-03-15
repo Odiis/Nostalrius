@@ -93,7 +93,7 @@ class AccountMgr
         std::string CalculateShaPassHash(std::string& name, std::string& password);
 
         static bool normalizeString(std::string& utf8str);
-        // Nostalrius
+        // Elysium
         void Update(uint32 diff);
         void LoadIPBanList(bool silent=false);
         void LoadAccountBanList(bool silent=false);

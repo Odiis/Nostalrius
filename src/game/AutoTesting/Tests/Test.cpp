@@ -2,7 +2,7 @@
  * Test.cpp
  *
  *  Created on: 22 janv. 2015
- *      Author: Daemon
+ *      1.12
  */
 
 #include "TestPCH.h"

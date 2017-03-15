@@ -31,7 +31,8 @@ class UpdateMask
 
         ~UpdateMask( )
         {
-            delete [] mUpdateMask;
+            if(mUpdateMask)
+                delete [] mUpdateMask;
         }
 
         void SetBit (uint32 index)
@@ -56,7 +57,8 @@ class UpdateMask
 
         void SetCount (uint32 valuesCount)
         {
-            delete [] mUpdateMask;
+            if(mUpdateMask)
+                delete [] mUpdateMask;
 
             mCount = valuesCount;
             mBlocks = (valuesCount + 31) / 32;

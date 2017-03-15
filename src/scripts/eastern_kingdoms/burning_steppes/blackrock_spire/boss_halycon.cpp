@@ -26,6 +26,11 @@ EndScriptData */
 #define SPELL_CROWDPUMMEL       10887
 #define SPELL_MIGHTYBLOW        14099
 
+#define ADD_1X                  -169.839203f
+#define ADD_1Y                  -324.961395f
+#define ADD_1Z                  64.401443f
+#define ADD_1O                  3.124724f
+
 struct boss_halyconAI : public ScriptedAI
 {
     boss_halyconAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -73,12 +78,7 @@ struct boss_halyconAI : public ScriptedAI
         //Summon Gizrul
         if (!Summoned)
         {
-            m_creature->MonsterTextEmote("Halycon lets loose a gutteral growl as her body collapses. A horrifying howl can be heard echoing through the halls of Blackrock Spire. Something is very, very angry.");
-            if (Creature* pGizrul = m_creature->SummonCreature(10268, -167.58f, -382.41f, 64.401f, 1.563f, TEMPSUMMON_DEAD_DESPAWN, 0))
-            {
-                pGizrul->SetHomePosition(-172.633f, -324.253f, 64.401f, 4.74f);
-                pGizrul->SetInCombatWithZone();
-            }
+            m_creature->SummonCreature(10268, ADD_1X, ADD_1Y, ADD_1Z, ADD_1O, TEMPSUMMON_DEAD_DESPAWN, 0);
             Summoned = true;
         }
     }

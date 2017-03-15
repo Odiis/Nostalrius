@@ -39,31 +39,31 @@ struct boss_baron_geddonAI : public ScriptedAI
         Reset();
     }
 
-    uint32 m_uiIgniteManaTimer;
-    uint32 m_uiLivingBombTimer;
-    uint32 m_uiInfernoTimer;
-    uint32 m_uiInfernoAltTimer;
-    uint32 m_uiRestoreTargetTimer;
+    uint32 Inferno_Timer;
+    uint32 IgniteMana_Timer;
+    uint32 LivingBomb_Timer;
     uint32 InfCount;
     uint32 Tick;
-    bool m_bInferno;
-    bool m_bArmageddon;
+    bool Inferno;
+    bool Armageddon;
 
     ScriptedInstance* m_pInstance;
 
+    void EnterEvadeMode()
+    {
+        m_creature->clearUnitState(UNIT_STAT_ROOT);
+        ScriptedAI::EnterEvadeMode();
+    }
     void Reset()
     {
-        m_uiIgniteManaTimer    = urand(10000, 15000);
-        m_uiLivingBombTimer    = urand(15000, 20000);
-        m_uiInfernoTimer       = urand(18000, 24000);
-        m_uiRestoreTargetTimer = 0;
-        m_bInferno             = false;
-        m_bArmageddon          = false;
+        Inferno_Timer    = 15000;                              //These times are probably wrong
+        IgniteMana_Timer = 30000;
+        LivingBomb_Timer = 20000;
+        Inferno = false;
+        Armageddon = false;
 
         if (m_pInstance && m_creature->isAlive())
             m_pInstance->SetData(TYPE_GEDDON, NOT_STARTED);
-
-        m_creature->clearUnitState(UNIT_STAT_ROOT);
     }
 
     void Aggro(Unit* pWho)
@@ -84,108 +84,92 @@ struct boss_baron_geddonAI : public ScriptedAI
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
-        if (m_bArmageddon)
+        if (m_creature->HasAura(SPELL_ARMAGEDDOM) || Armageddon)
             return;
 
-        //If we are <5% hp cast Armageddom
-        if (!m_bArmageddon)
+        //If we are <2% hp cast Armageddom
+        if (!Armageddon)
         {
-            if (m_creature->GetHealthPercent() < 5.0f)
+            if (m_creature->GetHealthPercent() <= 2.0f)
             {
                 m_creature->InterruptNonMeleeSpells(true);
-                SetCombatMovement(false);
-                //m_creature->SetTargetGuid(ObjectGuid());
+
                 m_creature->CastSpell(m_creature, SPELL_ARMAGEDDOM, true);
                 DoScriptText(EMOTE_SERVICE, m_creature);
-                m_bArmageddon = true;
+                Armageddon = true;
                 return;
             }
         }
 
-        if (m_uiLivingBombTimer < diff)
+        //LivingBomb_Timer
+        if (LivingBomb_Timer < diff)
         {
-            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
-                if (DoCastSpellIfCan(pTarget, SPELL_LIVINGBOMB) == CAST_OK)
-                {
-                    m_creature->SetInFront(pTarget);
-                    m_creature->SetTargetGuid(pTarget->GetObjectGuid());
-                    m_uiLivingBombTimer = urand(12000, 15000);
-                    m_uiRestoreTargetTimer = 800;
-                }
+                pTarget->CastSpell(pTarget, SPELL_LIVINGBOMB, false);
+                LivingBomb_Timer = 13000 + rand() % 4000;
             }
         }
         else
-            m_uiLivingBombTimer -= diff;
+            LivingBomb_Timer -= diff;
 
-        // Restore original target after casting Living Bomb on someone
-        if (m_uiRestoreTargetTimer)
-        {
-            if (m_uiRestoreTargetTimer <= diff)
-            {
-                if (Unit* pTarget = m_creature->getVictim())
-                {
-                    m_creature->SetInFront(pTarget);
-                    m_creature->SetTargetGuid(pTarget->GetObjectGuid());
-                    m_uiRestoreTargetTimer = 0;
-                }
-            }
-            else
-                m_uiRestoreTargetTimer -= diff;
-        }
-
-        if (m_uiIgniteManaTimer < diff)
+        //IgniteMana_Timer
+        if (IgniteMana_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_IGNITEMANA) == CAST_OK)
-                m_uiIgniteManaTimer = urand(20000, 30000);
+                IgniteMana_Timer = 30000;
         }
         else
-            m_uiIgniteManaTimer -= diff;
+            IgniteMana_Timer -= diff;
 
-        if (m_uiInfernoTimer < diff)
+        //Inferno_Timer
+        if (Inferno_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_INFERNO) == CAST_OK)
             {
-                m_uiInfernoTimer = urand(18000, 24000);
+                Inferno_Timer = 15000 + rand() % 5000;
                 InfCount = 0;
                 Tick = 1000;
-                m_bInferno = true;
-                m_creature->addUnitState(UNIT_STAT_ROOT);
+                Inferno = true;
             }
         }
-        else
-            m_uiInfernoTimer -= diff;
-
-        // Inferno damage increases with each tick
-        if (m_bInferno)
+        else if (!m_creature->HasAura(SPELL_INFERNO))
         {
+            Inferno_Timer -= diff;
+            m_creature->clearUnitState(UNIT_STAT_ROOT);
+        }
+
+        if (Inferno)
+        {
+            m_creature->addUnitState(UNIT_STAT_ROOT);
+
             if (Tick >= 1000)
             {
                 int Damage = 0;
                 switch (InfCount)
                 {
-                    case 0:
-                    case 1:
-                        Damage = 500;
+                    case 8:
+                        Inferno = false;
+                        Damage = 2500;
                         break;
-                    case 2:
-                    case 3:
-                        Damage = 1000;
-                        break;
-                    case 4:
-                    case 5:
-                        Damage = 1500;
-                        break;
-                    case 6:
                     case 7:
+                    case 6:
                         Damage = 2000;
                         break;
-                    case 8:
-                        Damage = 2500;
-                        m_bInferno = false;
-                        m_creature->clearUnitState(UNIT_STAT_ROOT);
+                    case 5:
+                    case 4:
+                        Damage = 1500;
+                        break;
+                    case 3:
+                    case 2:
+                        Damage = 1000;
+                        break;
+                    case 1:
+                    case 0:
+                        Damage = 500;
                         break;
                 }
+                m_creature->CastCustomSpell(m_creature, 5857, 0, 0, 0, false);
                 m_creature->CastCustomSpell(m_creature, 19698, &Damage, NULL, NULL, true);
                 InfCount++;
                 Tick = 0;
@@ -193,7 +177,6 @@ struct boss_baron_geddonAI : public ScriptedAI
             Tick += diff;
             return;
         }
-
 
         DoMeleeAttackIfReady();
     }

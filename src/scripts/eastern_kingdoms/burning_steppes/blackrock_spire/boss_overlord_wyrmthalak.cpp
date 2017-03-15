@@ -54,8 +54,6 @@ struct boss_overlordwyrmthalakAI : public ScriptedAI
     uint32 m_uiKnockawayTimer;
     bool m_bSummoned;
 
-    uint32 m_uiLeashCheckTimer;
-
     void Reset()
     {
         m_uiBlastWaveTimer = 20000;
@@ -63,8 +61,6 @@ struct boss_overlordwyrmthalakAI : public ScriptedAI
         m_uiCleaveTimer    = 6000;
         m_uiKnockawayTimer = 12000;
         m_bSummoned = false;
-
-        m_uiLeashCheckTimer = 5000;
     }
 
     void JustSummoned(Creature* pSummoned)
@@ -79,28 +75,11 @@ struct boss_overlordwyrmthalakAI : public ScriptedAI
         }
     }
 
-    void LeashIfOutOfCombatArea(uint32 uiDiff)
-    {
-        if (m_uiLeashCheckTimer < uiDiff)
-            m_uiLeashCheckTimer = 3500;
-        else
-        {
-            m_uiLeashCheckTimer -= uiDiff;
-            return;
-        }
-
-        if (m_creature->GetPositionZ() > 100.0f)
-            EnterEvadeMode();
-    } 
-
     void UpdateAI(const uint32 uiDiff)
     {
         // Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
-
-        // Prevent players from pulling Wyrmthalak into UBRS
-        LeashIfOutOfCombatArea(uiDiff);
 
         // BlastWave
         if (m_uiBlastWaveTimer < uiDiff)

@@ -1,5 +1,8 @@
 /*
  * Cinematics.cpp
+ *
+ *  Created on: 5 févr. 2015
+ *      1.12
  */
 
 #include "TestPCH.h"
@@ -20,7 +23,7 @@ public:
     {
     }
 
-    static void AddSpells(Player* player)
+    void AddSpells(Player* player)
     {
         uint32 familyName = 0;
         switch (player->getClass())
@@ -60,23 +63,20 @@ public:
                 player->learnSpell(id, false);
         }
     }
-
-    static void AddStuff(Player* player, uint32 itemId)
+    void AddStuff(Player* player, uint32 itemId)
     {
         ItemPrototype const* prototype = sObjectMgr.GetItemPrototype(itemId);
-        if (!prototype) return;
-
+        if (!prototype)
+            return;
         uint8 slot = player->FindEquipSlot(prototype, NULL_SLOT, true);
-        if (slot == NULL_SLOT) return;
 
         if (player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
             player->DestroyItem(INVENTORY_SLOT_BAG_0, slot, true);
 
-		//if (player->CanUseItem(prototype))
+		if (player->CanUseItem(prototype))
 			player->EquipNewItem(slot, itemId, true);
     }
-
-    static void Mount(Player* p, uint32 mountItem)
+    void Mount(Player* p, uint32 mountItem)
     {
         if (Item* item = p->AddItem(mountItem, 1))
         {
@@ -93,8 +93,7 @@ public:
             p->AddAura(spellid);
         }
     }
-
-    static void StuffLevel60(Player* p)
+    void StuffLevel60(Player* p)
     {
         switch (p->getClass())
         {
@@ -141,11 +140,10 @@ public:
                 break;
         }
     }
-
-    static void StuffRandom(Player* player)
+    void StuffRandom(Player* player)
     {
         std::set<uint32> items[EQUIPMENT_SLOT_END];
-        for (uint32 id = 0; id < sItemStorage.GetMaxEntry(); id++)
+        for (uint32 id = 0; id < sItemStorage.MaxEntry; id++)
         {
             ItemPrototype const *pProto = sItemStorage.LookupEntry<ItemPrototype >(id);
             if (!pProto)
@@ -160,13 +158,12 @@ public:
         for (int i = 0; i < EQUIPMENT_SLOT_END; ++i)
             if (items[i].size())
             {
-                auto it = items[i].begin();
+                std::set<uint32>::iterator it = items[i].begin();
                 std::advance(it, urand(0, items[i].size() - 1)),
                     AddStuff(player, *it);
             }
     }
-
-    static void AutoMountPlayer(Player* p, bool mount60 = false)
+    void AutoMountPlayer(Player* p, bool mount60 = false)
     {
         uint32 mount = 0;
         switch (p->getRace())
@@ -216,8 +213,7 @@ public:
         }
         Mount(p, mount);
     }
-
-    static void GenerateRandomClassRace(uint8& _class, uint8& _race, uint32 team = ALLIANCE)
+    void GenerateRandomClassRace(uint8& _class, uint8& _race, uint32 team = ALLIANCE)
     {
         switch (urand(0, 5))
         {
@@ -474,7 +470,7 @@ public:
                     break;
             }
         }
-        while (!p->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, 30.0f));
+        while (!p->GetMap()->GetWalkRandomPosition(NULL, x, y, z, 30.0f));
         p->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
     }
 };
@@ -515,7 +511,7 @@ public:
                     break;
             }
         }
-        while (!p->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, 30.0f));
+        while (!p->GetMap()->GetWalkRandomPosition(NULL, x, y, z, 30.0f));
         p->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
     }
 };
@@ -540,7 +536,7 @@ public:
         uint8 _race, _class;
         GenerateRandomClassRace(_class, _race, team);
         float z = GetMap()->GetHeight(x, y, 0.0f, false);
-        while (!GetMap()->GetWalkRandomPosition(nullptr, x, y, z, r, NAV_GROUND));
+        while (!GetMap()->GetWalkRandomPosition(NULL, x, y, z, r, NAV_GROUND));
         SpawnPlayer(summonIndex, _class, _race, x, y, z);
         ++summonIndex;
     }
@@ -893,896 +889,9 @@ public:
 	}
 };
 
-enum
-{
-    NPC_SPIRIT_HEALER   = 6491,
-    NPC_TRIGGER         = 12999,
-    SPELL_RESURRECTION  = 24173
-};
-
-class cinematics_caverns_of_time_spirit_healers : public SingleTest
-{
-public:
-    explicit cinematics_caverns_of_time_spirit_healers(const char* name = "cinematics_caverns_of_time_spirit_healers") : SingleTest(name, 1, false)
-    {
-        
-    }
-
-    void DoSpawn(float outerRadius)
-    {
-        // center point
-        float x0 = -8531;
-        float y0 = -4469;
-        float z = -210;
-
-        auto pCenter = SpawnCreature(6, NPC_TRIGGER, x0, y0, z);
-
-        float innerRadius = sqrtf(3) / 2 * outerRadius;
-        float halfOuter = outerRadius / 2;
-
-        // hexagon spawn
-        float x[6] = { 0 };
-        float y[6] = { 0 };
-
-        x[0] = x0;
-        y[0] = y0 + outerRadius;
-
-        x[1] = x0 + innerRadius;
-        y[1] = y0 + halfOuter;
-
-        x[2] = x[1];
-        y[2] = y0 - halfOuter;
-
-        x[3] = x0;
-        y[3] = y0 - outerRadius;
-
-        x[4] = x0 - innerRadius;
-        y[4] = y[2];
-
-        x[5] = x[4];
-        y[5] = y[1];
-
-        // spawn and orient
-        for (uint8 i = 0; i < 6; ++i)
-        {
-            if (auto pCreature = SpawnCreature(i, NPC_SPIRIT_HEALER, x[i], y[i], z))
-            {
-                pCreature->SetFacingToObject(pCenter);
-                pCreature->SetInFront(pCenter);
-                pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPIRITHEALER);
-                pCreature->SetVisibility(VISIBILITY_ON);
-            }
-        }
-    }
-
-    static void DoCast(Creature* pCreature)
-    {
-        pCreature->CastSpell(pCreature, SPELL_RESURRECTION, false);
-    }
-
-    void Test() override
-    {
-        TEST_FIRST
-            DoSpawn(12);
-        TEST_DELAY(3000)
-            if (Creature* pCreature = GetTestCreature(0))
-                DoCast(pCreature);
-        TEST_DELAY(1000)
-            if (Creature* pCreature = GetTestCreature(1))
-                DoCast(pCreature);
-        TEST_DELAY(1000)
-            if (Creature* pCreature = GetTestCreature(2))
-                DoCast(pCreature);
-        TEST_DELAY(1000)
-            if (Creature* pCreature = GetTestCreature(3))
-                DoCast(pCreature);
-        TEST_DELAY(1000)
-            if (Creature* pCreature = GetTestCreature(4))
-                DoCast(pCreature);
-        TEST_DELAY(1000)
-            if (Creature* pCreature = GetTestCreature(5))
-                DoCast(pCreature);
-        TEST_DELAY(10000)
-            TEST_END
-    }
-};
-
-enum
-{
-    APEEARANCE_DELAY = 2000
-};
-
-class cinematics_crossroads_crowd : public SingleCinematicTest
-{
-public:
-    cinematics_crossroads_crowd(const char* sname = "cinematics_crossroads_crowd") : SingleCinematicTest(sname, 1), summonIndex(0), stayOnlineTimer(60000)
-    {
-    }
-
-    uint32 summonIndex;
-    uint32 stayOnlineTimer;
-
-    void DoSpawn(float x, float y, float r = 20.0f)
-    {
-        uint32 team = HORDE;
-        uint8 _race, _class;
-        GenerateRandomClassRace(_class, _race, team);
-        float z = GetMap()->GetHeight(x, y, 0.0f, false);
-        uint16 limit = 0;
-        while (!GetMap()->GetWalkRandomPosition(nullptr, x, y, z, r, NAV_GROUND))
-        {
-            ++limit;
-            if (limit > 5) return;
-        }
-        SpawnPlayer(summonIndex, _class, _race, x, y, z);
-        ++summonIndex;
-    }
-
-    void DoSpawnCount(uint32 count, float x, float y)
-    {
-        for (uint32 i = 0; i < count; ++i)
-            DoSpawn(x, y);
-    }
-
-    static void JustSpawned(Player* p)
-    {
-        if (p->AI())
-            delete p->AI();
-        p->GiveLevel(urand(50, 60));
-        AddSkillsPlayer(p);
-        p->setAI(new PlayerControlledAI(p));
-        GearUpPlayer(p);
-
-        SearchAndDestroy(p);
-    }
-
-    static void SearchAndDestroy(Player* p)
-    {
-        if (!p->isAlive()) return;
-
-        float x = p->GetPositionX();
-        float y = p->GetPositionY();
-        float z = p->GetPositionZ();
-        uint16 limit = 0;
-        while (!p->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, DEFAULT_VISIBILITY_DISTANCE, NAV_GROUND))
-        {
-            ++limit;
-            if (limit > 5) return;
-        }
-        p->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
-    }
-
-    static void AddSkillsPlayer(Player* player)
-    {
-        switch (player->getClass())
-        {
-        case CLASS_WARRIOR:
-            player->learnSpell(12294, false);
-            player->learnSpell(5308, false);
-            break;
-        case CLASS_PALADIN:
-            player->learnSpell(24274, false);
-            player->learnSpell(20271, false);
-            player->learnSpell(879, false);
-            break;
-        case CLASS_HUNTER:
-            player->learnSpell(3674, false);
-            player->learnSpell(1499, false);
-            break;
-        case CLASS_ROGUE:
-            player->learnSpell(8676, false);
-            player->learnSpell(16511, false);
-            break;
-        case CLASS_PRIEST:
-            player->learnSpell(605, false);
-            player->learnSpell(8092, false);
-            break;
-        case CLASS_MAGE:
-            player->learnSpell(11366, false);
-            player->learnSpell(10, false);
-            break;
-        case CLASS_WARLOCK:
-            player->learnSpell(980, false);
-            player->learnSpell(6353, false);
-            break;
-        case CLASS_DRUID:
-            player->learnSpell(8921, false);
-            player->learnSpell(16914, false);
-            break;
-        case CLASS_SHAMAN:
-            player->learnSpell(1064, false);
-            player->learnSpell(421, false);
-            break;
-        }
-    }
-
-    static void GearUpPlayer(Player* p)
-    {
-        if (p->GetTeamId() == TEAM_ALLIANCE)
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_PALADIN:
-                AddStuff(p, 16958);
-                AddStuff(p, 16953);
-                AddStuff(p, 16954);
-                AddStuff(p, 22988);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 4057);
-                AddStuff(p, 14587);
-                AddStuff(p, 1934);
-                AddStuff(p, 16059);
-                AddStuff(p, 12247);
-                AddStuff(p, 4825);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 18486);
-                AddStuff(p, 7721);
-                AddStuff(p, 4729);
-                AddStuff(p, 2576);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 9943);
-                AddStuff(p, 9941);
-                AddStuff(p, 12252);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 14297);
-                AddStuff(p, 14296);
-                AddStuff(p, 14293);
-                AddStuff(p, 3185);
-                break;
-            }
-        }
-        else
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 22476);
-                AddStuff(p, 22479);
-                AddStuff(p, 22477);
-                AddStuff(p, 21404);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 17624);
-                AddStuff(p, 17622);
-                AddStuff(p, 17625);
-                AddStuff(p, 21410);
-                break;
-            case CLASS_SHAMAN:
-                AddStuff(p, 16841);
-                AddStuff(p, 16844);
-                AddStuff(p, 16843);
-                AddStuff(p, 22809);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 16798);
-                AddStuff(p, 16536);
-                AddStuff(p, 21346);
-                AddStuff(p, 16345);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 21357);
-                AddStuff(p, 21354);
-                AddStuff(p, 21356);
-                AddStuff(p, 21839);
-                break;
-            }
-        }
-    }
-
-    void Test() override
-    {
-        TEST_FIRST
-            summonIndex = 0;
-        DoSpawnCount(SUMMON_PER_LOCATION, -468.0f, -2686.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -486.0f, -2654.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -526.0f, -2653.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -468.0f, -2686.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -486.0f, -2654.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -526.0f, -2653.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -450.0f, -2643.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -424.0f, -2603.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -381.0f, -2571.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -427.0f, -2676.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -510.0f, -2600.0f);
-        Wait(20000);
-        TEST_DELAY(1000)
-            for (uint32 i = 0; i < summonIndex; ++i)
-            {
-                if (Player* p = GetTestPlayer(i, TESTPLAYER_NO_GODMODE | TESTPLAYER_PVP_ON))
-                {
-                    JustSpawned(p);
-                    p->SetVisibility(VISIBILITY_OFF);
-                }
-            }
-        TEST_MULTIPLE_STEPS(10, 1000)
-            for (int i = step % 10; i < 11 * 25; i += 10)
-            {
-                if (Player* p = GetTestPlayer(i))
-                    p->SetVisibility(VISIBILITY_ON);
-            }
-        TEST_MULTIPLE_STEPS((stayOnlineTimer / UPDATE_DELAY - 1), UPDATE_DELAY)
-            for (uint32 i = 0; i < summonIndex; ++i)
-                if (Player* p = GetTestPlayer(i))
-                    SearchAndDestroy(p);
-        TEST_DELAY(1000)
-            TEST_END
-    }
-};
-
-class cinematics_theramore_crowd : public SingleCinematicTest
-{
-public:
-    cinematics_theramore_crowd(const char* sname = "cinematics_theramore_crowd") : SingleCinematicTest(sname, 1), summonIndex(0), stayOnlineTimer(120000)
-    {
-    }
-
-    uint32 summonIndex;
-    uint32 stayOnlineTimer;
-
-    void DoSpawn(float x, float y, float r = 45.0f)
-    {
-        uint32 team = ALLIANCE;
-        uint8 _race, _class;
-        GenerateRandomClassRace(_class, _race, team);
-        float z = GetMap()->GetHeight(x, y, 0.0f, false);
-        uint16 limit = 0;
-        while (!GetMap()->GetWalkRandomPosition(nullptr, x, y, z, r, NAV_GROUND))
-        {
-            ++limit;
-            if (limit > 5) return;
-        }
-        SpawnPlayer(summonIndex, _class, _race, x, y, z);
-        ++summonIndex;
-    }
-
-    void DoSpawnCount(uint32 count, float x, float y)
-    {
-        for (uint32 i = 0; i < count; ++i)
-            DoSpawn(x, y);
-    }
-
-    static void JustSpawned(Player* p)
-    {
-        if (p->AI())
-            delete p->AI();
-        p->GiveLevel(urand(50, 60));
-        AddSkillsPlayer(p);
-        p->setAI(new PlayerControlledAI(p));
-        GearUpPlayer(p);
-
-        SearchAndDestroy(p);
-    }
-
-    static void SearchAndDestroy(Player* p)
-    {
-        if (!p->isAlive()) return;
-
-        float x = p->GetPositionX();
-        float y = p->GetPositionY();
-        float z = p->GetPositionZ();
-        uint16 limit = 0;
-        while (!p->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, DEFAULT_VISIBILITY_DISTANCE, NAV_GROUND))
-        {
-            ++limit;
-            if (limit > 5) return;
-        }
-        p->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
-    }
-
-    static void AddSkillsPlayer(Player* player)
-    {
-        switch (player->getClass())
-        {
-        case CLASS_WARRIOR:
-            player->learnSpell(12294, false);
-            player->learnSpell(5308, false);
-            break;
-        case CLASS_PALADIN:
-            player->learnSpell(24274, false);
-            player->learnSpell(20271, false);
-            player->learnSpell(879, false);
-            break;
-        case CLASS_HUNTER:
-            player->learnSpell(3674, false);
-            player->learnSpell(1499, false);
-            break;
-        case CLASS_ROGUE:
-            player->learnSpell(8676, false);
-            player->learnSpell(16511, false);
-            break;
-        case CLASS_PRIEST:
-            player->learnSpell(605, false);
-            player->learnSpell(8092, false);
-            break;
-        case CLASS_MAGE:
-            player->learnSpell(11366, false);
-            player->learnSpell(10, false);
-            break;
-        case CLASS_WARLOCK:
-            player->learnSpell(980, false);
-            player->learnSpell(6353, false);
-            break;
-        case CLASS_DRUID:
-            player->learnSpell(8921, false);
-            player->learnSpell(16914, false);
-            break;
-        case CLASS_SHAMAN:
-            player->learnSpell(1064, false);
-            player->learnSpell(421, false);
-            break;
-        }
-    }
-
-    static void GearUpPlayer(Player* p)
-    {
-        if (p->GetTeamId() == TEAM_ALLIANCE)
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_PALADIN:
-                AddStuff(p, 16958);
-                AddStuff(p, 16953);
-                AddStuff(p, 16954);
-                AddStuff(p, 22988);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 4057);
-                AddStuff(p, 14587);
-                AddStuff(p, 1934);
-                AddStuff(p, 16059);
-                AddStuff(p, 12247);
-                AddStuff(p, 4825);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 18486);
-                AddStuff(p, 7721);
-                AddStuff(p, 4729);
-                AddStuff(p, 2576);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 9943);
-                AddStuff(p, 9941);
-                AddStuff(p, 12252);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 14297);
-                AddStuff(p, 14296);
-                AddStuff(p, 14293);
-                AddStuff(p, 3185);
-                break;
-            }           
-        }
-        else
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 22476);
-                AddStuff(p, 22479);
-                AddStuff(p, 22477);
-                AddStuff(p, 21404);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 17624);
-                AddStuff(p, 17622);
-                AddStuff(p, 17625);
-                AddStuff(p, 21410);
-                break;
-            case CLASS_SHAMAN:
-                AddStuff(p, 16841);
-                AddStuff(p, 16844);
-                AddStuff(p, 16843);
-                AddStuff(p, 22809);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 16798);
-                AddStuff(p, 16536);
-                AddStuff(p, 21346);
-                AddStuff(p, 16345);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 21357);
-                AddStuff(p, 21354);
-                AddStuff(p, 21356);
-                AddStuff(p, 21839);
-                break;
-            }
-        }
-    }
-
-    void Test() override
-    {
-        TEST_FIRST
-            summonIndex = 0;
-        DoSpawnCount(SUMMON_PER_LOCATION, -3891.0f, -4575.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3832.0f, -4563.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3834.0f, -4524.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3767.0f, -4513.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3891.0f, -4575.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3832.0f, -4563.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3834.0f, -4524.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3767.0f, -4513.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3805.0f, -4487.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3893.0f, -4612.0f);
-        DoSpawnCount(SUMMON_PER_LOCATION, -3801.0f, -4517.0f);
-        Wait(20000);
-        TEST_DELAY(1000)
-            for (uint32 i = 0; i < summonIndex; ++i)
-            {
-                if (Player* p = GetTestPlayer(i, TESTPLAYER_NO_GODMODE | TESTPLAYER_PVP_ON))
-                {
-                    JustSpawned(p);   
-                    p->SetVisibility(VISIBILITY_OFF);
-                }          
-            }
-        TEST_MULTIPLE_STEPS(10, 1000)
-            for (int i = step % 10; i < 11 * 25; i += 10)
-            {
-                if (Player* p = GetTestPlayer(i))
-                    p->SetVisibility(VISIBILITY_ON);
-            }
-        TEST_MULTIPLE_STEPS((stayOnlineTimer / UPDATE_DELAY - 1), UPDATE_DELAY)
-            for (uint32 i = 0; i < summonIndex; ++i)
-                if (Player* p = GetTestPlayer(i))
-                    SearchAndDestroy(p);
-        TEST_DELAY(1000)
-            TEST_END
-    }
-};
-
-class cinematics_duskwood_battle : public SingleCinematicTest
-{
-public:
-    cinematics_duskwood_battle(const char* sname = "cinematics_duskwood_battle") : SingleCinematicTest(sname, 0), summonIndex(0), stayOnlineTimer(120000)
-    {
-    }
-
-    uint32 summonIndex;
-    uint32 stayOnlineTimer;
-
-    void DoSpawn(float x, float y, float r = 100.0f, bool alliance = true)
-    {
-        uint32 team = alliance ? ALLIANCE : HORDE;
-        uint8 _race, _class;
-        GenerateRandomClassRace(_class, _race, team);
-        float z = GetMap()->GetHeight(x, y, 0.0f, false);
-        uint16 limit = 0;
-        while (!GetMap()->GetWalkRandomPosition(nullptr, x, y, z, r, NAV_GROUND))
-        {
-            ++limit;
-            if (limit > 5) return;
-        }
-        SpawnPlayer(summonIndex, _class, _race, x, y, z);
-        ++summonIndex;
-    }
-
-    void DoSpawnCount(uint32 count, float x, float y, bool alliance = true)
-    {
-        for (uint32 i = 0; i < count; ++i)
-            DoSpawn(x, y, 45, alliance);
-    }
-
-    static void JustSpawned(Player* p)
-    {
-        if (p->AI())
-            delete p->AI();
-        p->GiveLevel(urand(50, 60));
-        AddSkillsPlayer(p);
-        p->setAI(new PlayerControlledAI(p));
-        GearUpPlayer(p);
-
-        SearchAndDestroy(p);
-    }
-
-    static void SearchAndDestroy(Player* p)
-    {
-        if (!p->isAlive()) return;
-
-        Unit* target = p->getVictim();
-        if (target == nullptr)
-        {
-            if (!p->isInCombat())
-                target = p->SelectRandomUnfriendlyTarget(nullptr, DEFAULT_VISIBILITY_DISTANCE);
-            else
-            {
-                target = p->getVictim();
-                if (target == nullptr)
-                {
-                    const std::set<Unit*> attackers = p->getAttackers();
-                    if (attackers.size() > 0)
-                        target = *attackers.begin();
-                }
-            }
-        }
-
-        if (target != nullptr && target->isAlive())
-        {
-            p->GetMotionMaster()->MoveChase(target);
-            p->SetFacingToObject(target);
-            p->SetInFront(target);
-            p->Attack(target, p->IsInRange(target, 0, MELEE_RANGE) ? true : false);
-        }
-        else
-        {
-            p->HandleEmoteCommand(EMOTE_ONESHOT_CHEER);
-            float x = p->GetPositionX();
-            float y = p->GetPositionY();
-            float z = p->GetPositionZ();
-            uint16 limit = 0;
-            while (!p->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, DEFAULT_VISIBILITY_DISTANCE, NAV_GROUND))
-            {
-                ++limit;
-                if (limit > 10) return;
-            }
-            p->GetMotionMaster()->MovePoint(0, x, y, z, MOVE_PATHFINDING);
-        }
-    }
-
-    static void AddSkillsPlayer(Player* player)
-    {
-        switch (player->getClass())
-        {
-        case CLASS_WARRIOR:
-            player->learnSpell(12294, false);
-            player->learnSpell(5308, false);
-            break;
-        case CLASS_PALADIN:
-            player->learnSpell(24274, false);
-            player->learnSpell(20271, false);
-            player->learnSpell(879, false);
-            break;
-        case CLASS_HUNTER:
-            player->learnSpell(3674, false);
-            player->learnSpell(1499, false);
-            break;
-        case CLASS_ROGUE:
-            player->learnSpell(8676, false);
-            player->learnSpell(16511, false);
-            break;
-        case CLASS_PRIEST:
-            player->learnSpell(605, false);
-            player->learnSpell(8092, false);
-            break;
-        case CLASS_MAGE:
-            player->learnSpell(11366, false);
-            player->learnSpell(10, false);
-            break;
-        case CLASS_WARLOCK:
-            player->learnSpell(980, false);
-            player->learnSpell(6353, false);
-            break;
-        case CLASS_DRUID:
-            player->learnSpell(8921, false);
-            player->learnSpell(16914, false);
-            break;
-        case CLASS_SHAMAN:
-            player->learnSpell(1064, false);
-            player->learnSpell(421, false);
-            break;
-        }
-    }
-
-    static void GearUpPlayer(Player* p)
-    {
-        if (p->GetTeamId() == TEAM_ALLIANCE)
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_PALADIN:
-                AddStuff(p, 16958);
-                AddStuff(p, 16953);
-                AddStuff(p, 16954);
-                AddStuff(p, 22988);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 4057);
-                AddStuff(p, 14587);
-                AddStuff(p, 1934);
-                AddStuff(p, 16059);
-                AddStuff(p, 12247);
-                AddStuff(p, 4825);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 18486);
-                AddStuff(p, 7721);
-                AddStuff(p, 4729);
-                AddStuff(p, 2576);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 9943);
-                AddStuff(p, 9941);
-                AddStuff(p, 12252);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 14297);
-                AddStuff(p, 14296);
-                AddStuff(p, 14293);
-                AddStuff(p, 3185);
-                break;
-            }
-        }
-        else
-        {
-            switch (p->getClass())
-            {
-            case CLASS_WARRIOR:
-                AddStuff(p, 16865);
-                AddStuff(p, 16868);
-                AddStuff(p, 16867);
-                AddStuff(p, 22798);
-                break;
-            case CLASS_HUNTER:
-                AddStuff(p, 22436);
-                AddStuff(p, 20056);
-                AddStuff(p, 22437);
-                AddStuff(p, 21401);
-                break;
-            case CLASS_ROGUE:
-                AddStuff(p, 22476);
-                AddStuff(p, 22479);
-                AddStuff(p, 22477);
-                AddStuff(p, 21404);
-                break;
-            case CLASS_PRIEST:
-                AddStuff(p, 17624);
-                AddStuff(p, 17622);
-                AddStuff(p, 17625);
-                AddStuff(p, 21410);
-                break;
-            case CLASS_SHAMAN:
-                AddStuff(p, 16841);
-                AddStuff(p, 16844);
-                AddStuff(p, 16843);
-                AddStuff(p, 22809);
-                break;
-            case CLASS_MAGE:
-                AddStuff(p, 16798);
-                AddStuff(p, 16536);
-                AddStuff(p, 21346);
-                AddStuff(p, 16345);
-                break;
-            case CLASS_WARLOCK:
-                AddStuff(p, 21334);
-                AddStuff(p, 21335);
-                AddStuff(p, 21336);
-                AddStuff(p, 22736);
-                break;
-            case CLASS_DRUID:
-                AddStuff(p, 21357);
-                AddStuff(p, 21354);
-                AddStuff(p, 21356);
-                AddStuff(p, 21839);
-                break;
-            }
-        }
-    }
-
-    void Test() override
-    {
-        TEST_FIRST
-            summonIndex = 0;
-        DoSpawnCount(50, -10506.0f, -379.0f);
-        DoSpawnCount(50, -10461.0f, -371.0f);
-        DoSpawnCount(50, -10408.0f, -369.0f);
-
-        DoSpawnCount(50, -10511.0f, -510.0f, false);
-        DoSpawnCount(50, -10465.0f, -501.0f, false);
-        DoSpawnCount(50, -10409.0f, -502.0f, false);
-        Wait(20000);
-        TEST_DELAY(1000)
-            for (uint32 i = 0; i < summonIndex; ++i)
-            {
-                if (Player* p = GetTestPlayer(i, TESTPLAYER_NO_GODMODE | TESTPLAYER_PVP_ON))
-                {
-                    JustSpawned(p);
-                }
-            }
-        TEST_MULTIPLE_STEPS((stayOnlineTimer / UPDATE_DELAY - 1), UPDATE_DELAY)
-            for (uint32 i = 0; i < summonIndex; ++i)
-                if (Player* p = GetTestPlayer(i))
-                    SearchAndDestroy(p);
-        TEST_DELAY(1000)
-            TEST_END
-    }
-};
-
 void AddTest_cinematics()
 {
-    /*sAutoTestingMgr->AddTest(new cinematics_run_blackrock);
+    sAutoTestingMgr->AddTest(new cinematics_run_blackrock);
     sAutoTestingMgr->AddTest(new cinematics_tarren_mills_charge_alliance);
     sAutoTestingMgr->AddTest(new cinematics_tarren_mills_charge_horde);
     sAutoTestingMgr->AddTest(new cinematics_tarren_mills_fights);
@@ -1790,8 +899,4 @@ void AddTest_cinematics()
 	sAutoTestingMgr->AddTest(new cinematics_coldridge_valley_fights);
 	sAutoTestingMgr->AddTest(new cinematics_valley_of_trials_charge_horde);
 	sAutoTestingMgr->AddTest(new cinematics_northshire_valley_fights);
-    sAutoTestingMgr->AddTest(new cinematics_caverns_of_time_spirit_healers);
-    sAutoTestingMgr->AddTest(new cinematics_crossroads_crowd);
-    sAutoTestingMgr->AddTest(new cinematics_theramore_crowd);
-    sAutoTestingMgr->AddTest(new cinematics_duskwood_battle);*/
 }

@@ -21,10 +21,6 @@ SDComment: Adds NYI
 SDCategory: Molten Core
 EndScriptData */
 
-/*
-    Sulfuron should walk to a random point ~10 yds behind him before casting Flamespear
-*/
-
 #include "scriptPCH.h"
 #include "molten_core.h"
 
@@ -57,11 +53,11 @@ struct boss_sulfuronAI : public ScriptedAI
 
     void Reset()
     {
-        Darkstrike_Timer        = 10000;                     //These times are probably wrong
+        Darkstrike_Timer = 10000;                           //These times are probably wrong
         DemoralizingShout_Timer = 15000;
-        Inspire_Timer           = 13000;
-        Knockdown_Timer         = 6000;
-        Flamespear_Timer        = 2000;
+        Inspire_Timer = 13000;
+        Knockdown_Timer = 6000;
+        Flamespear_Timer = 2000;
 
         if (m_pInstance && m_creature->isAlive())
             m_pInstance->SetData(TYPE_SULFURON, NOT_STARTED);
@@ -164,10 +160,10 @@ struct mob_flamewaker_priestAI : public ScriptedAI
 
     void Reset()
     {
-        Heal_Timer           = urand(10000, 15000);
+        Heal_Timer = urand(15000, 30000);
         ShadowWordPain_Timer = 2000;
-        Immolate_Timer       = urand(2500, 12000);
-        DarkStrike_Timer     = urand(6000, 8000);
+        Immolate_Timer = 8000;
+        DarkStrike_Timer = 6000 + rand() % 2000;
     }
 
     void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
@@ -189,23 +185,29 @@ struct mob_flamewaker_priestAI : public ScriptedAI
                 return;
 
             if (DoCastSpellIfCan(pUnit, SPELL_HEAL) == CAST_OK)
-                Heal_Timer = urand(5000, 10000);
+                Heal_Timer = urand(15000, 20000);
         }
         else Heal_Timer -= diff;
 
         //ShadowWordPain_Timer
         if (ShadowWordPain_Timer < diff)
         {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHADOWWORDPAIN) == CAST_OK)
-                ShadowWordPain_Timer = urand(18000, 26000);
+            if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            {
+                if (DoCastSpellIfCan(target, SPELL_SHADOWWORDPAIN) == CAST_OK)
+                    ShadowWordPain_Timer = urand(18000, 26000);
+            }
         }
         else ShadowWordPain_Timer -= diff;
 
         //Immolate_Timer
         if (Immolate_Timer < diff)
         {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_IMMOLATE) == CAST_OK)
-                Immolate_Timer = urand(15000, 25000);
+            if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            {
+                if (DoCastSpellIfCan(target, SPELL_IMMOLATE) == CAST_OK)
+                    Immolate_Timer = urand(15000, 25000);
+            }
         }
         else Immolate_Timer -= diff;
 
@@ -213,7 +215,7 @@ struct mob_flamewaker_priestAI : public ScriptedAI
         if (DarkStrike_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_DARKSTRIKE) == CAST_OK)
-                DarkStrike_Timer = urand(4000, 6000);
+                DarkStrike_Timer = 4000 + rand() % 2000;
         }
         else DarkStrike_Timer -= diff;
 

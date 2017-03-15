@@ -1,6 +1,6 @@
 /*
 SQLyog Ultimate
-MySQL - 5.7.14-log : Database - nost_logon
+MySQL - 5.7.14-log : Database - logon
 *********************************************************************
 */
 
@@ -46,20 +46,13 @@ CREATE TABLE `account` (
   `current_realm` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `banned` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `mail_verif` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `pass_verif` varchar(40) NOT NULL DEFAULT '',
   `remember_token` varchar(100) NOT NULL DEFAULT '',
   `flags` int(10) unsigned NOT NULL DEFAULT '0',
-  `security` varchar(255) NULL,
-  `pass_verif` varchar(255) NULL COMMENT 'Web recover password',
-  `email_verif` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Email verification',
-  `email_check` varchar(255) NULL,
-  `nostalrius_token` varchar(255) NULL,
-  `nostalrius_token_enabled` tinyint(1) NOT NULL DEFAULT '0',
-  `nostalrius_email` text NULL,
-  `nostalrius_reason` text NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_username` (`username`),
   KEY `idx_gmlevel` (`gmlevel`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Account System';
+) ENGINE=InnoDB AUTO_INCREMENT=828884 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Account System';
 
 /*Table structure for table `account_access` */
 
@@ -167,10 +160,10 @@ CREATE TABLE `realmlist` (
   `gamebuild_min` int(11) unsigned NOT NULL DEFAULT '0',
   `gamebuild_max` int(11) unsigned NOT NULL DEFAULT '0',
   `flag` tinyint(3) unsigned NOT NULL DEFAULT '2',
-  `realmbuilds` varchar(64) NOT NULL DEFAULT '',
+  `realmbuilds` varchar(64) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_name` (`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Realm System';
+) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Realm System';
 
 /*Table structure for table `uptime` */
 

@@ -82,7 +82,7 @@ class MANGOS_DLL_SPEC SpellAuraHolder
         Unit* GetTarget() const { return m_target; }
         void SetTarget(Unit* target) { m_target = target; }
 
-        // Nostalrius
+        // Elysium
         void CalculateHeartBeat(Unit* caster, Unit* target);
         float _heartBeatRandValue;
         HeartBeatData* _pveHeartBeatData;
@@ -99,12 +99,12 @@ class MANGOS_DLL_SPEC SpellAuraHolder
         // Proc de buff
         uint32 spellFirstHitAttackerProcFlags;
         uint32 spellFirstHitTargetProcFlags;
-        // FIN NOSTALRIUS
+        // FIN ELYSIUM
 
         bool IsPermanent() const { return m_permanent; }
         void SetPermanent(bool permanent) { m_permanent = permanent; }
         bool IsPassive() const { return m_isPassive; }
-        void SetPassive(bool on) { m_isPassive = on; }
+        void SetPassive(bool on) { m_isPassive = on; } // Elysium
         bool IsDeathPersistent() const { return m_isDeathPersist; }
         bool IsPersistent() const;
         bool IsPositive() const;
@@ -378,7 +378,7 @@ class MANGOS_DLL_SPEC Aura
         void HandleSchoolAbsorb(bool apply, bool Real);
         void HandlePreventFleeing(bool apply, bool Real);
         void HandleManaShield(bool apply, bool Real);
-        // Nostalrius
+        // Elysium
         void HandleAuraAuraSpell(bool apply, bool real);
         void HandleInterruptRegen(bool apply, bool real);
 
@@ -425,7 +425,7 @@ class MANGOS_DLL_SPEC Aura
         bool IsAreaAura() const { return m_isAreaAura; }
         bool IsPeriodic() const { return m_isPeriodic; }
         bool IsInUse() const { return m_in_use; }
-        // NOSTALRIUS
+        // ELYSIUM
         void SetPositive(bool pos) { m_positive = pos; }
         void SetPersistent(bool on) { m_isPersistent = on; }
         // Auras exclusifs
@@ -441,7 +441,7 @@ class MANGOS_DLL_SPEC Aura
         int CheckExclusiveWith(Aura const* other) const;
         bool ExclusiveAuraCanApply();
         void ExclusiveAuraUnapply();
-        // FIN NOSTALRIUS
+        // FIN ELYSIUM
 
         void SetInUse(bool state)
         {
@@ -453,7 +453,7 @@ class MANGOS_DLL_SPEC Aura
                     --m_in_use;
             }
         }
-        // NOSTALRIUS: Ajout de 'skipCheckExclusive'
+        // ELYSIUM: Ajout de 'skipCheckExclusive'
         void ApplyModifier(bool apply, bool Real = false, bool skipCheckExclusive = false);
 
         void UpdateAura(uint32 diff) { SetInUse(true); Update(diff); SetInUse(false); }
@@ -477,7 +477,7 @@ class MANGOS_DLL_SPEC Aura
         SpellAuraHolder* const GetHolder() const { return m_spellAuraHolder; }
 
         bool IsLastAuraOnHolder();
-        SpellModifier* GetSpellModifier() const { return m_spellmod; }
+        SpellModifier* GetSpellModifier() { return m_spellmod; }
     protected:
         Aura(SpellEntry const* spellproto, SpellEffectIndex eff, int32 *currentBasePoints, SpellAuraHolder *holder, Unit *target, Unit *caster = NULL, Item* castItem = NULL);
 
@@ -485,7 +485,7 @@ class MANGOS_DLL_SPEC Aura
         virtual void Update(uint32 diff);
 
         // must be called only from Aura*::Update
-        void PeriodicTick(SpellEntry const* sProto = nullptr, AuraType auraType = SPELL_AURA_NONE, uint32 data = 0);
+        void PeriodicTick();
         void PeriodicDummyTick();
 
         void ReapplyAffectedPassiveAuras();

@@ -37,7 +37,7 @@ class Bag : public Item
         void AddToWorld();
         void RemoveFromWorld();
 
-        bool Create(uint32 guidlow, uint32 itemid, ObjectGuid ownerGuid = ObjectGuid());
+        bool Create(uint32 guidlow, uint32 itemid, Player const* owner);
 
         void Clear();
         void StoreItem(uint8 slot, Item *pItem, bool update);

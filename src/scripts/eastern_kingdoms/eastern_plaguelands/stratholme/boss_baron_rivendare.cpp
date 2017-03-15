@@ -181,7 +181,6 @@ struct boss_baron_rivendareAI : public ScriptedAI
             {
                 if (DoCastSpellIfCan(m_creature, SPELL_RAISEDEAD) == CAST_OK)
                 {
-                    m_creature->MonsterTextEmote("Baron Rivendare raises an undead servant back to life!");
                     SummonSkeletons_Timer = 1000;
                     RaiseDeadCasted = true;
                 }

@@ -442,7 +442,6 @@ int libmpq_file_extract(mpq_archive* mpq_a, const int number, const char* filena
          */
         if ((mpq_f->blockpos = (unsigned int*)malloc(sizeof(int) * mpq_f->nblocks + 1)) == NULL)
         {
-            free(mpq_f);
             return LIBMPQ_EALLOCMEM;
         }
     }
@@ -664,7 +663,6 @@ int libmpq_file_getdata(mpq_archive* mpq_a, mpq_hash mpq_h, const int number, un
          */
         if ((mpq_f->blockpos = (unsigned int*)malloc(sizeof(int) * (mpq_f->nblocks + 1))) == NULL)
         {
-            free(mpq_f);
             return LIBMPQ_EALLOCMEM;
         }
     }

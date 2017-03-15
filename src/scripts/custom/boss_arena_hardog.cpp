@@ -236,7 +236,7 @@ struct arena_szerelmesAI : public ScriptedAI
     void Aggro(Unit* pPlayer)
     {
         add_Timer = 1000;
-        DoCastSpellIfCan(m_creature->getVictim(), SPELL_FAIL);
+        DoCastSpellIfCan(m_creature->getVictim(), SPELL_FAIL) == CAST_OK;
     }
 
     void JustDied(Unit* Victim)
@@ -461,6 +461,7 @@ bool GossipSelect_npc_karlek(Player* player, Creature* pCreature, uint32 sender,
                 if (pKarlekAI)
                     pKarlekAI->StartEvent(player);
                 SHOW_GOSSIP(npc_karlek_OK);
+                char sMessage2[200];
                 sprintf(sMessage, "Force et Honneur !");
                 pCreature->MonsterYell(sMessage, 0, 0);
             }

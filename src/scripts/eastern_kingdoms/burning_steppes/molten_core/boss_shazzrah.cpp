@@ -51,11 +51,11 @@ struct boss_shazzrahAI : public ScriptedAI
 
     void Reset()
     {
-        ArcaneExplosion_Timer = 2000;
+        ArcaneExplosion_Timer = 6000;                       //These times are probably wrong
         ShazzrahCurse_Timer = 10000;
-        DeadenMagic_Timer = 5000;
+        DeadenMagic_Timer = 24000;
         Countspell_Timer = 15000;
-        Blink_Timer = urand(25000, 30000);
+        Blink_Timer = 30000;
 
         if (m_pInstance && m_creature->isAlive())
             m_pInstance->SetData(TYPE_SHAZZRAH, NOT_STARTED);
@@ -82,23 +82,23 @@ struct boss_shazzrahAI : public ScriptedAI
         if (ArcaneExplosion_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_ARCANEEXPLOSION) == CAST_OK)
-                ArcaneExplosion_Timer = urand(3000, 5000);
+                ArcaneExplosion_Timer = 4000;
         }
         else ArcaneExplosion_Timer -= diff;
 
         //ShazzrahCurse_Timer
         if (ShazzrahCurse_Timer < diff)
         {
-			if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHAZZRAHCURSE, CAST_AURA_NOT_PRESENT) == CAST_OK)
-				ShazzrahCurse_Timer = 20000;
+            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHAZZRAHCURSE, CAST_AURA_NOT_PRESENT) == CAST_OK)
+                ShazzrahCurse_Timer = urand(21000, 24000);
         }
         else ShazzrahCurse_Timer -= diff;
 
         //DeadenMagic_Timer
         if (DeadenMagic_Timer < diff)
         {
-            if (DoCastSpellIfCan(m_creature, SPELL_DEADENMAGIC) == CAST_OK)
-                DeadenMagic_Timer = urand(7000, 14000);
+            if (DoCastSpellIfCan(m_creature, SPELL_DEADENMAGIC, CAST_AURA_NOT_PRESENT) == CAST_OK)
+                DeadenMagic_Timer = 30000 + rand() % 10000;
         }
         else DeadenMagic_Timer -= diff;
 
@@ -124,8 +124,11 @@ struct boss_shazzrahAI : public ScriptedAI
                     m_creature->NearTeleportTo(pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), m_creature->GetOrientation());
                     m_creature->Attack(pTarget, true);
                 }
+//                m_creature->CastSpell(m_creature, SPELL_ARCANEEXPLOSION, false);
 
-                Blink_Timer = urand(25000, 35000);
+//                DoResetThreat();
+
+                Blink_Timer = 43000 + rand() % 2000;
             }
         }
         else Blink_Timer -= diff;

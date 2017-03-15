@@ -47,14 +47,9 @@ enum
     SAY_MUG_PATROL          = -1000509,
     SAY_MUG_RETURN          = -1000510,
 
-    SAY_MUG_Q_COMPETENCE    = -1780221,
-    SAY_MUG_IMPATIENT       = -1780222,
-
     QUEST_VORSHA            = 6641,
 
     GO_NAGA_BRAZIER         = 178247,
-    GO_BRAZIER_GUID         = 47873,
-
     NPC_MUGLASH             = 12717,
 
     NPC_WRATH_RIDER         = 3713,
@@ -89,7 +84,6 @@ struct npc_muglashAI : public npc_escortAI
     npc_muglashAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
         m_uiWaveId = 0;
-        muglashImpatience = 0;
         m_bIsBrazierExtinguished = false;
         Reset();
     }
@@ -97,15 +91,11 @@ struct npc_muglashAI : public npc_escortAI
     bool m_bIsBrazierExtinguished;
 
     uint32 m_uiWaveId;
-    uint32 muglashImpatience;
     uint32 m_uiEventTimer;
-    uint32 impatienceTimer;
 
     void Reset()
     {
         m_uiEventTimer = 10000;
-        impatienceTimer = 30000;
-        muglashImpatience = 0;
 
         if (!HasEscortState(STATE_ESCORT_ESCORTING))
         {
@@ -177,11 +167,8 @@ struct npc_muglashAI : public npc_escortAI
                 m_creature->SummonCreature(NPC_VORSHA, m_fVorshaCoord[0], m_fVorshaCoord[1], m_fVorshaCoord[2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 4:
-                DoScriptText(SAY_MUG_DONE, m_creature);
-                m_creature->HandleEmote(EMOTE_ONESHOT_CHEER);
-                break;
-            case 5:
                 SetEscortPaused(false);
+                DoScriptText(SAY_MUG_DONE, m_creature);
                 break;
         }
     }
@@ -195,62 +182,16 @@ struct npc_muglashAI : public npc_escortAI
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {
-            if (HasEscortState(STATE_ESCORT_PAUSED))
+            if (HasEscortState(STATE_ESCORT_PAUSED) && m_bIsBrazierExtinguished)
             {
-                if (m_bIsBrazierExtinguished)
+                if (m_uiEventTimer < uiDiff)
                 {
-                    if (m_uiEventTimer < uiDiff)
-                    {
-                        ++m_uiWaveId;
-                        DoWaveSummon();
-
-                        switch(m_uiWaveId)
-                        {
-                            case 3:
-                                m_uiEventTimer = 0;
-                                break;
-                            case 4:
-                                m_uiEventTimer = 2000;
-                                break;
-                            default:
-                                m_uiEventTimer = 9000;
-                        }
-                    }
-                    else
-                        m_uiEventTimer -= uiDiff;
+                    ++m_uiWaveId;
+                    DoWaveSummon();
+                    m_uiEventTimer = 10000;
                 }
                 else
-                {
-                    if (impatienceTimer < uiDiff)
-                    {
-                        muglashImpatience++;
-
-                        if (1 == muglashImpatience)
-                        {
-                            DoScriptText(SAY_MUG_Q_COMPETENCE, m_creature);
-                            impatienceTimer = 30000;
-                        }
-                        else if (2 == muglashImpatience)
-                        {
-                            DoScriptText(SAY_MUG_IMPATIENT, m_creature);
-
-                            // Reset brazier to no interact
-                            if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_NAGA_BRAZIER, INTERACTION_DISTANCE * 2))
-                                pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
-
-                            impatienceTimer = 3000;
-                        }
-                        else
-                        {
-                            // Muglash too impatient. Fail quest and reset.
-                            JustDied(nullptr);
-                            ResetEscort();
-                        }
-
-                    }
-                    else
-                        impatienceTimer -= uiDiff;
-                }
+                    m_uiEventTimer -= uiDiff;
             }
 
             return;
@@ -269,13 +210,8 @@ bool QuestAccept_npc_muglash(Player* pPlayer, Creature* pCreature, const Quest* 
             DoScriptText(SAY_MUG_START1, pCreature);
             pCreature->setFaction(FACTION_ESCORT_H_PASSIVE);
 
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
         }
-
-        // Ensure Brazier can be extinguished
-        if (GameObject* go_naga_brazier = GetClosestGameObjectWithEntry(pCreature, GO_NAGA_BRAZIER, 1000))
-            go_naga_brazier->ResetDoorOrButton();
-
     }
 
     return true;
@@ -367,7 +303,7 @@ bool QuestAccept_npc_ruul_snowhoof(Player* pPlayer, Creature* pCreature, const Q
         pCreature->SetStandState(UNIT_STAND_STATE_STAND);
 
         if (npc_ruul_snowhoofAI* pEscortAI = dynamic_cast<npc_ruul_snowhoofAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
     }
     return true;
 }
@@ -498,7 +434,7 @@ bool QuestAccept_npc_torek(Player* pPlayer, Creature* pCreature, const Quest* pQ
         DoScriptText(SAY_READY, pCreature, pPlayer);
 
         if (npc_torekAI* pEscortAI = dynamic_cast<npc_torekAI*>(pCreature->AI()))
-            pEscortAI->Start(true, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, true, pPlayer->GetGUID(), pQuest);
     }
 
     return true;
@@ -681,7 +617,7 @@ bool QuestAccept_npc_feero_ironhand(Player* pPlayer, Creature* pCreature, const 
         pCreature->setFaction(FACTION_ESCORT_A_NEUTRAL_PASSIVE);
 
         if (npc_feero_ironhandAI* pEscortAI = dynamic_cast<npc_feero_ironhandAI*>(pCreature->AI()))
-            pEscortAI->Start(true, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, true, pPlayer->GetGUID(), pQuest);
     }
 
     return true;
@@ -702,10 +638,10 @@ enum
 };
 static float foulwealdSpawnCoords[4][3] =
 {
-    {2237.48f, -1524.45f, 89.7827f},
-    {2202.16f, -1544.48f,  87.796f},
-    {2235.44f, -1578.43f, 86.4944f},
-    {2260.9f, -1547.91f, 89.1733f}
+    {2237.48, -1524.45, 89.7827},
+    {2202.16, -1544.48,  87.796},
+    {2235.44, -1578.43, 86.4944},
+    {2260.9, -1547.91, 89.1733}
 };
 
 void DefineFoulwealdMound(Creature * crea, uint64 gobjGUID);
@@ -779,7 +715,7 @@ struct go_foulweald_totem_moundAI: public GameObjectAI
         }
     }
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (eventPhase == 0 || eventPhase > 4)
             return;
@@ -869,7 +805,7 @@ struct npc_enraged_foulwealdAI : public ScriptedAI
         }
         return false;
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (m_creature->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
             return;

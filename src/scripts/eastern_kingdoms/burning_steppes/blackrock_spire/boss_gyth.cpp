@@ -23,13 +23,13 @@ EndScriptData */
 
 #include "scriptPCH.h"
 #include "blackrock_spire.h"
-// INSERT INTO  nostalrius_string(entry, content_default, content_loc2) VALUES
+// INSERT INTO  elysium_string(entry, content_default, content_loc2) VALUES
 // (156,"Foolsss... Kill the one in the dress!","Imbeciles ... Tuez celui qui porte une robe !"),
 // (157,"Concentrate your attacks upon the healer!","Concentrez vos attaques sur le Guerisseur !"),
 // (158,"Inconceivable!","Inconcevable !");
-// INSERT INTO  nostalrius_string(entry, content_default) VALUES
+// INSERT INTO  elysium_string(entry, content_default) VALUES
 // (159,"Do not force my hand, children! I shall use your hides to line my boots.");
-// INSERT INTO  nostalrius_string(entry, content_default, content_loc2) VALUES
+// INSERT INTO  elysium_string(entry, content_default, content_loc2) VALUES
 // (160,"Defilers!","Profanateurs !"),
 // (161,"Impossible!","Impossible ..."),
 // (162,"Your efforts will prove fruitless. None shall stand in our way!","Vos efforts seront vains. Personne ne nous arretera."),
@@ -62,7 +62,7 @@ enum
     NPC_REND_BLACKHAND      = 10429
 };
 
-// NOSTALRIUS
+// ELYSIUM
 //#define DEBUG_ON
 enum
 {
@@ -104,7 +104,7 @@ struct boss_gythAI : public ScriptedAI
     bool m_bAggro;
     bool m_bRootSelf;
 
-    // NOSTALRIUS
+    // ELYSIUM
     uint64 nefarianGUID;
     uint32 mobCount;
     uint32 uiWaveNum;
@@ -143,7 +143,7 @@ struct boss_gythAI : public ScriptedAI
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 #endif
 
-        // NOSTALRIUS
+        // ELYSIUM
         uiWaveNum    = 0;
         waveRemainingCount = 0;
         DespawnAdds();
@@ -152,7 +152,7 @@ struct boss_gythAI : public ScriptedAI
 #endif
     }
 
-    // NOSTALRIUS
+    // ELYSIUM
     void Initialize()
     {
         Creature* nefarian = GetClosestCreatureWithEntry(m_creature, NEFARIAN_ENTRY,  150.0f);
@@ -193,25 +193,25 @@ struct boss_gythAI : public ScriptedAI
             --waveRemainingCount;
 
         if (uiWaveNum == 1 && waveRemainingCount == 2)
-            NefarianSay(NOST_TEXT(156));
+            NefarianSay(ELYSIUM_TEXT(156));
         else if (uiWaveNum == 3 && waveRemainingCount == 3)
-            NefarianSay(NOST_TEXT(157));
+            NefarianSay(ELYSIUM_TEXT(157));
         else if (uiWaveNum == 3 && waveRemainingCount == 2)
-            NefarianSay(NOST_TEXT(158));
+            NefarianSay(ELYSIUM_TEXT(158));
         else if (uiWaveNum == 3 && waveRemainingCount == 1)
-            NefarianSay(NOST_TEXT(159));
+            NefarianSay(ELYSIUM_TEXT(159));
         else if (uiWaveNum == 4 && waveRemainingCount == 2)
-            RendSay(NOST_TEXT(160));
+            RendSay(ELYSIUM_TEXT(160));
         else if (uiWaveNum == 4 && waveRemainingCount == 1)
-            RendSay(NOST_TEXT(161));
+            RendSay(ELYSIUM_TEXT(161));
         else if (uiWaveNum == 5 && waveRemainingCount == 1)
-            NefarianSay(NOST_TEXT(162));
+            NefarianSay(ELYSIUM_TEXT(162));
         else if (uiWaveNum == 6 && waveRemainingCount == 2)
-            NefarianSay(NOST_TEXT(163));
+            NefarianSay(ELYSIUM_TEXT(163));
         else if (uiWaveNum == 6 && waveRemainingCount == 1)
-            RendSay(NOST_TEXT(164));
+            RendSay(ELYSIUM_TEXT(164));
         else if (summ && summ->GetEntry() == NPC_REND_BLACKHAND)
-            NefarianSay(NOST_TEXT(165));
+            NefarianSay(ELYSIUM_TEXT(165));
 #ifdef DEBUG_ON
         sLog.outString("Creature %u morte. Vague %u / reste %u", summ->GetEntry(), uiWaveNum, waveRemainingCount);
 #endif
@@ -237,7 +237,7 @@ struct boss_gythAI : public ScriptedAI
         }
     }
 
-    // NOSTALRIUS END
+    // ELYSIUM END
     void Aggro(Unit* pWho)
     {
         if (m_pInstance)
@@ -347,7 +347,7 @@ struct boss_gythAI : public ScriptedAI
             if (uiAggroTimer < uiDiff)
             {
                 m_bAggro = true;
-                NefarianSay(NOST_TEXT(166));
+                NefarianSay(ELYSIUM_TEXT(166));
                 // Visible now!
                 //m_creature->Relocate(SPAWN_X, SPAWN_Y, SPAWN_Z, SPAWN_O);
                 m_creature->GetMap()->CreatureRelocation(m_creature, SPAWN_X, SPAWN_Y, SPAWN_Z, SPAWN_O);
@@ -358,11 +358,9 @@ struct boss_gythAI : public ScriptedAI
                 m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 //m_creature->RemoveAurasDueToSpell(SPELL_ROOT_SELF);
                 m_creature->clearUnitState(UNIT_STAT_ROOT);
-
-                DoResetThreat();
-                
                 if (m_pInstance)
                     m_pInstance->DoUseDoorOrButton(m_uiCombatDoorGUID);
+
             }
             else
                 uiAggroTimer -= uiDiff;
@@ -413,9 +411,9 @@ struct boss_gythAI : public ScriptedAI
         {
             ++uiWaveNum;
             if (uiWaveNum == 1)
-                NefarianSay(NOST_TEXT(167));
+                NefarianSay(ELYSIUM_TEXT(167));
             else if (uiWaveNum == 3)
-                RendSay(NOST_TEXT(168));
+                RendSay(ELYSIUM_TEXT(168));
         }
 
         // we take part in the fight

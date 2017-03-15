@@ -592,7 +592,7 @@ bool convert_sql_updates()
         fclose(fin);
 
         FILE * fout = fopen( dst_file, "w" );
-        if(!fout) { return false; }
+        if(!fout) { fclose(fin); return false; }
 
         fprintf(fout, "%s",out_buff.str().c_str());
 
@@ -737,7 +737,7 @@ bool change_sql_database()
         FILE *fin = fopen( tmp_file, "r" );
         if(!fin) return false;
         FILE *fout = fopen( old_file, "w" );
-        if(!fout) { fclose(fin); return false; }
+        if(!fout) return false;
 
         snprintf(dummy, MAX_CMD, "CREATE TABLE `%s` (\n", db_version_table[i]);
         while(fgets(buffer, MAX_BUF, fin))

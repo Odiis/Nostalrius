@@ -134,7 +134,7 @@ public:
     void SetGmAction(uint32 needResponse, bool needMoreHelp);
 
     void AppendResponse(std::string const& response) { _response += response; }
-    void ResetResponse() { _response.clear(); }
+    void ResetResponse() { _response = ""; }
 
     bool LoadFromDB(Field* fields);
     void SaveToDB() const;

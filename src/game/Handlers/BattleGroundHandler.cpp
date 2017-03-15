@@ -96,17 +96,13 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recv_data)
     uint32 instanceId;
     uint32 mapId;
     uint8 joinAsGroup;
-    bool queuedAtBGPortal = false;
     bool isPremade = false;
     Group * grp;
 
-    recv_data >> guid;                                      // battlemaster guid, or player guid if joining queue from BG portal
+    recv_data >> guid;                                      // battlemaster guid
     recv_data >> mapId;
     recv_data >> instanceId;                                // instance id, 0 if First Available selected
     recv_data >> joinAsGroup;                               // join as group
-
-    if (guid == GetPlayer()->GetObjectGuid())
-        queuedAtBGPortal = true;
 
     BattleGroundTypeId bgTypeId = GetBattleGroundTypeIdByMapId(mapId);
 
@@ -201,7 +197,7 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recv_data)
             uint32 queueSlot = member->AddBattleGroundQueueId(bgQueueTypeId);           // add to queue
 
             // store entry point coords
-            member->SetBattleGroundEntryPoint(_player, queuedAtBGPortal);
+            member->SetBattleGroundEntryPoint(_player);
 
             WorldPacket data;
             // send status packet (in queue)
@@ -218,7 +214,7 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recv_data)
         // already checked if queueSlot is valid, now just get it
         uint32 queueSlot = _player->AddBattleGroundQueueId(bgQueueTypeId);
         // store entry point coords
-        _player->SetBattleGroundEntryPoint(_player, queuedAtBGPortal);
+        _player->SetBattleGroundEntryPoint();
 
         WorldPacket data;
         // send status packet (in queue)

@@ -1,5 +1,5 @@
-/* Copyright (C) 2009 - 2010 Nostalrius <http://nostalrius.ath.cx/>
- * Auteur        : Daemon
+/* Copyright (C) 2009 - 2010 Elysium <https://elysium-project.org/>
+ * 1.12
  * All rights reserved */
 
 #include "scriptPCH.h"
@@ -9,15 +9,15 @@
 
 enum
 {
-    TEXT_1 = NOST_TEXT(50),
-    TEXT_2 = NOST_TEXT(51),
-    TEXT_3 = NOST_TEXT(52),
-    TEXT_4 = NOST_TEXT(53),
-    TEXT_5 = NOST_TEXT(54),
+    TEXT_1 = ELYSIUM_TEXT(50),
+    TEXT_2 = ELYSIUM_TEXT(51),
+    TEXT_3 = ELYSIUM_TEXT(52),
+    TEXT_4 = ELYSIUM_TEXT(53),
+    TEXT_5 = ELYSIUM_TEXT(54),
     MOVE_SPEED       =  20,
 };
 /*
-INSERT INTO nostalrius_string (entry, content_default)
+INSERT INTO elysium_string (entry, content_default)
 VALUES
 (50, "Si vous voulez la clé, il va falloir m'attraper !"),
 (51, "Poursuivez moi si vous l'osez, je m'enfuis sans hésiter !"),

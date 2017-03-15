@@ -649,7 +649,6 @@ void AuctionHouseObject::BuildListBidderItems(WorldPacket& data, Player* player,
         if (Aentry && Aentry->bidder == player->GetGUIDLow())
         {
             ++totalcount;
-
             if (count < 50 && totalcount > listfrom)
                 if (itr->second->BuildAuctionInfo(data))
                     ++count;

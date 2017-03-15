@@ -1,6 +1,6 @@
 /* 
 AQ40 - Fankriss the Unyielding
-Reference: http://forum.nostalrius.org/viewtopic.php?f=51&t=35154#p246406
+Reference: https://elysium-project.org/
 
 Stryg comments:
 

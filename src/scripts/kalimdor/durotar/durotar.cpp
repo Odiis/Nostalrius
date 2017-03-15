@@ -131,7 +131,7 @@ struct LazyPeonAI : public ScriptedAI
                                                            MOVE_PATHFINDING);//not enough...
                                                            */
                         float fX, fY, fZ;
-                        LumberPile->GetContactPoint(m_creature, fX, fY, fZ, CONTACT_DISTANCE + 0.2f);
+                        LumberPile->GetContactPoint(m_creature, fX, fY, fZ, CONTACT_DISTANCE + 0.2);
                         m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ, MOVE_PATHFINDING);
 
                         timer_before_moving_to_lumberpile = 2000;
@@ -159,7 +159,7 @@ struct LazyPeonAI : public ScriptedAI
     {
         if (MovementType == POINT_MOTION_TYPE && id == 1)
         {
-            //sLog.nostalrius("LazyPeons Movement inform.");
+            //sLog.elysium("LazyPeons Movement inform.");
             if (state == STATE_MOVING_TO_LUMBERPILE)
             {
                 state = STATE_WORKING;

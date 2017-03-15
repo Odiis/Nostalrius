@@ -299,7 +299,6 @@ BinaryInput::BinaryInput(
     FILE* file = fopen(m_filename.c_str(), "rb");
 
     if (! file || (m_length == -1)) {
-        fclose(file);
         throw format("File not found: \"%s\"", m_filename.c_str());
         return;
     }
@@ -318,7 +317,6 @@ BinaryInput::BinaryInput(
     m_buffer = (uint8*)System::alignedMalloc(m_bufferLength, 16);
     if (m_buffer == NULL) {
         if (compressed) {
-            fclose(file);
             throw "Not enough memory to load compressed file. (1)";
         }
         

@@ -27,10 +27,6 @@
 #include "ObjectAccessor.h"
 #include "BattleGroundMgr.h"
 
-#include "MovementBroadcaster.h"
-#include "PlayerBroadcaster.h"
-#include "World.h"
-
 using namespace MaNGOS;
 
 void
@@ -80,10 +76,6 @@ VisibleNotifier::Notify()
     player.m_visibleGUIDs_lock.acquire_write();
     for (ObjectGuidSet::iterator itr = i_clientGUIDs.begin(); itr != i_clientGUIDs.end(); ++itr)
     {
-        if (Player* targetPlayer = player.GetMap()->GetPlayer(*itr))
-            if (targetPlayer->m_broadcaster)
-                targetPlayer->m_broadcaster->RemoveListener(&player);
-
         player.m_visibleGUIDs.erase(*itr);
 
         DEBUG_FILTER_LOG(LOG_FILTER_VISIBILITY_CHANGES, "%s is out of range (no in active cells set) now for %s",

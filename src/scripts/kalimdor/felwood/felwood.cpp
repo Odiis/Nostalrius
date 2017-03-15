@@ -446,11 +446,11 @@ enum
     NPC_ARKO_NARIN                  = 11018
 };
 
-struct npc_captured_arkonarinAI : npc_escortAI
+struct npc_captured_arkonarinAI : public npc_escortAI
 {
-    explicit npc_captured_arkonarinAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_captured_arkonarinAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        npc_captured_arkonarinAI::Reset();
+        Reset();
     }
 
     ObjectGuid m_treyGuid;
@@ -521,9 +521,9 @@ struct npc_captured_arkonarinAI : npc_escortAI
                 break;
             case 41:
                 DoScriptText(SAY_ESCAPE_DEMONS, m_creature);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 43:
                 SetRun(false);
@@ -532,7 +532,7 @@ struct npc_captured_arkonarinAI : npc_escortAI
                 DoScriptText(SAY_FRESH_AIR, m_creature);
                 break;
             case 105:
-                m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 106:
                 DoScriptText(SAY_TREY, m_creature);
@@ -591,9 +591,9 @@ bool QuestAccept_npc_captured_arkonarin(Player* pPlayer, Creature* pCreature, co
 {
     if (pQuest->GetQuestId() == QUEST_ID_RESCUE_JAEDENAR)
     {
-        if (auto pEscortAI = dynamic_cast<npc_captured_arkonarinAI*>(pCreature->AI()))
+        if (npc_captured_arkonarinAI* pEscortAI = dynamic_cast<npc_captured_arkonarinAI*>(pCreature->AI()))
         {
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
 
             pCreature->SetStandState(UNIT_STAND_STATE_STAND);
             pCreature->SetFactionTemporary(FACTION_ESCORT_N_NEUTRAL_ACTIVE, TEMPFACTION_RESTORE_RESPAWN);
@@ -763,7 +763,7 @@ struct npc_areiAI : public npc_escortAI
         return NULL;
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(uint32 uiDiff) override
     {
         Dialogue(uiDiff);
         npc_escortAI::UpdateAI(uiDiff);
@@ -793,7 +793,7 @@ bool QuestAccept_npc_arei(Player* pPlayer, Creature* pCreature, const Quest* pQu
     {
         if (npc_areiAI* pEscortAI = dynamic_cast<npc_areiAI*>(pCreature->AI()))
         {
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
             pCreature->SetFactionTemporary(FACTION_ESCORT_N_NEUTRAL_PASSIVE, TEMPFACTION_RESTORE_RESPAWN);
             DoScriptText(SAY_AREI_ESCORT_START, pCreature, pPlayer);
         }
@@ -889,43 +889,6 @@ bool QuestRewarded_go_corrupted_plant(Player* player, GameObject* gobj, Quest co
     return false;
 }
 
-
-/*####
-# at_irontree_wood
-####*/
-
-enum
-{
-    NPC_VARTRUS_THE_ANCIENT = 14524,
-    NPC_STOME_THE_ANCIENT   = 14525,
-    NPC_HASTAT_THE_ANCIENT  = 14526,
-
-    QUEST_THE_ANCIENT_LEAF  = 7632,
-
-    AT_IRONTREE_WOOD        = 3587
-};
-
-bool AreaTrigger_at_irontree_wood(Player* pPlayer, AreaTriggerEntry const* pAt)
-{
-    if (pAt->id == AT_IRONTREE_WOOD)
-    {
-        if (pPlayer->getClass() == CLASS_HUNTER && pPlayer->GetQuestStatus(QUEST_THE_ANCIENT_LEAF) == QUEST_STATUS_COMPLETE)
-        {
-            Creature* pAncient = GetClosestCreatureWithEntry(pPlayer, NPC_HASTAT_THE_ANCIENT, 100.0f);
-            if (!pAncient)
-            {
-                pPlayer->SummonCreature(NPC_VARTRUS_THE_ANCIENT, 6194.55f, -1176.35f, 369.056f, 1.1098f, TEMPSUMMON_TIMED_DESPAWN, 10*MINUTE*IN_MILLISECONDS);
-                pPlayer->SummonCreature(NPC_STOME_THE_ANCIENT,   6197.12f, -1135.42f, 366.31f, 5.28025f, TEMPSUMMON_TIMED_DESPAWN, 10*MINUTE*IN_MILLISECONDS);
-                pPlayer->SummonCreature(NPC_HASTAT_THE_ANCIENT,  6245.91f, -1165.98f, 366.325f, 2.60598f, TEMPSUMMON_TIMED_DESPAWN, 10*MINUTE*IN_MILLISECONDS);
-            }
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void AddSC_felwood()
 {
     Script* newscript;
@@ -981,10 +944,4 @@ void AddSC_felwood()
     newscript->GOGetAI = &GetAI_go_corrupted_plant;
     newscript->pQuestRewardedGO = &QuestRewarded_go_corrupted_plant;
     newscript->RegisterSelf();
-    
-    newscript = new Script;
-    newscript->Name = "at_irontree_wood";
-    newscript->pAreaTrigger = &AreaTrigger_at_irontree_wood;
-    newscript->RegisterSelf(); 
-
 }

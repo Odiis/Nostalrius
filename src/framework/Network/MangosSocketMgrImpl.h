@@ -59,7 +59,8 @@ public:
         Stop();
         Wait();
 
-        delete m_Reactor;
+        if (m_Reactor)
+            delete m_Reactor;
     }
 
     void Stop()
@@ -67,10 +68,8 @@ public:
         m_Reactor->end_reactor_event_loop();
     }
 
-    int Start(int interval)
+    int Start()
     {
-        m_Interval = interval;
-
         if (m_ThreadId != -1)
             return -1;
 
@@ -142,7 +141,7 @@ protected:
         {
             // dont be too smart to move this outside the loop
             // the run_reactor_event_loop will modify interval
-            ACE_Time_Value interval(0, m_Interval);
+            ACE_Time_Value interval(0, 10000);
 
             if (m_Reactor->run_reactor_event_loop(interval) == -1)
                 break;
@@ -179,7 +178,6 @@ private:
     ACE_Reactor* m_Reactor;
     AtomicInt m_Connections;
     int m_ThreadId;
-    int m_Interval;
 
     SocketSet m_Sockets;
 
@@ -193,7 +191,6 @@ MangosSocketMgr<SocketType>::MangosSocketMgr():
     m_NetThreadsCount(0),
     m_SockOutKBuff(-1),
     m_SockOutUBuff(65536),
-    m_Interval(10000),
     m_UseNoDelay(true),
     m_Acceptor(0),
     m_port(0)
@@ -203,8 +200,11 @@ MangosSocketMgr<SocketType>::MangosSocketMgr():
 template <typename SocketType>
 MangosSocketMgr<SocketType>::~MangosSocketMgr()
 {
-    delete [] m_NetThreads;
-    delete m_Acceptor;
+    if (m_NetThreads)
+        delete [] m_NetThreads;
+
+    if (m_Acceptor)
+        delete m_Acceptor;
 }
 
 template <typename SocketType>
@@ -214,7 +214,7 @@ int MangosSocketMgr<SocketType>::StartThreadsIfNeeded()
         return 0;
     m_NetThreads = new ReactorRunnable<SocketType>[m_NetThreadsCount];
     for (size_t i = 0; i < m_NetThreadsCount; ++i)
-        m_NetThreads[i].Start(m_Interval);
+        m_NetThreads[i].Start();
     return 0;
 }
 

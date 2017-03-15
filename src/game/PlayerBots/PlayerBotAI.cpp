@@ -77,8 +77,7 @@ bool PlayerBotAI::SpawnNewPlayer(WorldSession* sess, uint8 class_, uint32 race_,
     // Set instance
     if (instanceId && mapId > 1) // Not a continent
     {
-        DungeonPersistentState *state = (DungeonPersistentState*)sMapPersistentStateMgr
-                .AddPersistentState(sMapStorage.LookupEntry<MapEntry>(mapId), instanceId, time(nullptr) + 3600, false, true);
+        DungeonPersistentState *state = (DungeonPersistentState*)sMapPersistentStateMgr.AddPersistentState(sMapStore.LookupEntry(mapId), instanceId, time(NULL) + 3600, false, true);
         newChar->BindToInstance(state, true, true);
     }
     // Generate position
@@ -92,7 +91,6 @@ bool PlayerBotAI::SpawnNewPlayer(WorldSession* sess, uint8 class_, uint32 race_,
     newChar->Relocate(x, y, z, o);
     sObjectMgr.InsertPlayerInCache(newChar);
     newChar->SetMap(map);
-    newChar->CreatePacketBroadcaster();
     MasterPlayer* mPlayer = new MasterPlayer(sess);
     mPlayer->LoadPlayer(newChar);
     mPlayer->SetSocial(sSocialMgr.LoadFromDB(NULL, newChar->GetObjectGuid()));

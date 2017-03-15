@@ -114,7 +114,7 @@ uint32 GetSpellCastTime(SpellEntry const* spellInfo, Spell* spell)
 
     if (spell)
     {
-        // Nostalrius: ne pas consommer les SpellModifier si 'castTime' = 0 (Eclat lunaire / Grace de la nature 16886)
+        // Elysium: ne pas consommer les SpellModifier si 'castTime' = 0 (Eclat lunaire / Grace de la nature 16886)
         if (castTime)
             if (Player* modOwner = spell->GetCaster()->GetSpellModOwner())
                 modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_CASTING_TIME, castTime, spell);
@@ -281,59 +281,6 @@ float CalculateDefaultCoefficient(SpellEntry const *spellProto, DamageEffectType
     return coeff * DotFactor;
 }
 
-
-float CalculateCustomCoefficient(SpellEntry const *spellProto, Unit const* caster, DamageEffectType const damageType, float coeff, Spell* spell)
-{
-    if (!caster)
-        return coeff;
-
-    //if (caster->IsPlayer())
-    //{
-        switch (spellProto->SpellFamilyName)
-        {
-            case SPELLFAMILY_PALADIN:
-            {
-                // Seal of Righteousness
-                if (spellProto->IsFitToFamilyMask(UI64LIT(0x0000000008000000)) && spellProto->SpellIconID == 25)
-                {
-                    coeff = 0.092f;
-                    float speed = BASE_ATTACK_TIME;
-
-                    if (caster->IsPlayer())
-                    {
-                        if (Item *item = ((Player*)caster)->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
-                        {
-                            coeff = item->isOneHandedWeapon() ? 0.092f : 0.108f;
-                            speed = item->GetProto()->Delay;
-                        }
-                    }
-
-                    speed /= 1000.0f;
-
-                    return speed * coeff;
-                }
-            }
-            case SPELLFAMILY_SHAMAN:
-            {
-                if (!spell)
-                    return coeff;
-
-                // Chain Lightning / Chain Heal / Healing Wave (T1 8/8 bonus)
-                if (spellProto->IsFitToFamilyMask(UI64LIT(0x00000000142)))
-                {
-                    for (uint8 i = 1; i < spell->GetTargetNum(); ++i)
-                        coeff *= spellProto->DmgMultiplier[0];
-                    return coeff;
-                }
-            }
-            default:
-                break;
-        }
-    //}
-
-    return coeff;
-}
-
 WeaponAttackType GetWeaponAttackType(SpellEntry const *spellInfo)
 {
     if (!spellInfo)
@@ -370,7 +317,7 @@ bool IsPassiveSpell(uint32 spellId)
 
 bool IsPassiveSpell(SpellEntry const *spellInfo)
 {
-    // Nostalrius : 0x80 -> D'autres sorts passifs, dont les enchants par exemple
+    // Elysium : 0x80 -> D'autres sorts passifs, dont les enchants par exemple
     return (spellInfo->Attributes & (SPELL_ATTR_PASSIVE)) != 0;
 }
 
@@ -694,7 +641,7 @@ bool IsExplicitNegativeTarget(uint32 targetA)
 
 bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
 {
-    // Nostalrius (SpellMod)
+    // Elysium (SpellMod)
     if (spellproto->Custom & SPELL_CUSTOM_POSITIVE)
         return true;
     if (spellproto->Custom & SPELL_CUSTOM_NEGATIVE)
@@ -702,7 +649,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
 
     // Hellfire. Damages the caster, but is still positive !
     // (Has same SpellFamilyFlags as Soul Fire oO)
-    if (spellproto->IsFitToFamily<SPELLFAMILY_WARLOCK, CF_WARLOCK_HELLFIRE>() && spellproto->SpellIconID == 937)
+    if (spellproto->SpellFamilyName == SPELLFAMILY_WARLOCK && spellproto->SpellFamilyFlags == 0x40 && spellproto->SpellIconID == 937)
         return true;
 
     switch (spellproto->Effect[effIndex])
@@ -728,7 +675,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
         // Negative Effects
         case SPELL_EFFECT_INSTAKILL:
             // Sacrifice is a positive spell - for the warlock :)
-            if (spellproto->IsFitToFamily<SPELLFAMILY_WARLOCK, CF_WARLOCK_VOIDWALKER_SPELLS>())
+            if (spellproto->SpellFamilyName == SPELLFAMILY_WARLOCK && spellproto->SpellFamilyFlags == 0x2000000)
                 return true;
             return false;
 
@@ -891,7 +838,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
         return false;
 
     // Attributes check
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
 
     // ok, positive
@@ -909,7 +856,7 @@ bool IsPositiveSpell(uint32 spellId)
 
 bool IsPositiveSpell(SpellEntry const *spellproto)
 {
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
     // spells with at least one negative effect are considered negative
     // some self-applied spells have negative effects but in self casting case negative check ignored.
@@ -921,48 +868,35 @@ bool IsPositiveSpell(SpellEntry const *spellproto)
 
 bool IsSingleTargetSpell(SpellEntry const *spellInfo)
 {
-    // exceptions (have spellInfo->AttributesEx & (1<<18) but not single targeted)
-    switch (spellInfo->SpellFamilyName)
-    {
-        case SPELLFAMILY_GENERIC:
-            switch (spellInfo->Id)
-            {
-                case 4538:                                          // Extract Essence (group targets)
-                case 5106:                                          // Crystal Flash (group targets)
-                case 5530:                                          // Mace Stun Effect
-                case 5648:                                          // Stunning Blast, rank 1
-                case 5649:                                          // Stunning Blast, rank 2
-                case 5726:                                          // Stunning Blow, Rank 1
-                case 5727:                                          // Stunning Blow, Rank 2
-                case 6927:                                          // Shadowstalker Slash, Rank 1
-                case 8399:                                          // Sleep (group targets)
-                case 9159:                                          // Sleep (armor triggred affect)
-                case 9256:                                          // Deep Sleep (group targets)
-                case 13902:                                         // Fist of Ragnaros
-                case 16104:                                         // Crystallize (group targets)
-                case 17286:                                         // Crusader's Hammer (group targets)
-                case 20277:                                         // Fist of Ragnaros (group targets)
-                case 20669:                                         // Sleep (group targets)
-                case 20683:                                         // Highlord's Justice
-                case 24664:                                         // Sleep (group targets)
-                    return false;
-            }
-            break;
-        case SPELLFAMILY_HUNTER:
-            // Hunter's Mark
-            if (spellInfo->SpellVisual == 3239)
-                return true;
-            // Freezing Trap
-            else if (spellInfo->IsFitToFamilyMask<CF_HUNTER_FREEZING_TRAP_EFFECT>())
-                return false;
-            break;
-        case SPELLFAMILY_ROGUE:
-            // Cheap Shot
-            if (spellInfo->IsFitToFamilyMask<CF_ROGUE_CHEAP_SHOT>())
-                return false;
-            break;
-    } 
+    // hunter's mark and similar
+    if (spellInfo->SpellVisual == 3239)
+        return true;
 
+    // exceptions (have spellInfo->AttributesEx & (1<<18) but not single targeted)
+    switch (spellInfo->Id)
+    {
+        case 1833:                                          // Cheap Shot
+        case 4538:                                          // Extract Essence (group targets)
+        case 5106:                                          // Crystal Flash (group targets)
+        case 5530:                                          // Mace Stun Effect
+        case 5648:                                          // Stunning Blast, rank 1
+        case 5649:                                          // Stunning Blast, rank 2
+        case 5726:                                          // Stunning Blow, Rank 1
+        case 5727:                                          // Stunning Blow, Rank 2
+        case 6927:                                          // Shadowstalker Slash, Rank 1
+        case 8399:                                          // Sleep (group targets)
+        case 9159:                                          // Sleep (armor triggred affect)
+        case 9256:                                          // Deep Sleep (group targets)
+        case 13902:                                         // Fist of Ragnaros
+        case 14902:                                         // Cheap Shot
+        case 16104:                                         // Crystallize (group targets)
+        case 17286:                                         // Crusader's Hammer (group targets)
+        case 20277:                                         // Fist of Ragnaros (group targets)
+        case 20669:                                         // Sleep (group targets)
+        case 20683:                                         // Highlord's Justice
+        case 24664:                                         // Sleep (group targets)
+            return false;
+    }
     // cannot be cast on another target while not cooled down anyway
     if (GetSpellDuration(spellInfo) < int32(GetSpellRecoveryTime(spellInfo)))
         return false;
@@ -973,13 +907,13 @@ bool IsSingleTargetSpell(SpellEntry const *spellInfo)
 
     // other single target
     //Fear
-    if ((spellInfo->SpellIconID == 98 && spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK)
-      //Banish
-      || (spellInfo->SpellIconID == 96 && spellInfo->SpellVisual == 1305))
-             return true;
+    if ((spellInfo->SpellIconID == 98 && spellInfo->SpellVisual == 336)
+            //Banish
+            || (spellInfo->SpellIconID == 96 && spellInfo->SpellVisual == 1305)
+       ) return true;
 
     // Entangling roots -> Can still have on several targets using [Nature's Grasp] (fixed in patch 2.2)
-    if (spellInfo->IsFitToFamily<SPELLFAMILY_DRUID, CF_DRUID_ENTANGLING_ROOTS>() && spellInfo->Id != 19975)
+    if (spellInfo->SpellFamilyName == SPELLFAMILY_DRUID && spellInfo->SpellFamilyFlags == 0x200 && spellInfo->Id != 19975)
         return true;
 
     // TODO - need found Judgements rule
@@ -1102,7 +1036,7 @@ void SpellMgr::LoadSpellTargetPositions()
         st.target_Z           = fields[4].GetFloat();
         st.target_Orientation = fields[5].GetFloat();
 
-        MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(st.target_mapId);
+        MapEntry const* mapEntry = sMapStore.LookupEntry(st.target_mapId);
         if (!mapEntry)
         {
             sLog.outErrorDb("Spell (ID:%u) target map (ID: %u) does not exist in `Map.dbc`.", Spell_ID, st.target_mapId);
@@ -1635,7 +1569,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const * spellP
         procEvent_procEx = spellProcEvent->procEx;
 
         // For melee triggers
-        if (procSpell == nullptr)
+        if (procSpell == NULL)
         {
             // Check (if set) for school (melee attack have Normal school)
             if (spellProcEvent->schoolMask && (spellProcEvent->schoolMask & SPELL_SCHOOL_MASK_NORMAL) == 0)
@@ -2043,7 +1977,7 @@ bool SpellMgr::IsRankSpellDueToSpell(SpellEntry const *spellInfo_1, uint32 spell
     SpellEntry const *spellInfo_2 = sSpellMgr.GetSpellEntry(spellId_2);
     if (!spellInfo_1 || !spellInfo_2) return false;
     if (spellInfo_1->Id == spellId_2) return false;
-    // Nostalrius : Check generique.
+    // Elysium : Check generique.
     if (spellInfo_1->SpellFamilyName == spellInfo_2->SpellFamilyName &&
             spellInfo_1->SpellFamilyFlags == spellInfo_2->SpellFamilyFlags &&
             spellInfo_1->SpellIconID == spellInfo_2->SpellIconID &&
@@ -2304,7 +2238,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if (spellId_1==22009 || spellId_2==22009)
                     return false;
 
-                // Shadow Vulnerability / Devouring Plague
+                // Tissage de l'ombre (15258) / Peste devorante
                 if (spellInfo_1->SpellIconID == spellInfo_2->SpellIconID /* == 9 */ &&
                         ((spellInfo_1->Id == 15258 &&  spellInfo_2->SpellFamilyFlags == 0x2000000) ||
                          (spellInfo_2->Id == 15258 &&  spellInfo_1->SpellFamilyFlags == 0x2000000)))
@@ -2449,7 +2383,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
     if (spellInfo_1->SpellFamilyName != spellInfo_2->SpellFamilyName)
         return false;
 
-    // Nostalrius: potions fonctionnent autrement.
+    // Elysium: potions fonctionnent autrement.
     if (spellInfo_1->SpellFamilyName == SPELLFAMILY_POTION)
         return false;
 
@@ -2580,7 +2514,7 @@ SpellEntry const* SpellMgr::SelectAuraRankForLevel(SpellEntry const* spellInfo, 
     }
 
     // not found
-    return nullptr;
+    return NULL;
 }
 
 typedef UNORDERED_MAP<uint32, uint32> AbilitySpellPrevMap;
@@ -2707,10 +2641,6 @@ void SpellMgr::LoadSpellChains()
             // by some strange reason < 3.x clients not have forward spell for 2366
             if (spell_id == 2366)                           // Herb Gathering, Apprentice
                 forward_id = 2368;
-
-            // Seal of Righteousness (20154) make double in spellbook
-            if (spell_id == 20154)
-                continue;
 
             if (!forward_id)
                 continue;
@@ -3524,7 +3454,7 @@ void SpellMgr::LoadSpellAreas()
 
         }
 
-        if (spellArea.areaId && !AreaEntry::GetById(spellArea.areaId))
+        if (spellArea.areaId && !GetAreaEntryByAreaID(spellArea.areaId))
         {
             sLog.outErrorDb("Spell %u listed in `spell_area` have wrong area (%u) requirement", spell, spellArea.areaId);
             continue;
@@ -3676,23 +3606,19 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
 
     switch (spellInfo->Id)
     {
-                            // Alterac Valley
+        // a trinket in alterac valley allows to teleport to the boss
         case 22564:                                         // recall
         case 22563:                                         // recall
-        case 23538:                                         // Battle Standard
-        case 23539:
         {
             if (!player)
                 return SPELL_FAILED_REQUIRES_AREA;
-
             BattleGround* bg = player->GetBattleGround();
-
             return player->GetMapId() == 30 && bg
                    && bg->GetStatus() != STATUS_WAIT_JOIN ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
         }
         case 23333:                                         // Warsong Flag
         case 23335:                                         // Silverwing Flag
-            return player && player->GetMapId() == 489 && player->InBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
+            return player && player->GetMapId() == 489 && player && player->InBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
         case 2584:                                          // Waiting to Resurrect
         {
             return player && player->InBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_ONLY_BATTLEGROUNDS;
@@ -3701,7 +3627,7 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
         case 22012:                                         // Spirit Heal
         case 24171:                                         // Resurrection Impact Visual
         {
-            MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(mapId);
+            MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
             if (!mapEntry)
                 return SPELL_FAILED_REQUIRES_AREA;
             return mapEntry->IsBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_ONLY_BATTLEGROUNDS;
@@ -3739,7 +3665,7 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
         }
         return SPELL_FAILED_REQUIRES_AREA;
     }
-    return GetSpellAllowedInLocationError(spellInfo, nullptr /* zone/area already checked */, player);
+    return GetSpellAllowedInLocationError(spellInfo, NULL /* zone/area already checked */, player);
 }
 
 void SpellMgr::LoadSkillLineAbilityMap()
@@ -4251,7 +4177,7 @@ void SpellMgr::LoadSpells()
 {
     uint32 oldMSTime = WorldTimer::getMSTime();
     sLog.outString("Loading spells ...");
-    mSpellEntryMap.resize(sSpellStore.GetNumRows(), nullptr);
+    mSpellEntryMap.resize(sSpellStore.GetNumRows(), NULL);
 
     for (uint32 i = 0; i < sSpellStore.GetNumRows(); ++i)
     {

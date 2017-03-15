@@ -1,5 +1,4 @@
-/* Copyright (C) 2009 - 2010 Nostalrius <http://nostalrius.org/>
- * Auteur        : Ner'zhul
+/* Copyright (C) 2009 - 2010 Elysium <http://elysium-project.org/>
  * All rights reserved */
 
 #include "scriptPCH.h"

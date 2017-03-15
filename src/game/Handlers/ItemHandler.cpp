@@ -389,9 +389,7 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket & recv_data)
 
                 data << pProto->Spells[s].SpellId;
                 data << pProto->Spells[s].SpellTrigger;
-				
-                // let the database control the sign here.  negative means that the item should be consumed once the charges are consumed.
-                data << pProto->Spells[s].SpellCharges;
+                data << uint32(-abs(pProto->Spells[s].SpellCharges));
 
                 if (db_data)
                 {
@@ -510,7 +508,7 @@ void WorldSession::HandleSellItemOpcode(WorldPacket & recv_data)
     if (!pCreature)
     {
         DEBUG_LOG("WORLD: HandleSellItemOpcode - %s not found or you can't interact with him.", vendorGuid.GetString().c_str());
-        _player->SendSellError(SELL_ERR_CANT_FIND_VENDOR, nullptr, itemGuid, 0);
+        _player->SendSellError(SELL_ERR_CANT_FIND_VENDOR, NULL, itemGuid, 0);
         return;
     }
 
@@ -519,106 +517,85 @@ void WorldSession::HandleSellItemOpcode(WorldPacket & recv_data)
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
 
     Item *pItem = _player->GetItemByGuid(itemGuid);
-
-    if (!pItem)
-        return;
-
-    // prevent sell not owner item
-    if (_player->GetObjectGuid() != pItem->GetOwnerGuid())
+    if (pItem)
     {
-        _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
-        return;
-    }
-
-    // prevent sell non empty bag by drag-and-drop at vendor's item list
-    if (pItem->IsBag() && !((Bag*)pItem)->IsEmpty())
-    {
-        _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
-        return;
-    }
-
-    // prevent sell currently looted item
-    if (_player->GetLootGuid() == pItem->GetObjectGuid())
-    {
-        _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
-        return;
-    }
-
-    // special case at auto sell (sell all)
-    if (count == 0)
-    {
-        count = pItem->GetCount();
-    }
-    else
-    {
-        // prevent sell more items that exist in stack (possible only not from client)
-        if (count > pItem->GetCount())
+        // prevent sell not owner item
+        if (_player->GetObjectGuid() != pItem->GetOwnerGuid())
         {
             _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
             return;
         }
-    }
 
-    ItemPrototype const *pProto = pItem->GetProto();
-
-    if (!pProto)
-    {
-        _player->SendSellError(SELL_ERR_CANT_FIND_ITEM, pCreature, itemGuid, 0);
-        return;
-    }
-
-    if (pProto->SellPrice == 0)
-    {
-        _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
-        return;
-    }
-
-    uint32 money = pProto->SellPrice * count;
-
-    for (auto i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
-    {
-        auto const &spell = pProto->Spells[i];
-
-        // if spell charges for this item are negative, it means that the item should be destroyed once the charges are consumed.
-        // it also means that the value of this item is relative to how many charges are remaining.
-        if (spell.SpellId != 0 && spell.SpellCharges < 0)
+        // prevent sell non empty bag by drag-and-drop at vendor's item list
+        if (pItem->IsBag() && !((Bag*)pItem)->IsEmpty())
         {
-            auto const multiplier = static_cast<float>(pItem->GetSpellCharges(i)) / spell.SpellCharges;
-            money *= multiplier;
-            break;
-        }
-    }
-
-    if (count < pItem->GetCount())              // need split items
-    {
-        Item *pNewItem = pItem->CloneItem(count, _player);
-        if (!pNewItem)
-        {
-            sLog.outError("WORLD: HandleSellItemOpcode - could not create clone of item %u; count = %u", pItem->GetEntry(), count);
             _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
             return;
         }
 
-        pItem->SetCount(pItem->GetCount() - count);
-        _player->ItemRemovedQuestCheck(pItem->GetEntry(), count);
-        if (_player->IsInWorld())
-            pItem->SendCreateUpdateToPlayer(_player);
-        pItem->SetState(ITEM_CHANGED, _player);
+        // prevent sell currently looted item
+        if (_player->GetLootGuid() == pItem->GetObjectGuid())
+        {
+            _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
+            return;
+        }
 
-        _player->AddItemToBuyBackSlot(pNewItem, money);
-        if (_player->IsInWorld())
-            pNewItem->SendCreateUpdateToPlayer(_player);
-    }
-    else
-    {
-        _player->ItemRemovedQuestCheck(pItem->GetEntry(), pItem->GetCount());
-        _player->RemoveItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
-        _player->InterruptSpellsWithCastItem(pItem);
-        pItem->RemoveFromUpdateQueueOf(_player);
-        _player->AddItemToBuyBackSlot(pItem, money);
-    }
+        // special case at auto sell (sell all)
+        if (count == 0)
+            count = pItem->GetCount();
+        else
+        {
+            // prevent sell more items that exist in stack (possible only not from client)
+            if (count > pItem->GetCount())
+            {
+                _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
+                return;
+            }
+        }
 
-    _player->LogModifyMoney(money, "SellItem", pCreature->GetObjectGuid(), pItem->GetEntry());
+        ItemPrototype const *pProto = pItem->GetProto();
+        if (pProto)
+        {
+            if (pProto->SellPrice > 0)
+            {
+                if (count < pItem->GetCount())              // need split items
+                {
+                    Item *pNewItem = pItem->CloneItem(count, _player);
+                    if (!pNewItem)
+                    {
+                        sLog.outError("WORLD: HandleSellItemOpcode - could not create clone of item %u; count = %u", pItem->GetEntry(), count);
+                        _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
+                        return;
+                    }
+
+                    pItem->SetCount(pItem->GetCount() - count);
+                    _player->ItemRemovedQuestCheck(pItem->GetEntry(), count);
+                    pItem->SendCreateUpdateToPlayer(_player);
+                    pItem->SetState(ITEM_CHANGED, _player);
+
+                    _player->AddItemToBuyBackSlot(pNewItem);
+                    pNewItem->SendCreateUpdateToPlayer(_player);
+                }
+                else
+                {
+                    _player->ItemRemovedQuestCheck(pItem->GetEntry(), pItem->GetCount());
+                    _player->RemoveItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
+                    _player->InterruptSpellsWithCastItem(pItem);
+                    pItem->RemoveFromUpdateQueueOf(_player);
+                    _player->AddItemToBuyBackSlot(pItem);
+                }
+
+                uint32 money = pProto->SellPrice * count;
+
+                _player->LogModifyMoney(money, "SellItem", pCreature->GetObjectGuid(), pItem->GetEntry());
+            }
+            else
+                _player->SendSellError(SELL_ERR_CANT_SELL_ITEM, pCreature, itemGuid, 0);
+            return;
+        }
+    }
+    _player->SendSellError(SELL_ERR_CANT_FIND_ITEM, pCreature, itemGuid, 0);
+    return;
 }
 
 void WorldSession::HandleBuybackItem(WorldPacket & recv_data)

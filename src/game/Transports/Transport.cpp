@@ -36,7 +36,7 @@
 
 Transport::Transport() : GameObject(),
     _transportInfo(NULL), _isMoving(true), _pendingStop(false),
-    _passengerTeleportItr(_passengers.begin()), _pathProgress(0)
+    _passengerTeleportItr(_passengers.begin())
 {
     //m_updateFlag = UPDATEFLAG_TRANSPORT | UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_ROTATION;
     m_updateFlag = (UPDATEFLAG_TRANSPORT | UPDATEFLAG_ALL | UPDATEFLAG_HAS_POSITION);

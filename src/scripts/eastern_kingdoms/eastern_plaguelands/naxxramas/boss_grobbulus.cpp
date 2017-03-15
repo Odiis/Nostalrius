@@ -28,8 +28,3 @@ Mutating Injection 28169
 Enrages 26527*/
 
 #include "scriptPCH.h"
-
-void AddSC_boss_grobbulus()
-{
-
-}

@@ -35,7 +35,7 @@ class SingleTest
 {
 public:
     SingleTest(std::string name, int32 mapId = MAP_TESTING_ID, bool instanced = false) :
-            _testName(name), _mapId(mapId), _map(nullptr), _instanced(instanced), _centerX(0), _centerY(0), _centerZ(0)
+            _testName(name), _mapId(mapId), _map(NULL), _centerX(0), _centerY(0), _centerZ(0), _instanced(instanced)
     {
         Reset();
         switch (mapId)
@@ -100,7 +100,7 @@ public:
     void DoPlayerCast(uint32 playerIdx, uint32 targetIdx, uint32 spellId);
 
     void Fail(const char* err, ...) ATTR_PRINTF(2,3);
-    void Finish(bool success = true, const char* errMsg = nullptr);
+    void Finish(bool success = true, const char* errMsg = NULL);
     bool Finished() const { return _finished; }
     void Wait(uint32 ms) { _timer = ms; }
     void WaitPlayerSummon() { _timer = 1000; }
@@ -140,11 +140,10 @@ public:
 
     ~AutoTestingMgr()
     {
-        for (auto it = _tests.begin(); it != _tests.end(); ++it)
+        for (TestsArray::iterator it = _tests.begin(); it != _tests.end(); ++it)
             delete *it;
     }
-
-    static void Load()
+    void Load()
     {
         LoadTests();
     }

@@ -35,7 +35,7 @@ enum
     NPC_CMD_SPRINGVALE      = 4278,
     NPC_ASH                 = 3850,
     NPC_ADA                 = 3849,
-    NPC_ARUGAL              = 10000,                        //"Arugal" says intro text, not used (Ustaag <Nostalrius>  : utilisé pour l'event de Fenrus)
+    NPC_ARUGAL              = 10000,                        //"Arugal" says intro text, not used (Ustaag <Elysium>  : utilisé pour l'event de Fenrus)
     NPC_ARCHMAGE_ARUGAL     = 4275,                         //"Archmage Arugal" does Fenrus event
     NPC_FENRUS              = 4274,                         //used to summon Arugal in Fenrus event
     NPC_VINCENT             = 4444,                         //Vincent should be "dead" is Arugal is done the intro already
@@ -106,7 +106,7 @@ struct instance_shadowfang_keep : public ScriptedInstance
 
         m_uiBaronSilverlaineGUID = 0;
         m_uiArugalFocusGUID   = 0;
-        //Nostalrius
+        //Elysium
         m_uiVoidWalkerCount   = 0;
     }
 

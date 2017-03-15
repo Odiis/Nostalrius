@@ -366,7 +366,7 @@ struct npc_blastmaster_emi_shortfuseAI : public npc_escortAI
                         m_uiPhaseTimer = 3500;              // 6s delay, but 2500ms for escortstarting
                         break;
                     case 3:
-                        Start(false, m_playerGuid, NULL, false, false);
+                        Start(false, false, m_playerGuid, NULL, false, false);
                         m_uiPhaseTimer = 0;
                         break;
 
@@ -657,7 +657,7 @@ enum
 
 static const float aKernobeePositions[3][3] =
 {
-    { -390.82f, 42.34f, -154.795f},                          // I can see the end!
+    { -390.82f, 42.34f, -154.795},                          // I can see the end!
     { -330.92f, -3.03f, -152.85f},                          // End position
     { -297.32f, -7.32f, -152.85f}                           // Walk out of the door
 };

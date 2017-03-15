@@ -320,14 +320,19 @@ struct boss_thane_korthazzAI : public ScriptedAI
         // Shield Wall - All 4 horsemen will shield wall at 50% hp and 20% hp for 20 seconds
         if (ShieldWall1 && m_creature->GetHealthPercent() < 50.0f)
         {
-            DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
-            ShieldWall1 = false;
+            if (ShieldWall1)
+            {
+                DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
+                ShieldWall1 = false;
+            }
         }
-
         if (ShieldWall2 && m_creature->GetHealthPercent() < 20.0f)
         {
-            DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
-            ShieldWall2 = false;
+            if (ShieldWall2)
+            {
+                DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
+                ShieldWall2 = false;
+            }
         }
 
         // Meteor
@@ -399,14 +404,19 @@ struct boss_sir_zeliekAI : public ScriptedAI
         // Shield Wall - All 4 horsemen will shield wall at 50% hp and 20% hp for 20 seconds
         if (ShieldWall1 && m_creature->GetHealthPercent() < 50.0f)
         {
-            DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
-            ShieldWall1 = false;
+            if (ShieldWall1)
+            {
+                DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
+                ShieldWall1 = false;
+            }
         }
-
         if (ShieldWall2 && m_creature->GetHealthPercent() < 20.0f)
         {
-            DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
-            ShieldWall2 = false;
+            if (ShieldWall2)
+            {
+                DoCastSpellIfCan(m_creature, SPELL_SHIELDWALL);
+                ShieldWall2 = false;
+            }
         }
 
         // Holy Wrath

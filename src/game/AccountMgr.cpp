@@ -171,7 +171,7 @@ uint32 AccountMgr::GetId(std::string username)
 void AccountMgr::Load()
 {
     _accountSecurity.clear();
-    QueryResult *result = LoginDatabase.PQuery("SELECT id, gmlevel FROM account_access WHERE (RealmID = '%u' OR RealmID='-1')", realmID);
+    QueryResult *result = LoginDatabase.PQuery("SELECT id, gmlevel FROM account_access WHERE (RealmID = '%u' OR RealmID='-1') AND id <= 1000", realmID);
     if (result)
     {
         Field *fields = NULL;

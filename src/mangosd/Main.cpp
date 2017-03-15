@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/// \addtogroup mangosd Mangos Daemon
+/// \addtogroup mangosd Mangos
 /// @{
 /// \file
 
@@ -188,16 +188,15 @@ extern int main(int argc, char **argv)
         "MM   MM MM  MMM MM   MM  MMMMMM  MMMM   MMMMM\n"
         "        MM  MMM http://getmangos.com\n"
         "        MMMMMM\n\n");
-    sLog.outString("Elysium Project : https://elysium-project.org/");
+    sLog.outString("Version ELYSIUM : http://elysium-project.org/");
     sLog.outString("Using configuration file %s.", cfg_file);
 
 #define STR(s) #s
 #define XSTR(s) STR(s)
 
-    //sLog.nostalrius("Starting worldserver CORE: %s SCRIPTS: %s " __DATE__ " " __TIME__ , XSTR(CORE_VERSION), XSTR(SCRIPT_VERSION));
-    sLog.nostalrius("Build params : \"" MANGOS_BUILD_OPTIONS "\"");
-    sLog.nostalrius("Alloc library: " MANGOS_ALLOC_LIB "");
-    sLog.nostalrius("Core Revision: " _FULLVERSION);
+    //sLog.elysium("Starting worldserver CORE: %s SCRIPTS: %s " __DATE__ " " __TIME__ , XSTR(CORE_VERSION), XSTR(SCRIPT_VERSION));
+    sLog.elysium("Build params : \"" MANGOS_BUILD_OPTIONS "\"");
+    sLog.elysium("Alloc library: " MANGOS_ALLOC_LIB "");
 
     DETAIL_LOG("%s (Library: %s)", OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION));
     if (SSLeay() < 0x009080bfL )

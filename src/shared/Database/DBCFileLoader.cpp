@@ -43,47 +43,29 @@ bool DBCFileLoader::Load(const char *filename, const char *fmt)
     if(!f)return false;
 
     if(fread(&header,4,1,f)!=1)                             // Number of records
-    {
-        fclose(f);
         return false;
-    }
 
     EndianConvert(header);
     if(header!=0x43424457)
-    {
-        fclose(f);
         return false;                                       //'WDBC'
-    }
 
     if(fread(&recordCount,4,1,f)!=1)                        // Number of records
-    {
-        fclose(f);
         return false;
-    }
 
     EndianConvert(recordCount);
 
     if(fread(&fieldCount,4,1,f)!=1)                         // Number of fields
-    {
-        fclose(f);
         return false;
-    }
 
     EndianConvert(fieldCount);
 
     if(fread(&recordSize,4,1,f)!=1)                         // Size of a record
-    {
-        fclose(f);
         return false;
-    }
 
     EndianConvert(recordSize);
 
     if(fread(&stringSize,4,1,f)!=1)                         // String size
-    {
-        fclose(f);
         return false;
-    }
 
     EndianConvert(stringSize);
 
@@ -102,10 +84,7 @@ bool DBCFileLoader::Load(const char *filename, const char *fmt)
     stringTable = data + recordSize*recordCount;
 
     if(fread(data,recordSize*recordCount+stringSize,1,f)!=1)
-    {
-        fclose(f);
         return false;
-    }
 
     fclose(f);
     return true;

@@ -2,7 +2,7 @@
  * TestPCH.h
  *
  *  Created on: 22 janv. 2015
- *      Author: Daemon
+ *      1.12
  */
 
 #ifndef GAME_AUTOTESTING_TESTS_TESTPCH_H_

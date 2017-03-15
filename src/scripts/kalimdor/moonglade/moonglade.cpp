@@ -307,34 +307,34 @@ static EventLocations aRemulosLocations[] =
 static EventLocations aEranikusLocations[] =
 {
     {7881.72f, -2651.23f, 493.29f, 0.40f}, // eranikus spawn loc
-    {7929.86f, -2574.88f, 505.35f, 0.0f }, // eranikus flight move loc
-    {7912.98f, -2568.99f, 488.71f, 0.0f }, // eranikus combat move loc
-    {7906.57f, -2565.63f, 488.39f, 0.0f }, // eranikus redeemed loc
+    {7929.86f, -2574.88f, 505.35f}, // eranikus flight move loc
+    {7912.98f, -2568.99f, 488.71f}, // eranikus combat move loc
+    {7906.57f, -2565.63f, 488.39f}, // eranikus redeemed loc
 };
 
 static EventLocations aTyrandeLocations[] = //TODO : add waypoints, or spawn further and move with pathfinding. m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ, MOVE_PATHFINDING);
 {
     // Tyrande should appear along the pathway, but because of the missing pathfinding we'll summon here closer to Eranikus
     //{7948.89f, -2575.58f, 490.05f, 3.03f}, // tyrande spawn loc
-    {7955.826172f, -2369.380856f, 486.537537f, 4.812577f}, //tyrande spawn au loin
-    {7972.298828f, -2519.744873f, 487.863190f, 0.0f },//point sur le 2e pont avant le soucis de pathfinding.
-    {7972.312500f, -2521.717773f, 488.041565f, 0.0f },//point sur le 2e pont après le soucis de pathfinding.
-    {7976.151367f, -2549.361084f, 490.079834f, 0.0f },//point pour éviter de courrir sur la rembarde du pont.
-    {7939.48352f, -2577.439941f, 488.615326f, 0.0f },//point avant dernier pont pour approprier.
-    {7888.32f, -2566.25f, 487.02f, 0.0f }, // tyrande heal loc
-    {7901.83f, -2565.24f, 488.04f, 0.0f }, // tyrande eranikus loc
+    {7955.826172, -2369.380856, 486.537537, 4.812577}, //tyrande spawn au loin
+    {7972.298828, -2519.744873, 487.863190},//point sur le 2e pont avant le soucis de pathfinding.
+    {7972.312500, -2521.717773, 488.041565},//point sur le 2e pont après le soucis de pathfinding.
+    {7976.151367, -2549.361084, 490.079834},//point pour éviter de courrir sur la rembarde du pont.
+    {7939.48352, -2577.439941, 488.615326},//point avant dernier pont pour approprier.
+    {7888.32f, -2566.25f, 487.02f}, // tyrande heal loc
+    {7901.83f, -2565.24f, 488.04f}, // tyrande eranikus loc
 };
 
 static EventLocations aShadowsLocations[] =
 {
     // Inside the house shades - first wave only
-    {7832.78f, -2604.57f, 489.29f, 0.0f },
-    {7826.68f, -2538.46f, 489.30f, 0.0f },
-    {7811.48f, -2573.20f, 488.49f, 0.0f },
+    {7832.78f, -2604.57f, 489.29f},
+    {7826.68f, -2538.46f, 489.30f},
+    {7811.48f, -2573.20f, 488.49f},
     // Outside shade points - basically only the first set of coords is used for the summoning; there is no solid proof of using the other coords
-    {7888.32f, -2566.25f, 487.02f, 0.0f },
-    {7946.12f, -2577.10f, 489.97f, 0.0f },//saw this in a vid... Alita. My theory : 3 spawn points, + one spawn point being near the player(or Remulos, in the vids they stick together..).
-    {7963.00f, -2492.03f, 487.84f, 0.0f }//Alita, actually yes.
+    {7888.32f, -2566.25f, 487.02f},
+    {7946.12f, -2577.10f, 489.97f},//saw this in a vid... Alita. My theory : 3 spawn points, + one spawn point being near the player(or Remulos, in the vids they stick together..).
+    {7963.00f, -2492.03f, 487.84f}//Alita, actually yes.
 };
 
 uint32 m_idQuestActive;
@@ -391,8 +391,8 @@ struct npc_keeper_remulosAI : public npc_escortAI
 
             m_bEventWLStarted = false;
             m_uiSayingTimeTimer = 0;
-            m_uiCastSpellTimer = 0;
-            m_uiSummonMalfurionTimer = 0;
+            uint32 m_uiCastSpellTimer = 0;
+            uint32 m_uiSummonMalfurionTimer = 0;
             m_bReturnInitialPosition = false;
             m_uiInitialPositionTimer = 0;
             m_uiQuestComplete = 0;
@@ -504,7 +504,7 @@ struct npc_keeper_remulosAI : public npc_escortAI
                 case 0:
                     if (Player* pPlayer = GetPlayerForEscort())
                         DoScriptText(SAY_REMULOS_INTRO_1, m_creature, pPlayer);
-                    m_creature->SetSpeedRate(MOVE_WALK, 2.2f, true); //du cout faudrait ptetre aussi revoir la vitesse de course.
+                    m_creature->SetSpeedRate(MOVE_WALK, 2.2, true); //du cout faudrait ptetre aussi revoir la vitesse de course.
                     m_creature->SetWalk(true);
                     break;
                 case 1:
@@ -615,7 +615,7 @@ struct npc_keeper_remulosAI : public npc_escortAI
                             DoScriptText(SAY_REMULOS_OUTRO_2, m_creature);
                             //m_creature->ForcedDespawn(3000);
                             // Alita : piqué ce morceau de code à ScriptedFollowerAI.h, car NON il ne se replaçait pas forcément correctement (p-etre lié à mon code dans evade mode)
-                            //Ustaag <Nostalrius> : vilain fix des mobs qui voulaient pas respawn à leur point de spawn
+                            //Ustaag <Elysium> : vilain fix des mobs qui voulaient pas respawn à leur point de spawn
                             float x = 0.0f;
                             float y = 0.0f;
                             float z = 0.0f;
@@ -1097,16 +1097,13 @@ bool QuestAccept_npc_keeper_remulos(Player* pPlayer, Creature* pCreature, const 
         // avoid starting the escort twice
         pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
         if (npc_keeper_remulosAI* pEscortAI = dynamic_cast<npc_keeper_remulosAI*>(pCreature->AI()))
-        {
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
-            pEscortAI->SetMaxPlayerDistance(0);
-        }
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
     }
     if (pQuest->GetQuestId() == QUEST_WAKING_LEGENDS)
     {
         pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
         if (npc_keeper_remulosAI* pEscortAI = dynamic_cast<npc_keeper_remulosAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
     }
 
     return true;

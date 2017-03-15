@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 - 2010 Nostalrius <http://nostalrius.ath.cx/>
+/* Copyright (C) 2009 - 2010 Elysium <https://elysium-project.org/>
  * Auteur        : Alita
  * All rights reserved */
 
@@ -53,11 +53,11 @@ struct EventLocations
 };
 static EventLocations aJeeveeLocations[] =
 {
-    { -38.939999f, 812.849976f, -29.530002f, 4.890318f, 3500}, //Jeevee spawn
-    { -27.768442f, 812.457703f, -29.535814f, 6.258483f, 4000}, //Jeevee first point
-    { -45.293509f, 822.046747f, -29.535671f, 2.211563f, 3000}, //Jeevee second point
-    { -44.074763f, 802.921135f, -29.535734f, 4.357706f, 3000}, //Jeevee third point
-    { -38.939999f, 812.849976f, -29.530002f, 4.890318f, 4000} //Jeevee last point
+    { -38.939999, 812.849976, -29.530002, 4.890318, 3500}, //Jeevee spawn
+    { -27.768442, 812.457703, -29.535814, 6.258483, 4000}, //Jeevee first point
+    { -45.293509, 822.046747, -29.535671, 2.211563, 3000}, //Jeevee second point
+    { -44.074763, 802.921135, -29.535734, 4.357706, 3000}, //Jeevee third point
+    { -38.939999, 812.849976, -29.530002, 4.890318, 4000} //Jeevee last point
 };
 enum
 {
@@ -115,7 +115,7 @@ struct npc_j_eeveeAI : public ScriptedAI
 
         }
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {
@@ -409,7 +409,7 @@ struct go_pedestal_of_immol_tharAI: public GameObjectAI
                             me->GetPosition(x, y, z);
                             x += 56.7f * cos(angle);
                             y += 56.7f * sin(angle);
-                            if (gobj = me->SummonGameObject(GOBJ_FEL_FIRE, x, y, -29.8f, 0, 0, 0, 0, 0, 480000))
+                            if (gobj = me->SummonGameObject(GOBJ_FEL_FIRE, x, y, -29.8, 0, 0, 0, 0, 0, 480000))
                                 guidFlameTab[i - 1] = gobj->GetGUID();
                         }
                         if (gobj = me->GetMap()->GetGameObject(guidRitualCircle))
@@ -762,7 +762,7 @@ struct go_pedestal_of_immol_tharAI: public GameObjectAI
         }
         nodeNb++;
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (eventPhase == 1 || eventPhase == 2 || eventPhase == 4) //and phase < ended
         {
@@ -840,7 +840,7 @@ struct npc_ritual_triggerAI : public ScriptedAI
     void AttackStart(Unit * unit) {}
     void EnterEvadeMode() {}
     uint32 timer;
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         /*if (timer < uiDiff)
         {
@@ -871,7 +871,7 @@ struct go_ritual_nodeAI: public GameObjectAI
     uint32 spell;
     /*bool OnUse(Unit* pUser){ }*/
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (me->GetGoState() == GO_STATE_ACTIVE && me->isSpawned())
         {

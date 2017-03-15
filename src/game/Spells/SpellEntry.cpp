@@ -5,7 +5,7 @@
 
 SpellEntry::~SpellEntry()
 {
-    for (int i = 0; i < MAX_DBC_LOCALE; ++i)
+    for (int i = 0; i < MAX_LOCALE; ++i)
     {
         if (SpellName[i])
             delete[] SpellName[i];
@@ -25,7 +25,7 @@ bool SpellEntry::Load(DBCSpellEntry const* dbcEntry)
 
 #define COPY_CHAR_ARRAY(field)\
     {\
-        for (int i = 0; i < MAX_DBC_LOCALE; ++i)\
+        for (int i = 0; i < MAX_LOCALE; ++i)\
         {\
             field[i] = NULL;\
             if (dbcEntry->field[i])\
@@ -161,7 +161,6 @@ void SpellEntry::ComputeBinary()
                     case SPELL_AURA_MOD_ROOT:
                     case SPELL_AURA_MOD_SILENCE:
                     case SPELL_AURA_MOD_DISARM:
-                    case SPELL_AURA_MOD_DAMAGE_TAKEN:
                         foundNoDamageAura = true;
                         break;
                 }
@@ -186,44 +185,44 @@ DiminishingGroup SpellEntry::GetDiminishingReturnsGroup(bool triggered) const
         case SPELLFAMILY_ROGUE:
         {
             // Kidney Shot
-            if (IsFitToFamilyMask<CF_ROGUE_KIDNEY_SHOT>())
+            if (SpellFamilyFlags & UI64LIT(0x00000200000))
                 return DIMINISHING_KIDNEYSHOT;
             // Blind
-            else if (IsFitToFamilyMask<CF_ROGUE_BLIND>())
+            else if (SpellFamilyFlags & UI64LIT(0x00001000000))
                 return DIMINISHING_NONE;
             break;
         }
         case SPELLFAMILY_HUNTER:
         {
             // Freezing trap
-            if (IsFitToFamilyMask<CF_HUNTER_FREEZING_TRAP_EFFECT>())
+            if (SpellFamilyFlags & UI64LIT(0x00000000008))
                 return DIMINISHING_FREEZE;
             break;
         }
         case SPELLFAMILY_WARLOCK:
         {
             // Fear
-            if (IsFitToFamilyMask<CF_WARLOCK_MISC_DEBUFFS>() && Mechanic == MECHANIC_FEAR)
+            if (SpellFamilyFlags & UI64LIT(0x0000000080000000) && Mechanic == MECHANIC_FEAR)
                 return DIMINISHING_WARLOCK_FEAR;
-            // Seduction
+            // Seduction de la succube
             if (Id == 6358)
                 return DIMINISHING_WARLOCK_FEAR;
             // Curses/etc
-            if (IsFitToFamilyMask<CF_WARLOCK_MISC_DEBUFFS>())
+            if (SpellFamilyFlags & UI64LIT(0x0000000080000000))
                 return DIMINISHING_LIMITONLY;
             break;
         }
         case SPELLFAMILY_WARRIOR:
         {
             // Hamstring - limit duration to 10s in PvP
-            if (IsFitToFamilyMask<CF_WARRIOR_HAMSTRING>())
+            if (SpellFamilyFlags & UI64LIT(0x00000000002))
                 return DIMINISHING_LIMITONLY;
             break;
         }
         case SPELLFAMILY_SHAMAN:
         {
-            // Frost Shock
-            if (IsFitToFamilyMask<CF_SHAMAN_FROST_SHOCK>())
+            // Horion de givre
+            if (SpellFamilyFlags & UI64LIT(0x80000000))
                 return DIMINISHING_CONTROL_ROOT;
             break;
         }

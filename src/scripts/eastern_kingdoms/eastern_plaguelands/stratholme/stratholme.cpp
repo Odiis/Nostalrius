@@ -186,13 +186,11 @@ struct mobs_spectral_ghostly_citizenAI : public ScriptedAI
     mobs_spectral_ghostly_citizenAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         Reset();
-        hasEvadedOnce = false;
     }
 
     uint32 Die_Timer;
     uint32 cast_Haunting;
     bool Tagged;
-    bool hasEvadedOnce;
 
     void Reset()
     {
@@ -251,13 +249,7 @@ struct mobs_spectral_ghostly_citizenAI : public ScriptedAI
         switch (emote)
         {
             case TEXTEMOTE_DANCE:
-                if (m_creature->isInCombat() && !hasEvadedOnce)
-                {
-                    EnterEvadeMode();
-                    hasEvadedOnce = true;
-                }
-                else
-                    m_creature->HandleEmoteCommand(EMOTE_STATE_DANCE);
+                m_creature->HandleEmoteCommand(EMOTE_STATE_DANCE);
                 break;
             case TEXTEMOTE_RUDE:
                 if (m_creature->IsWithinMeleeRange(pPlayer))
@@ -396,13 +388,13 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
         m_idRat = emote - 999;
 
         if (m_idRat > 0 && m_idRat <= 3)
-            m_creature->GetMap()->CreatureRelocation(m_creature, 3632.05f, -3327.71f, 123.7f, 0);
+            m_creature->GetMap()->CreatureRelocation(m_creature, 3632.05, -3327.71, 123.7, 0);
         else if (m_idRat > 3 && m_idRat <= 6)
-            m_creature->GetMap()->CreatureRelocation(m_creature, 3633.7f, -3345.3f, 126, 0);
+            m_creature->GetMap()->CreatureRelocation(m_creature, 3633.7, -3345.3, 126, 0);
         else if (m_idRat > 6 && m_idRat <= 8)
-            m_creature->GetMap()->CreatureRelocation(m_creature, 3616.1f, -3339.1f, 124.2f, 0);
+            m_creature->GetMap()->CreatureRelocation(m_creature, 3616.1, -3339.1, 124.2, 0);
         else if (m_idRat > 8 && m_idRat <= 10)
-            m_creature->GetMap()->CreatureRelocation(m_creature, 3617.6f, -3332.4f, 123.6f, 0);
+            m_creature->GetMap()->CreatureRelocation(m_creature, 3617.6, -3332.4, 123.6, 0);
     }
 
     void Deplacement(float x, float y, float z)
@@ -439,19 +431,19 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3631.9f, -3330, 123.7f);
+                            Deplacement(3631.9, -3330, 123.7);
                             break;
                         case 2:
-                            Deplacement(3629.8f, -3331.2f, 123.2f);
+                            Deplacement(3629.8, -3331.2, 123.2);
                             break;
                         case 3:
-                            Deplacement(3619.5f, -3332.9f, 123.5f);
+                            Deplacement(3619.5, -3332.9, 123.5);
                             break;
                         case 4:
-                            Deplacement(3617.3f, -3331.8f, 123.7f);
+                            Deplacement(3617.3, -3331.8, 123.7);
                             break;
                         case 5:
-                            Deplacement(3615.7f, -3329.3f, 123.8f);
+                            Deplacement(3615.7, -3329.3, 123.8);
                             break;
                         default:
                             m_idRat = 0;
@@ -463,16 +455,16 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3631.3f, -3330, 123.7f);
+                            Deplacement(3631.3, -3330, 123.7);
                             break;
                         case 2:
-                            Deplacement(3629.1f, -3331.8f, 123.1f);
+                            Deplacement(3629.1, -3331.8, 123.1);
                             break;
                         case 3:
-                            Deplacement(3619.5f, -3333.5f, 123.5f);
+                            Deplacement(3619.5, -3333.5, 123.5);
                             break;
                         case 4:
-                            Deplacement(2615.5f, -3331.5f, 123.8f);
+                            Deplacement(2615.5, -3331.5, 123.8);
                             break;
                         default:
                             m_idRat = 0;
@@ -484,13 +476,13 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3632.7f, -3330, 123.7f);
+                            Deplacement(3632.7, -3330, 123.7);
                             break;
                         case 2:
-                            Deplacement(3627.2f, -3333.5f, 123);
+                            Deplacement(3627.2, -3333.5, 123);
                             break;
                         case 3:
-                            Deplacement(3615.2f, -3333.5f, 123.8f);
+                            Deplacement(3615.2, -3333.5, 123.8);
                             break;
                         default:
                             m_idRat = 0;
@@ -502,13 +494,13 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3631.9f, -3341.5f, 123.8f);
+                            Deplacement(3631.9, -3341.5, 123.8);
                             break;
                         case 2:
-                            Deplacement(3623.2f, -3335.2f, 123.1f);
+                            Deplacement(3623.2, -3335.2, 123.1);
                             break;
                         case 3:
-                            Deplacement(3615.2f, -3335.2f, 123.8f);
+                            Deplacement(3615.2, -3335.2, 123.8);
                             break;
                         default:
                             m_idRat = 0;
@@ -520,13 +512,13 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3632.3f, -3341.5f, 123.8f);
+                            Deplacement(3632.3, -3341.5, 123.8);
                             break;
                         case 2:
-                            Deplacement(3625.1f, -3336.6f, 123.4f);
+                            Deplacement(3625.1, -3336.6, 123.4);
                             break;
                         case 3:
-                            Deplacement(3625.1f, -3336.6f, 124);
+                            Deplacement(3625.1, -3336.6, 124);
                             break;
                         default:
                             m_idRat = 0;
@@ -538,19 +530,19 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3632.7f, -3341.5f, 123.8f);
+                            Deplacement(3632.7, -3341.5, 123.8);
                             break;
                         case 2:
-                            Deplacement(3630.1f, -3340.1f, 124.3f);
+                            Deplacement(3630.1, -3340.1, 124.3);
                             break;
                         case 3:
-                            Deplacement(3619, -337.6f, 123.7f);
+                            Deplacement(3619, -337.6, 123.7);
                             break;
                         case 4:
-                            Deplacement(3616.8f, -3337.2f, 123.9f);
+                            Deplacement(3616.8, -3337.2, 123.9);
                             break;
                         case 5:
-                            Deplacement(3615.1f, -3338.1f, 124.2f);
+                            Deplacement(3615.1, -3338.1, 124.2);
                             break;
                         default:
                             m_idRat = 0;
@@ -562,7 +554,7 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3613, -3337.3f, 124.3f);
+                            Deplacement(3613, -3337.3, 124.3);
                             break;
                         default:
                             m_idRat = 0;
@@ -574,7 +566,7 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3613, -3335.2f, 124);
+                            Deplacement(3613, -3335.2, 124);
                             break;
                         default:
                             m_idRat = 0;
@@ -586,7 +578,7 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3613, -3333.7f, 123.9f);
+                            Deplacement(3613, -3333.7, 123.9);
                             break;
                         default:
                             m_idRat = 0;
@@ -598,7 +590,7 @@ struct AI_mobs_rat_pestifere : public ScriptedAI
                     switch (m_mvt_id)
                     {
                         case 1:
-                            Deplacement(3613, -3331.4f, 123.92f);
+                            Deplacement(3613, -3331.4, 123.92);
                             break;
                         default:
                             m_idRat = 0;
@@ -777,7 +769,6 @@ bool QuestComplete_npc_aurius(Player* pPlayer, Creature* pCreature, Quest const*
 ## EVENT POP MOBS FIN DE COULOIRS
 ######*/
 
-#define NPC_DATHROHAN 10812
 #define NPC_CRIMSON_GALLANT 10424
 #define NPC_BERSERK  10391
 #define NPC_GUARDIAN 10390
@@ -786,11 +777,9 @@ struct npc_couloir_trigger1AI : public ScriptedAI
 {
     npc_couloir_trigger1AI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;
     uint32 m_uiScourgeTimer;
     bool CorridorEnded;
     bool ScourgeStarted;
@@ -799,7 +788,7 @@ struct npc_couloir_trigger1AI : public ScriptedAI
     {
         CorridorEnded = false;
         ScourgeStarted = false;
-        m_uiScourgeTimer = urand(10*MINUTE*IN_MILLISECONDS, 20*MINUTE*IN_MILLISECONDS);
+        m_uiScourgeTimer = urand(600000, 1200000); // 10-20 mn urand(600000, 1200000);
     }
 
     void MoveInLineOfSight(Unit* who)
@@ -807,7 +796,7 @@ struct npc_couloir_trigger1AI : public ScriptedAI
         if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 5.0f) && !CorridorEnded)
         {
             if (Creature* Crea = m_creature->FindNearestCreature(10812, 200.0f))
-                Crea->MonsterYell("Don't let them break our lines!", 0);
+                Crea->MonsterYell("Don't let them break our lines !", 0);
 
             m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3516.3f, -3067.8f, 135.08f, 0.837758f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
             m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3512.3f, -3065.8f, 135.08f, 0.837758f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
@@ -830,19 +819,6 @@ struct npc_couloir_trigger1AI : public ScriptedAI
         {
             if (m_uiScourgeTimer < uiDiff)
             {
-                m_uiScourgeTimer = urand(10*MINUTE*IN_MILLISECONDS, 20*MINUTE*IN_MILLISECONDS);
-
-                if (Creature* Crea = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_DATHROHAN)))
-                {
-                    if (Crea->isAlive() && !Crea->isInCombat())
-                    {
-                        //"The scourge has broken into our bastion!"
-                        Crea->MonsterYellToZone(-20005);
-                    }
-                    else
-                        return;
-                }             
-
                 for (uint8 i = 0; i < 4; ++i)
                 {
                     switch (urand(0, 1))
@@ -850,15 +826,17 @@ struct npc_couloir_trigger1AI : public ScriptedAI
                         case 0:
                             m_creature->SummonCreature(NPC_BERSERK,
                                                        m_creature->GetPositionX() + float(urand(0, 5)), m_creature->GetPositionY() - float(urand(0, 5)), m_creature->GetPositionZ(), 0,
-                                                       TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, m_uiScourgeTimer);
+                                                       TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
                             break;
                         case 1:
                             m_creature->SummonCreature(NPC_GUARDIAN,
                                                        m_creature->GetPositionX() + float(urand(0, 5)), m_creature->GetPositionY() - float(urand(0, 5)), m_creature->GetPositionZ(), 0,
-                                                       TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, m_uiScourgeTimer);
+                                                       TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
                             break;
                     }
                 }
+                m_creature->MonsterYell("The scourge has broken into our bastion", 0);
+                m_uiScourgeTimer = urand(600000, 1200000); // 15 - 25 mn urand(1000000, 1600000);
             }
             else
                 m_uiScourgeTimer -= uiDiff;
@@ -890,7 +868,7 @@ struct npc_couloir_trigger2AI : public ScriptedAI
         if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 5.0f) && !CorridorEnded)
         {
             if (Creature* Crea = m_creature->FindNearestCreature(10812, 200.0f))
-                Crea->MonsterYell("Don't let them break our lines!", 0);
+                Crea->MonsterYell("Don't let them break our lines !", 0);
 
             m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3470.86f, -3073.86f, 135.088f, 0.907571f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
             m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3465.61f, -3065.72f, 135.084f, 0.20944f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
@@ -925,11 +903,11 @@ struct npc_couloir_trigger3AI : public ScriptedAI
         if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 5.0f) && !CorridorEnded)
         {
             if (Creature* Crea = m_creature->FindNearestCreature(10997, 200.0f))
-                Crea->MonsterYell("Don't let them break our lines!", 0);
+                Crea->MonsterYell("Don't let them break our lines !", 0);
 
-            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3569.11f, -2970.55f, 124.999f, 5.36522f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
-            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3577.11f, -2998.55f, 125.0011f, 5.36522f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
-            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3545.11f, -3018.55f, 124.999f, 5.36522f, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3569.11, -2970.55, 124.999, 5.36522, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3577.11, -2998.55, 125.0011, 5.36522, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_CRIMSON_GALLANT, 3545.11, -3018.55, 124.999, 5.36522, TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
 
             CorridorEnded = true;
         }
@@ -945,17 +923,15 @@ struct npc_Scourge_TriggerAI : public ScriptedAI
 {
     npc_Scourge_TriggerAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
         Reset();
     }
 
-    ScriptedInstance* m_pInstance;;
     uint32 m_uiScourgeTimer;
     bool ScourgeStarted;
 
     void Reset()
     {
-        m_uiScourgeTimer = urand(10*MINUTE*IN_MILLISECONDS, 20*MINUTE*IN_MILLISECONDS); // 15 - 30 mn urand(1000000, 1800000);
+        m_uiScourgeTimer = urand(600000, 1200000); // 10-20 mn urand(600000, 1200000);
         ScourgeStarted = false;
     }
 
@@ -976,19 +952,6 @@ struct npc_Scourge_TriggerAI : public ScriptedAI
         {
             if (m_uiScourgeTimer < uiDiff)
             {
-                m_uiScourgeTimer = urand(10*MINUTE*IN_MILLISECONDS, 20*MINUTE*IN_MILLISECONDS);
-
-                if (Creature* Crea = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_DATHROHAN)))
-                {
-                    if (Crea->isAlive() && !Crea->isInCombat())
-                    {
-                        //"The scourge has broken into our bastion!"
-                        Crea->MonsterYellToZone(-20005);
-                    }
-                    else
-                        return;
-                }                
-
                 for (uint8 i = 0; i < 4; ++i)
                 {
                     switch (urand(0, 1))
@@ -996,16 +959,17 @@ struct npc_Scourge_TriggerAI : public ScriptedAI
                         case 0:
                             m_creature->SummonCreature(NPC_BERSERK,
                                                        m_creature->GetPositionX() + float(urand(0, 5)), m_creature->GetPositionY() - float(urand(0, 5)), m_creature->GetPositionZ(), 0,
-                                                       TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, m_uiScourgeTimer);
+                                                       TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
                             break;
                         case 1:
                             m_creature->SummonCreature(NPC_GUARDIAN,
                                                        m_creature->GetPositionX() + float(urand(0, 5)), m_creature->GetPositionY() - float(urand(0, 5)), m_creature->GetPositionZ(), 0,
-                                                       TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, m_uiScourgeTimer);
+                                                       TEMPSUMMON_DEAD_DESPAWN, HOUR * IN_MILLISECONDS);
                             break;
                     }
                 }
-
+                m_creature->MonsterYell("The scourge has broken into our bastion", 0);
+                m_uiScourgeTimer = urand(600000, 1200000); // 15 - 30 mn urand(1000000, 1800000);
             }
             else
                 m_uiScourgeTimer -= uiDiff;
@@ -1081,9 +1045,9 @@ struct npc_piege_grille1AI : public ScriptedAI
     {
         if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 4.0f))
         {
-            if (GameObject* pGrille = m_creature->FindNearestGameObject(175355, 20.0f)) // GO_PORT_PIEGE_RAT1 cï¿½tï¿½ baron
+            if (GameObject* pGrille = m_creature->FindNearestGameObject(175355, 20.0f)) // GO_PORT_PIEGE_RAT1 côté baron
                 pGrille->UseDoorOrButton();
-            if (GameObject* pGrille = m_creature->FindNearestGameObject(175354, 20.0f)) // GO_PORT_PIEGE_RAT2 cï¿½tï¿½ baron
+            if (GameObject* pGrille = m_creature->FindNearestGameObject(175354, 20.0f)) // GO_PORT_PIEGE_RAT2 côté baron
                 pGrille->UseDoorOrButton();
 
             uint32 maxplagued = urand(8, 10);
@@ -1138,9 +1102,9 @@ struct npc_piege_grille2AI : public ScriptedAI
     {
         if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 3.0f))
         {
-            if (GameObject* pGrille = m_creature->FindNearestGameObject(175351, 20.0f)) // GO_PORT_PIEGE_RAT3 cï¿½tï¿½ ï¿½carlate
+            if (GameObject* pGrille = m_creature->FindNearestGameObject(175351, 20.0f)) // GO_PORT_PIEGE_RAT3 côté écarlate
                 pGrille->UseDoorOrButton();
-            if (GameObject* pGrille = m_creature->FindNearestGameObject(175350, 20.0f)) // GO_PORT_PIEGE_RAT4 cï¿½tï¿½ ï¿½carlate
+            if (GameObject* pGrille = m_creature->FindNearestGameObject(175350, 20.0f)) // GO_PORT_PIEGE_RAT4 côté écarlate
                 pGrille->UseDoorOrButton();
 
             uint32 maxplagued = urand(8, 10);

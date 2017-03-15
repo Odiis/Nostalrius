@@ -265,7 +265,7 @@ enum
     AURA_ACCES_PIERRE_SUP     = 24782,
 
     GOSSIP_STONE_FIRST_HELLO    = 69,
-    GOSSIP_STONE_FIRST_OPTION   = NOST_TEXT(220)
+    GOSSIP_STONE_FIRST_OPTION   = ELYSIUM_TEXT(220)
 };
 
 struct Silithus_WindStonesBossData
@@ -278,20 +278,20 @@ struct Silithus_WindStonesBossData
 };
 static Silithus_WindStonesBossData const windStonesBosses[] =
 {
-    {GO_TYPE_PIERRE_INF,    1,  15209,  20416, NOST_TEXT(223) },
-    {GO_TYPE_PIERRE_INF,    2,  15307,  20419, NOST_TEXT(224) },
-    {GO_TYPE_PIERRE_INF,    3,  15212,  20418, NOST_TEXT(225) },
-    {GO_TYPE_PIERRE_INF,    4,  15211,  20420, NOST_TEXT(226) },
+    {GO_TYPE_PIERRE_INF,    1,  15209,  20416, ELYSIUM_TEXT(223) },
+    {GO_TYPE_PIERRE_INF,    2,  15307,  20419, ELYSIUM_TEXT(224) },
+    {GO_TYPE_PIERRE_INF,    3,  15212,  20418, ELYSIUM_TEXT(225) },
+    {GO_TYPE_PIERRE_INF,    4,  15211,  20420, ELYSIUM_TEXT(226) },
 
-    {GO_TYPE_PIERRE_MOYENNE,1,  15206,  20432, NOST_TEXT(227) },
-    {GO_TYPE_PIERRE_MOYENNE,2,  15208,  20435, NOST_TEXT(228) },
-    {GO_TYPE_PIERRE_MOYENNE,3,  15220,  20433, NOST_TEXT(229) },
-    {GO_TYPE_PIERRE_MOYENNE,4,  15207,  20436, NOST_TEXT(230) },
+    {GO_TYPE_PIERRE_MOYENNE,1,  15206,  20432, ELYSIUM_TEXT(227) },
+    {GO_TYPE_PIERRE_MOYENNE,2,  15208,  20435, ELYSIUM_TEXT(228) },
+    {GO_TYPE_PIERRE_MOYENNE,3,  15220,  20433, ELYSIUM_TEXT(229) },
+    {GO_TYPE_PIERRE_MOYENNE,4,  15207,  20436, ELYSIUM_TEXT(230) },
 
-    {GO_TYPE_PIERRE_SUP,    1,  15203,  20447, NOST_TEXT(231) },
-    {GO_TYPE_PIERRE_SUP,    2,  15205,  20449, NOST_TEXT(232) },
-    {GO_TYPE_PIERRE_SUP,    3,  15204,  20448, NOST_TEXT(233) },
-    {GO_TYPE_PIERRE_SUP,    4,  15305,  20450, NOST_TEXT(234) },
+    {GO_TYPE_PIERRE_SUP,    1,  15203,  20447, ELYSIUM_TEXT(231) },
+    {GO_TYPE_PIERRE_SUP,    2,  15205,  20449, ELYSIUM_TEXT(232) },
+    {GO_TYPE_PIERRE_SUP,    3,  15204,  20448, ELYSIUM_TEXT(233) },
+    {GO_TYPE_PIERRE_SUP,    4,  15305,  20450, ELYSIUM_TEXT(234) },
 };
 
 struct go_pierre_ventsAI: public GameObjectAI
@@ -478,7 +478,7 @@ struct go_pierre_ventsAI: public GameObjectAI
             pInvoc->CastSpell(pInvoc, SPELL_APPARITION, true);
             pInvoc->SetLootRecipient(player); // Force tag for summoner
             if (textId)
-                pInvoc->MonsterSay(NOST_TEXT(textId));
+                pInvoc->MonsterSay(ELYSIUM_TEXT(textId));
         }
 
         ///- Mark stone as used.
@@ -512,9 +512,9 @@ bool GossipSelect_go_pierre_vents(Player* user, GameObject* gobj, uint32 sender,
  ## npc_cenarion_scout_azenel
  ###*/
 
-#define GOSSIP_ITEM_REPORT "Your report, please!"
+#define GOSSIP_ITEM_REPORT "Votre rapport s'il vous plait!"
 
-#define SAY_COMPLETE "Quickly, bring my report to Cenarion Hold!"
+#define SAY_COMPLETE "Apportez vite mon rapport à l'Imploratrice céleste Corne-fière!"
 
 #define SPELL_CREATE_HIVE_ZORA_SCOUT_REPORT    25843
 
@@ -539,323 +539,309 @@ bool GossipSelect_npc_cenarion_scout_azenel(Player* pPlayer, Creature* pCreature
     return true;
 }
 
+// Elysium - quete épique chasseur
+
 enum
 {
-    SPELL_FOOLS_PLIGHT              = 23504,
-    
-    SPELL_SOUL_FLAME                = 23272,
-    SPELL_DREADFUL_FRIGHT           = 23275,
-    SPELL_CREEPING_DOOM             = 23589,
-    SPELL_CRIPPLING_CLIP            = 23279,
+    DREADFUL_FRIGHT            = 23275,
+    CRIPPLING_CLIP            = 23279,
+    DESESPOIR_IDIOT            = 23503,
+    CREEPING_DOOM            = 23589,
+    FOOL_PLIGHT             = 23504,
 
-    EMOTE_IMMOBILIZED               = -1000650,
-    
-    SPELL_FROST_TRAP                = 13810,
-    
-    NPC_NELSON_THE_NICE             = 14536,
-    NPC_SOLENOR_THE_SLAYER          = 14530,
-    NPC_CREEPING_DOOM               = 14761,
-    NPC_THE_CLEANER                 = 14503,
-    
-    QUEST_STAVE_OF_THE_ANCIENTS     = 7636
+    HUNTER_QUEST_DESPAWN_TIMER    = 2400000, //Shall despawn after 40 minutes if turned into a demon
+    HUNTER_QUEST_COMBAT_TIMER     = 1200000, //Combat shall not last more than 20 minutes
+
+    NPC_CLEANER                = 14503,
+    NPC_SOLENOR                = 14530,
+    NPC_NELSON                = 14536,
+    NPC_CREEPING_DOOM        = 14761
 };
 
-#define GOSSIP_ITEM                 "Show me your real face, demon."
-
-/*#####
- ## npc_nelson_the_nice
- ######*/
-
-/*#####
- ## npc_solenor_the_slayer
- ######*/
-
-struct npc_solenorAI : public ScriptedAI
+struct mob_SolenorAI : public ScriptedAI
 {
-    npc_solenorAI(Creature* pCreature) : ScriptedAI(pCreature) 
-    { 
-        m_bTransform      = false;
-        m_uiDespawn_Timer = 0;
-        Reset(); 
-    }
-
-    uint32 m_uiTransform_Timer;
-    uint32 m_uiTransformEmote_Timer;
-    bool m_bTransform;
-
-    ObjectGuid m_hunterGuid;
-    uint32 m_uiDreadfulFright_Timer;
-    uint32 m_uiCreepingDoom_Timer;
-    uint32 m_uiCastSoulFlame_Timer;
-    uint32 m_uiDespawn_Timer;
-
-    void Reset()
+    mob_SolenorAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        switch (m_creature->GetEntry())
-        {
-            case NPC_NELSON_THE_NICE:
-                m_creature->SetRespawnDelay(35*MINUTE);
-                m_creature->SetRespawnTime(35*MINUTE);
-                m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-                m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
-                {
-                    m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
-                    m_creature->GetMotionMaster()->Initialize();
-                }
+        EventBegin = false;
+        EventEnd = true;
+        BoredOrInterfere = false;
+        CombatTimer = 10000;
 
-                m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-                m_uiTransform_Timer      = 10000;
-                m_uiTransformEmote_Timer = 5000;
-                m_bTransform             = false;
-                m_uiDespawn_Timer        = 0;
-                m_uiCastSoulFlame_Timer  = 0;
-                break;
-            case NPC_SOLENOR_THE_SLAYER:
-                if (!m_uiDespawn_Timer)
-                {
-                    m_uiDespawn_Timer = 20*MINUTE*IN_MILLISECONDS; 
-                    m_uiCastSoulFlame_Timer  = 150;
-                    m_creature->AddAura(SPELL_SOUL_FLAME); // apply on spawn in case of instant Freezing Trap
-                }
-
-                m_hunterGuid.Clear();
-                m_uiDreadfulFright_Timer = urand(10000, 15000);
-                m_uiCreepingDoom_Timer   = urand(3000, 6000);
-                break;
-        }
-    }
-
-    /** Nelson the Nice */
-    void Transform()
-    {
-        m_creature->UpdateEntry(NPC_SOLENOR_THE_SLAYER);
-        m_creature->SetHomePosition(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation());
-        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+        m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
+        m_creature->SaveToDB();
+        m_creature->SetDeathState(JUST_DIED);
+        m_creature->Respawn();
+        m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         m_creature->GetMotionMaster()->Initialize();
+
+        _combatDespawnTimer = HUNTER_QUEST_COMBAT_TIMER;
+        _despawnTimer       = HUNTER_QUEST_DESPAWN_TIMER;
+
         Reset();
     }
 
-    void BeginEvent(ObjectGuid playerGuid)
+    bool EventBegin;
+    bool EventEnd;
+    bool BoredOrInterfere;
+    uint32 CombatTimer;
+    uint32 DespawnTimer;
+    uint32 CreepingDoomTimer;
+    uint32 DreadfulFrightTimer;
+    uint64 PlayerGuid;
+    uint32 CheckBug_Timer;
+    uint32 CleanerTimer;
+    uint32 _despawnTimer;
+    uint32 _combatDespawnTimer;
+    bool   isEngaged; 
+
+    void Reset()
     {
-        m_hunterGuid = playerGuid;
-        m_creature->GetMotionMaster()->Clear(false);
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
-        m_bTransform = true;
+    	isEngaged = false;
+
+        //EventBegin = false;
+        CreepingDoomTimer = 15000;
+        DreadfulFrightTimer = 5000;
+        CheckBug_Timer = 0;
+        CleanerTimer = 0;
+        PlayerGuid = 0;
+
+        if (BoredOrInterfere || EventEnd)
+        {
+            EventBegin = false;
+            EventEnd = false;
+            BoredOrInterfere = false;
+            CombatTimer = 10000;
+            m_creature->SetEntry(NPC_NELSON);
+            m_creature->UpdateEntry(NPC_NELSON);
+            m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
+            m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveWaypoint();
+            //m_creature->GetMotionMaster()->Initialize();
+            m_creature->SaveToDB();
+             _despawnTimer     = HUNTER_QUEST_DESPAWN_TIMER;
+        }
+        else if (EventBegin)
+        {
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveIdle();
+            //m_creature->GetMotionMaster()->Initialize();
+
+             if (_despawnTimer < 1000)
+             {
+                 m_creature->SetRespawnDelay(10000);
+                 m_creature->DisappearAndDie();
+                 EventEnd = true;
+             }
+        }
     }
 
-    /** Solenor the Slayer */
     void Aggro(Unit* pWho)
     {
-        if (pWho->getClass() == CLASS_HUNTER && (m_hunterGuid.IsEmpty() || m_hunterGuid == pWho->GetObjectGuid())/*&& pWho->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE*/)
+         /** Combat shall not last more than 20 minutes */
+         if(!isEngaged)
+         {
+             isEngaged     = true;
+             _combatDespawnTimer = HUNTER_QUEST_DESPAWN_TIMER;
+         }
+    }
+
+    void JustDied(Unit* pKiller)
+    {
+        //m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.06f, 4.69f);
+        //m_creature->SaveToDB();
+        if (!BoredOrInterfere)
+            EventEnd = true;
+    }
+
+    void JustReachedHome()
+    {
+    }
+
+    void JustSummoned(Creature *pSummoned)
+    {
+        if (pSummoned->GetEntry() == NPC_CREEPING_DOOM)
         {
-            m_hunterGuid = pWho->GetObjectGuid();
+            pSummoned->SetHealth(70);
+            pSummoned->SetMaxHealth(70);
+            pSummoned->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, 200.0f);
+            pSummoned->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, 250.0f);
+
+            if (Player* pPlayer = m_creature->GetMap()->GetPlayer(PlayerGuid))
+                pSummoned->AddThreat(pPlayer);
         }
-        else
-            DemonDespawn();
-    }
-    
-    void EnterEvadeMode() override
-    {
-        m_creature->RemoveGuardians();
-        
-        ScriptedAI::EnterEvadeMode();
-    }
-
-    void JustSummoned(Creature* pSummoned) override
-    {
-        if (m_creature->getVictim())
-            pSummoned->AI()->AttackStart(m_creature->getVictim());
-    }
-    
-    void JustDied(Unit* /*pKiller*/)
-    {
-        m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-        // DRSS
-        uint32 m_respawn_delay_Timer = 3*HOUR;
-        if (sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
-            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
-
-        m_creature->SetRespawnDelay(m_respawn_delay_Timer);
-        m_creature->SetRespawnTime(m_respawn_delay_Timer);
-        m_creature->SaveRespawnTime();
-    }
-
-    void DemonDespawn(bool triggered = true)
-    {
-        m_creature->RemoveGuardians();
-        m_creature->SetHomePosition(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-        m_creature->SetRespawnDelay(15*MINUTE);
-        m_creature->SetRespawnTime(15*MINUTE);
-        m_creature->SaveRespawnTime();
-
-        if (triggered)
-        {
-            Creature* pCleaner = m_creature->SummonCreature(NPC_THE_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetAngle(m_creature), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 20*MINUTE*IN_MILLISECONDS);
-            if (pCleaner)
-            {
-                ThreatList const& tList = m_creature->getThreatManager().getThreatList();
-                
-                for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
-                {
-                    if (Unit* pUnit = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
-                    {
-                        if (pUnit->isAlive())
-                        {
-                            pCleaner->SetInCombatWith(pUnit);
-                            pCleaner->AddThreat(pUnit);
-                            pCleaner->AI()->AttackStart(pUnit);
-                        }
-                    }
-                }
-            }
-        }
-        
-        m_creature->ForcedDespawn();
     }
 
     void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
     {
-       
-        if (pSpell && pSpell->Id == 14268)   // Wing Clip (Rank 3)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_CRIPPLING_CLIP, CAST_TRIGGERED) == CAST_OK)
-                DoScriptText(EMOTE_IMMOBILIZED, m_creature);
-        }
+        if (pSpell->Id == 14268) // Coupure d'aile rang 3
+            m_creature->CastSpell(m_creature, CRIPPLING_CLIP, true);
+    }
+
+    void DamageTaken(Unit *done_by, uint32 &damage)
+    {
+        if (EventBegin == false)
+            m_creature->CastSpell(done_by, DESESPOIR_IDIOT, true);
     }
 
     void UpdateAI(const uint32 uiDiff)
     {
-        /** Nelson the Nice */
-        if (m_bTransform) 
-        {
-            if (m_uiTransformEmote_Timer)
-            {
-                if (m_uiTransformEmote_Timer <= uiDiff)
-                {
-                    m_creature->HandleEmote(EMOTE_ONESHOT_LAUGH);
-                    m_uiTransformEmote_Timer = 0;
-                }
-                else
-                    m_uiTransformEmote_Timer -= uiDiff;
-            }
-
-            if (m_uiTransform_Timer < uiDiff)
-            {
-                m_bTransform = false;
-                Transform();
-            } 
-            else
-                m_uiTransform_Timer -= uiDiff;
-        }
-
-        /** Solenor the Slayer */
-        if (m_uiDespawn_Timer)
-        {
-            if (m_uiDespawn_Timer <= uiDiff)
-            {
-                if (m_creature->isAlive() && !m_creature->isInCombat())
-                    DemonDespawn(false);
-            }
-            else
-                m_uiDespawn_Timer -= uiDiff;
-        }
-        
-        if (m_uiCastSoulFlame_Timer)
-        {
-            if (m_uiCastSoulFlame_Timer <= uiDiff)
-            {
-                // delay this cast so spell animation is visible to the player
-                m_creature->CastSpell(m_creature, SPELL_SOUL_FLAME, false);
-                m_uiCastSoulFlame_Timer = 0;
-            }
-            else
-                m_uiCastSoulFlame_Timer -= uiDiff;
-        }
-    
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        if (EventBegin == false)
             return;
-        
-        if (m_creature->HasAura(SPELL_SOUL_FLAME) && m_creature->HasAura(SPELL_FROST_TRAP))
-                m_creature->RemoveAurasDueToSpell(SPELL_SOUL_FLAME);
-    
-        if (m_creature->getThreatManager().getThreatList().size() > 1 /*|| pHunter->isDead()*/)
-            DemonDespawn();
+         else
+         {
+             if (_despawnTimer <= uiDiff)
+             {
+                 if(!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+                 {
+                     m_creature->SetRespawnDelay(10000);
+                     m_creature->DisappearAndDie();
+                     EventEnd = true;
+                 }
+            }
+             else
+                 _despawnTimer -= uiDiff;
+          }
 
-        if (m_uiCreepingDoom_Timer < uiDiff) 
+        if (CombatTimer <= uiDiff && CombatTimer != 0)
         {
-            DoCastSpellIfCan(m_creature, SPELL_CREEPING_DOOM);
-            m_uiCreepingDoom_Timer = 15000;
-        }
-        else 
-            m_uiCreepingDoom_Timer -= uiDiff;
-
-        if (m_uiDreadfulFright_Timer < uiDiff)
-        {
-            if (Unit* pUnit = m_creature->getVictim())
+            if (Player* pPlayer = m_creature->GetMap()->GetPlayer(PlayerGuid))
             {
-                if (m_creature->GetDistance2d(pUnit) > 5.0f)
+                CombatTimer = 0;
+                m_creature->SetEntry(NPC_SOLENOR);
+                m_creature->UpdateEntry(NPC_SOLENOR);
+                //m_creature->AddThreat(pPlayer);
+            }
+            else
+            {
+                m_creature->MonsterYell("Joueur introuvable, reset.", 0);
+                Reset();
+            }
+        }
+        else if (CombatTimer != 0)
+        {
+            CombatTimer -= uiDiff;
+            return;
+        }
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            if (m_creature->GetHealthPercent() < 100.0f)
+            {
+                // En cas de bug pathfinding
+                CheckBug_Timer += uiDiff;
+                if (CheckBug_Timer > 5000)
                 {
-                    if (DoCastSpellIfCan(pUnit, SPELL_DREADFUL_FRIGHT) == CAST_OK)
-                        m_uiDreadfulFright_Timer = urand(15000, 20000);
+                    EnterEvadeMode();
+                    m_creature->CombatStop();
+                    m_creature->SetHealth(m_creature->GetMaxHealth());
                 }
             }
+            return;
         }
         else
-            m_uiDreadfulFright_Timer -= uiDiff;
+            CheckBug_Timer = 0;
+
+          /** If combat last for too long, force creature respawn */
+          if (_combatDespawnTimer < uiDiff)
+          {
+              if (isEngaged)
+              {
+                  BoredOrInterfere = true;
+                  m_creature->SetRespawnDelay(10000);
+                  m_creature->DisappearAndDie();
+              }
+          }
+          else
+              _combatDespawnTimer -= uiDiff;
+
+
+        if (m_creature->getThreatManager().getThreatList().size() > 1 && !m_creature->FindNearestCreature(NPC_CLEANER, 150.0f))
+        {
+            if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
+            {
+                Crea->AddThreatsOf(m_creature);
+                Crea->MonsterYell(ELYSIUM_TEXT(206), 0);
+
+                m_creature->MonsterSay(ELYSIUM_TEXT(207), 0);
+                m_creature->CastSpellOnNearestVictim(FOOL_PLIGHT, 0.0f, 20.0f, false);
+                BoredOrInterfere = true;
+            }
+        }
+
+        if (Creature* Crea = m_creature->FindNearestCreature(NPC_CLEANER, 50.0f))
+        {
+            CleanerTimer += uiDiff;
+            if (CleanerTimer > 2000)
+                m_creature->DisappearAndDie();
+            return;
+        }
+        else
+            CleanerTimer = 0;
+
+        if (CreepingDoomTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, CREEPING_DOOM) == CAST_OK)
+                CreepingDoomTimer = urand(11000, 12000);
+        }
+        else
+            CreepingDoomTimer -= uiDiff;
+
+        if (m_creature->HasAura(CRIPPLING_CLIP))
+        {
+            if (DreadfulFrightTimer < uiDiff)
+            {
+                if (DoCastSpellIfCan(m_creature->getVictim(), DREADFUL_FRIGHT) == CAST_OK)
+                    DreadfulFrightTimer = urand(10000, 15000);
+            }
+            else DreadfulFrightTimer -= uiDiff;
+        }
 
         DoMeleeAttackIfReady();
     }
 };
 
-bool GossipHello_npc_solenor(Player* pPlayer, Creature* pCreature)
+bool GossipHello_mob_Solenor(Player* pPlayer, Creature* pCreature)
 {
-    if (pPlayer->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE)
-        pPlayer->ADD_GOSSIP_ITEM(0, GOSSIP_ITEM , GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+    if (pPlayer->GetQuestStatus(7636) == QUEST_STATUS_INCOMPLETE && pPlayer->getClass() == CLASS_HUNTER)
+        pPlayer->ADD_GOSSIP_ITEM(0, ELYSIUM_TEXT(211), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
 
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetObjectGuid());
+    pPlayer->SEND_GOSSIP_MENU(7044, pCreature->GetObjectGuid());
     return true;
 }
 
-bool GossipSelect_npc_solenor(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction )
+bool GossipSelect_mob_Solenor(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action)
 {
-    pPlayer->CLOSE_GOSSIP_MENU();
-    ((npc_solenorAI*)pCreature->AI())->BeginEvent(pPlayer->GetObjectGuid());
-    return true;
-}
+    if (sender != GOSSIP_SENDER_MAIN)
+        return false;
 
-CreatureAI* GetAI_npc_solenor(Creature* pCreature)
-{
-    return new npc_solenorAI(pCreature);
-}
-
-/*#####
- ## npc_creeping_doom
- ######*/
-
-struct npc_creeping_doomAI : public ScriptedAI
-{
-    npc_creeping_doomAI(Creature* pCreature) : ScriptedAI(pCreature) { Reset(); }
-
-    void Reset() {};
-    
-    void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) override
+    switch (action)
     {
-        Unit* pOwner = m_creature->GetCharmerOrOwner();
-        if (pDoneBy && pOwner)
+        case GOSSIP_ACTION_INFO_DEF:
         {
-            pOwner->AddThreat(pDoneBy);
-            pOwner->SetInCombatWith(pDoneBy);
+            if (mob_SolenorAI* pSolenorEventAI = dynamic_cast<mob_SolenorAI*>(pCreature->AI()))
+            {
+                pSolenorEventAI->EventBegin = true;
+                pSolenorEventAI->PlayerGuid = pPlayer->GetGUID();
+                pCreature->MonsterSay(ELYSIUM_TEXT(212), 0, 0);
+                pCreature->SetHomePosition(pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation());
+                pCreature->GetMotionMaster()->Clear(false);
+                pCreature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+                pCreature->GetMotionMaster()->MoveIdle();
+                pCreature->SaveToDB();
+            }
+            pPlayer->CLOSE_GOSSIP_MENU();
         }
-        ScriptedAI::DamageTaken(pDoneBy, uiDamage);
+        break;
     }
-};
+    return true;
+}
 
-CreatureAI* GetAI_npc_creeping_doom(Creature* pCreature)
+CreatureAI* GetAI_mob_Solenor(Creature* pCreature)
 {
-    return new npc_creeping_doomAI(pCreature);
+    return new mob_SolenorAI(pCreature);
 }
 
 /*#####
@@ -928,7 +914,7 @@ struct npc_prince_thunderaanAI : public ScriptedAI
         if (m_uiTearsTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_TEARS_OF_THE_WIND_SEEKER) == CAST_OK)
-                m_uiTearsTimer = urand(8000, 11000);
+                m_uiTearsTimer = urand(10000, 15000);
         }
         else
             m_uiTearsTimer -= uiDiff;
@@ -980,10 +966,10 @@ struct npc_colossusAI : public ScriptedAI
 
     void EnterEvadeMode()
     {
-        // Ustaag <Nostalrius> : Must neither resume life if Evade, nor return to its starting point
+        // Ustaag <Elysium> : ne doit ni reprendre de vie si Evade, ni revenir à son point de départ
         m_creature->RemoveAllAuras();
         m_creature->DeleteThreatList();
-        // To avoid jerky movements after aggro end
+        // Pour éviter les mouvements de saccade après fin d'aggro
         m_creature->GetMotionMaster()->MoveIdle();
     }
 
@@ -1155,7 +1141,7 @@ enum WarEffortItemType
 struct WarEffort
 {
     uint32 itemID, reqCount;
-    uint32 saveVarID;           // = itemID / This variable is left in case the ID of the item is not an appropriate choice.
+    uint32 saveVarID;           // = itemID / On laisse cette variable dans le cas où l'ID de l'item ne serait pas un choix adéquat.
     char itemName[50];
     WarEffortItemType type;
 };
@@ -1267,7 +1253,7 @@ bool GossipHello_npc_AQwar_effort(Player* pPlayer, Creature* pCreature)
             break;
     }
 
-    pPlayer->SEND_GOSSIP_MENU(1, pCreature->GetObjectGuid()); // Text to put here the state of the resources
+    pPlayer->SEND_GOSSIP_MENU(1, pCreature->GetObjectGuid()); // texte à mettre voici l'état des récoltes
     return true;
 }
 
@@ -1731,7 +1717,7 @@ struct npc_Geologist_LarksbaneAI : public ScriptedAI
             case 1:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(77));
+                m_creature->MonsterSay(ELYSIUM_TEXT(77));
                 uiNextActionTimer = 4000;
                 break;
             }
@@ -1748,166 +1734,166 @@ struct npc_Geologist_LarksbaneAI : public ScriptedAI
             case 3:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(78));
+                m_creature->MonsterSay(ELYSIUM_TEXT(78));
                 uiNextActionTimer = 7000;
                 break;
             }
             case 4:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(79));
+                m_creature->MonsterSay(ELYSIUM_TEXT(79));
                 uiNextActionTimer = 11000;
                 break;
             }
             case 5:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(80));
+                m_creature->MonsterSay(ELYSIUM_TEXT(80));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 6:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(81));
+                m_creature->MonsterSay(ELYSIUM_TEXT(81));
                 uiNextActionTimer = 11000;
                 break;
             }
             case 7:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(82));
+                m_creature->MonsterSay(ELYSIUM_TEXT(82));
                 uiNextActionTimer = 11000;
                 break;
             }
             case 8:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_EXCLAMATION);
-                m_creature->MonsterSay(NOST_TEXT(83));
+                m_creature->MonsterSay(ELYSIUM_TEXT(83));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 9:
             {
-                m_creature->MonsterTextEmote(NOST_TEXT(84), NULL, false);
+                m_creature->MonsterTextEmote(ELYSIUM_TEXT(84), NULL, false);
                 uiNextActionTimer = 3000;
                 break;
             }
             case 10:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(85));
+                m_creature->MonsterSay(ELYSIUM_TEXT(85));
                 uiNextActionTimer = 4000;
                 break;
             }
             case 11:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(86));
+                m_creature->MonsterSay(ELYSIUM_TEXT(86));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 12:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_EXCLAMATION);
-                m_creature->MonsterSay(NOST_TEXT(87));
+                m_creature->MonsterSay(ELYSIUM_TEXT(87));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 13:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(88));
+                m_creature->MonsterSay(ELYSIUM_TEXT(88));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 14:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(89));
+                m_creature->MonsterSay(ELYSIUM_TEXT(89));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 15:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(90));
+                m_creature->MonsterSay(ELYSIUM_TEXT(90));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 16:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(91));
+                m_creature->MonsterSay(ELYSIUM_TEXT(91));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 17:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(92));
+                m_creature->MonsterSay(ELYSIUM_TEXT(92));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 18:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(93));
+                m_creature->MonsterSay(ELYSIUM_TEXT(93));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 19:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(94));
+                m_creature->MonsterSay(ELYSIUM_TEXT(94));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 20:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(95));
+                m_creature->MonsterSay(ELYSIUM_TEXT(95));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 21:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(96));
+                m_creature->MonsterSay(ELYSIUM_TEXT(96));
                 uiNextActionTimer = 3000;
                 break;
             }
             case 22:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(97));
+                m_creature->MonsterSay(ELYSIUM_TEXT(97));
                 uiNextActionTimer = 12000;
                 break;
             }
             case 23:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(98));
+                m_creature->MonsterSay(ELYSIUM_TEXT(98));
                 uiNextActionTimer = 9000;
                 break;
             }
             case 24:
             {
                 m_creature->HandleEmote(EMOTE_ONESHOT_TALK);
-                m_creature->MonsterSay(NOST_TEXT(99));
+                m_creature->MonsterSay(ELYSIUM_TEXT(99));
                 uiNextActionTimer = 3000;
                 break;
             }
             case 25:
             {
-                m_creature->MonsterTextEmote(NOST_TEXT(100), NULL, false);
+                m_creature->MonsterTextEmote(ELYSIUM_TEXT(100), NULL, false);
                 uiNextActionTimer = 4000;
                 break;
             }
             case 26:
             {
                 if (Creature* Crea = m_creature->FindNearestCreature(15180, 50.0f))    // Baristolth of the Shifting Sands
-                    m_creature->MonsterSay(NOST_TEXT(101));
+                    m_creature->MonsterSay(ELYSIUM_TEXT(101));
                 uiNextActionTimer = 5000;
                 break;
             }
@@ -1939,7 +1925,7 @@ struct npc_Geologist_LarksbaneAI : public ScriptedAI
         ++uiCurrAction;
     }
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (uiCurrAction)
         {
@@ -2070,7 +2056,7 @@ struct npc_Emissary_RomankhanAI : public ScriptedAI
         }
     }
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
@@ -2133,7 +2119,7 @@ struct npc_Emissary_RomankhanAI : public ScriptedAI
                     pTarget->SetInCombatWith(m_creature);
                     if (pTarget->isDead())
                     {
-                        // + 2% MP at each death
+                        // + 2% MP à chaque mort
                         float currMana = m_creature->GetPower(POWER_MANA);
                         float MaxMana = m_creature->GetMaxPower(POWER_MANA);
                         m_creature->SetPower(POWER_MANA, (currMana + MaxMana * 0.02f) < MaxMana ? (currMana + MaxMana * 0.02f) : MaxMana);
@@ -2874,8 +2860,8 @@ bool QuestAcceptGO_crystalline_tear(Player* pPlayer, GameObject* pGo, const Ques
  ## npc_Krug_SkullSplit ##
  ########################*/
 
-#define GOSSIP_ITEM_KRUG_SKULLSPLIT_1 "Continue."
-#define GOSSIP_ITEM_KRUG_SKULLSPLIT_2 "Very well, let's go!"
+#define GOSSIP_ITEM_KRUG_SKULLSPLIT_1 "Continuez"
+#define GOSSIP_ITEM_KRUG_SKULLSPLIT_2 "Fort bien, c'est parti !"
 
 /* Hunterkiller */
 #define HUNTERKILLER_SPAWN_POS_X -7765.0f
@@ -3075,7 +3061,7 @@ typedef enum
 
 struct npc_Krug_SkullSplitAI : public ScriptedAI
 {
-    /* Written by Ivina & Malkins < Nostalrius > */
+    /* Written by Ivina & Malkins < Elysium > */
     npc_Krug_SkullSplitAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         Reset();
@@ -3291,7 +3277,7 @@ struct npc_Krug_SkullSplitAI : public ScriptedAI
                 std::list<Creature*> gruntList;
                 m_creature->GetCreatureListWithEntryInGrid(gruntList, NPC_ORGRIMMAR_LEGION_GRUNT, 100.0f);
 
-                if (!gruntList.empty())
+                if (!gruntList.empty()) /* Vérifie que la liste n'est pas vide */
                 {
                     for (std::list<Creature*>::iterator itr = gruntList.begin(); itr != gruntList.end(); ++itr)
                     {
@@ -3504,7 +3490,7 @@ CreatureAI* GetAI_npc_Shai(Creature* pCreature)
 
 
 //=====================------------------------------------
-//Alita <Nostalrius>
+//Alita <Elysium>
 // PNJ tp AQ20, AQ40.
 //====================
 enum
@@ -3526,7 +3512,7 @@ bool GossipSelect_npc_chris_starlightshadow(Player* pPlayer, Creature* pCreature
     if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
     {
         pPlayer->CLOSE_GOSSIP_MENU();
-        if (pPlayer->TeleportTo(509, -8429.74f, 1512.14f, 31.9074f, 2.56f))
+        if (pPlayer->TeleportTo(509, -8429.74, 1512.14, 31.9074, 2.56))
             if (!pPlayer->isAlive())
             {
                 pPlayer->ResurrectPlayer(0.5f, false);
@@ -3536,7 +3522,7 @@ bool GossipSelect_npc_chris_starlightshadow(Player* pPlayer, Creature* pCreature
     else if (uiAction == GOSSIP_ACTION_INFO_DEF + 2)
     {
         pPlayer->CLOSE_GOSSIP_MENU();
-        if (pPlayer->TeleportTo(531, -8231.330078f, 2010.6f, 129.33051f, 0.95f))
+        if (pPlayer->TeleportTo(531, -8231.330078, 2010.6, 129.33051, 0.95))
             if (!pPlayer->isAlive())
             {
                 pPlayer->ResurrectPlayer(0.5f, false);
@@ -3547,7 +3533,7 @@ bool GossipSelect_npc_chris_starlightshadow(Player* pPlayer, Creature* pCreature
     return true;
 }
 
-/** EVENT NOSTALRIUS VAM ,SAND PRINCE */
+/** EVENT ELYSIUM VAM ,SAND PRINCE */
 
 enum
 {
@@ -3664,8 +3650,15 @@ void AddSC_silithus()
 
 
     /*########################
-    ##      Nostalrius      ##
+    ##      Elysium      ##
     ########################*/
+
+    pNewScript = new Script;
+    pNewScript->Name = "mob_Solenor";
+    pNewScript->GetAI = &GetAI_mob_Solenor;
+    pNewScript->pGossipHello = &GossipHello_mob_Solenor;
+    pNewScript->pGossipSelect = &GossipSelect_mob_Solenor;
+    pNewScript->RegisterSelf();
 
     pNewScript = new Script;
     pNewScript->Name = "npc_prince_thunderaan";
@@ -3738,13 +3731,13 @@ void AddSC_silithus()
     pNewScript->RegisterSelf();
     //------------
 
-    /** Event Nostalrius */
+    /** Event Elysium */
     pNewScript = new Script;
     pNewScript->Name = "npc_boss_vam";
     pNewScript->GetAI = &GetAI_boss_vamAI;
     pNewScript->RegisterSelf();
 
-    // End Nostalrius
+    // End Elysium
 
     pNewScript = new Script;
     pNewScript->Name = "npc_anachronos_the_ancient";
@@ -3754,17 +3747,5 @@ void AddSC_silithus()
     pNewScript = new Script;
     pNewScript->Name = "go_crystalline_tear";
     pNewScript->pGOQuestAccept = &QuestAcceptGO_crystalline_tear;
-    pNewScript->RegisterSelf();
-
-    pNewScript = new Script;
-    pNewScript->Name = "npc_solenor"; // npc_solenor_the_slayer
-    pNewScript->GetAI = &GetAI_npc_solenor;
-    pNewScript->pGossipHello =  &GossipHello_npc_solenor;
-    pNewScript->pGossipSelect = &GossipSelect_npc_solenor;
-    pNewScript->RegisterSelf();
-
-    pNewScript = new Script;
-    pNewScript->Name = "npc_creeping_doom";
-    pNewScript->GetAI = &GetAI_npc_creeping_doom;
     pNewScript->RegisterSelf();
 }

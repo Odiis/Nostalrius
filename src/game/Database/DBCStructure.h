@@ -24,7 +24,6 @@
 #include "DBCEnums.h"
 #include "Path.h"
 #include "Platform/Define.h"
-#include "SpellClassMask.h"
 
 #include <map>
 #include <set>
@@ -38,6 +37,26 @@
 #else
 #pragma pack(push,1)
 #endif
+
+struct AreaTableEntry
+{
+    uint32  ID;                                             // 0        m_ID
+    uint32  mapid;                                          // 1        m_ContinentID
+    uint32  zone;                                           // 2        m_ParentAreaID
+    uint32  exploreFlag;                                    // 3        m_AreaBit
+    uint32  flags;                                          // 4        m_flags
+    // 5        m_SoundProviderPref
+    // 6        m_SoundProviderPrefUnderwater
+    // 7        m_AmbienceID
+    // 8        m_ZoneMusic
+    // 9        m_IntroSound
+    int32   area_level;                                     // 10       m_ExplorationLevel
+    char*     area_name[8];                                 // 11-18    m_AreaName_lang
+                                                            // 19 string flags
+    uint32  team;                                           // 20       m_factionGroupMask
+    // 21-23 unk / unused
+    uint32 LiquidTypeOverride;                              // 24
+};
 
 struct AreaTriggerEntry
 {
@@ -410,6 +429,45 @@ struct MailTemplateEntry
                                                             // 9 string flags
 };
 
+struct MapEntry
+{
+    uint32  MapID;                                          // 0        m_ID
+    //char*       internalname;                             // 1        m_Directory
+    uint32  map_type;                                       // 2        m_InstanceType
+    //uint32 isPvP;                                         // 3        m_PVP 0 or 1 for battlegrounds (not arenas)
+    char*   name[8];                                        // 4-11     m_MapName_lang
+                                                            // 12 string flags
+                                                            // 13-15 unused (something PvPZone related - levels?)
+                                                            // 16-18
+    uint32  linked_zone;                                    // 19       m_areaTableID
+    //char*     hordeIntro[8];                              // 20-27    m_MapDescription0_lang
+                                                            // 28 string flags
+    //char*     allianceIntro[8];                           // 29-36    m_MapDescription1_lang
+                                                            // 37 string flags
+    uint32  multimap_id;                                    // 38       m_LoadingScreenID (LoadingScreens.dbc)
+                                                            // 39-40 not used
+    //float   BattlefieldMapIconScale;                      // 41       m_minimapIconScale
+
+    // Helpers
+
+    bool IsDungeon() const { return map_type == MAP_INSTANCE || map_type == MAP_RAID; }
+    bool IsNonRaidDungeon() const { return map_type == MAP_INSTANCE; }
+    bool Instanceable() const { return map_type == MAP_INSTANCE || map_type == MAP_RAID || map_type == MAP_BATTLEGROUND; }
+    bool IsRaid() const { return map_type == MAP_RAID; }
+    bool IsBattleGround() const { return map_type == MAP_BATTLEGROUND; }
+
+    bool IsMountAllowed() const
+    {
+        return !IsDungeon() ||
+            MapID==309 || MapID==209 || MapID==509 || MapID==269;
+    }
+
+    bool IsContinent() const
+    {
+        return MapID == 0 || MapID == 1;
+    }
+};
+
 struct QuestSortEntry
 {
     uint32      id;                                         // 0        m_ID
@@ -495,112 +553,33 @@ struct ClassFamilyMask
 
     ClassFamilyMask() : Flags(0) {}
     explicit ClassFamilyMask(uint64 familyFlags) : Flags(familyFlags) {}
-    ClassFamilyMask(uint32 f0, uint32 f1) : Flags(uint64(f0) | (uint64(f1) << 32)) {}
-
-    static ClassFamilyMask const Null;
 
     bool Empty() const { return Flags == 0; }
     bool operator! () const { return Empty(); }
-    operator void const* () const { return Empty() ? nullptr : this; }
+    operator void const* () const { return Empty() ? NULL : this; }// for allow normal use in if(mask)
+    // Elysium
+    bool operator == (uint32 otherFlags) const { return Flags == otherFlags; }
 
-    bool IsFitToFamilyMask(uint64 familyFlags) const { return !!(Flags & familyFlags); }
-    bool IsFitToFamilyMask(ClassFamilyMask const& mask) const { return !!(Flags & mask.Flags); }
+    bool IsFitToFamilyMask(uint64 familyFlags) const
+    {
+        return Flags & familyFlags;
+    }
 
-    uint64 operator& (uint64 mask) const
+    bool IsFitToFamilyMask(ClassFamilyMask const& mask) const
+    {
+        return Flags & mask.Flags;
+    }
+
+    uint64 operator& (uint64 mask) const                     // possible will removed at finish convertion code use IsFitToFamilyMask
     {
         return Flags & mask;
     }
 
-    bool test(size_t offset) const
+    ClassFamilyMask& operator|= (ClassFamilyMask const& mask)
     {
-        return !!(Flags & (uint64(1) << offset));
-    }
-
-    template <ClassFlag... Args>
-    bool test() const
-    {
-        return !!(Flags & BitMask<uint64, Args...>::value);
-    }
-
-    template <ClassFlag... Args>
-    static ClassFamilyMask create()
-    {
-        return ClassFamilyMask(BitMask<uint64, Args...>::value);
-    }
-    
-    bool operator== (uint64 flags) const { return Flags == flags; }
-    bool operator== (ClassFamilyMask const& rhs) const
-    {
-        return Flags == rhs.Flags;
-    }
-
-    bool operator!= (ClassFamilyMask const& rhs) const
-    {
-        return Flags != rhs.Flags;
-    }
-
-    ClassFamilyMask operator& (ClassFamilyMask const& rhs) const
-    {
-        return ClassFamilyMask(Flags & rhs.Flags);
-    }
-
-    ClassFamilyMask operator| (ClassFamilyMask const& rhs) const
-    {
-        return ClassFamilyMask(Flags | rhs.Flags);
-    }
-
-    ClassFamilyMask operator^ (ClassFamilyMask const& rhs) const
-    {
-        return ClassFamilyMask(Flags ^ rhs.Flags);
-    }
-
-    ClassFamilyMask operator~ () const
-    {
-        return ClassFamilyMask(~Flags);
-    }
-
-    ClassFamilyMask& operator= (ClassFamilyMask const& rhs)
-    {
-        Flags  = rhs.Flags;
+        Flags |= mask.Flags;
         return *this;
     }
-    
-    ClassFamilyMask& operator&= (ClassFamilyMask const& rhs)
-    {
-        Flags  &= rhs.Flags;
-        return *this;
-    }
-
-    ClassFamilyMask& operator|= (ClassFamilyMask const& rhs)
-    {
-        Flags  |= rhs.Flags;
-        return *this;
-    }
-
-    ClassFamilyMask& operator^= (ClassFamilyMask const& rhs)
-    {
-        Flags  ^= rhs.Flags;
-        return *this;
-    }
-
-    private: 
-        template <typename T, int Val>
-        struct Shift
-        {
-            static T const value = T(1) << Val;
-        };
-
-        template <typename T, int N1, int N2 = -1, int N3 = -1, int N4 = -1, int N5 = -1, int N6 = -1, int N7 = -1, int N8 = -1, int N9 = -1, int N10 = -1>
-        struct BitMask
-        {
-            static T const value = Shift<T, N1>::value | BitMask<T, N2, N3, N4, N5, N6, N7, N8, N9, N10, -1>::value;
-        };
-
-        template <typename T>
-        struct BitMask<T, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1>
-        {
-            static T const value = 0;
-        };
 };
 
 #define MAX_SPELL_REAGENTS 8
@@ -682,7 +661,7 @@ struct DBCSpellEntry
     char*     SpellName[8];                                 // 120-127
     uint32    SpellNameFlag;                              // 128
     char*     Rank[8];                                      // 129-136
-    // (Nostalrius)
+    // (Elysium)
     uint32    Custom; //RankFlags;                                  // 137
     //char*     Description[8];                             // 138-145 not used
     //uint32    DescriptionFlags;                           // 146     not used
@@ -703,7 +682,30 @@ struct DBCSpellEntry
     //uint32    MinReputation;                              // 171 not used, and 0 in 2.4.2
     //uint32    RequiredAuraVision;                         // 172 not used
 
-    // prevent creating custom entries (copy data from original in fact)
+    // helpers
+    int32 CalculateSimpleValue(SpellEffectIndex eff) const { return EffectBasePoints[eff] + int32(EffectBaseDice[eff]); }
+
+    bool IsFitToFamilyMask(uint64 familyFlags) const
+    {
+        return SpellFamilyFlags.IsFitToFamilyMask(familyFlags);
+    }
+
+    bool IsFitToFamily(SpellFamily family, uint64 familyFlags) const
+    {
+        return SpellFamily(SpellFamilyName) == family && IsFitToFamilyMask(familyFlags);
+    }
+
+    bool IsFitToFamilyMask(ClassFamilyMask const& mask) const
+    {
+        return SpellFamilyFlags.IsFitToFamilyMask(mask);
+    }
+
+    bool IsFitToFamily(SpellFamily family, ClassFamilyMask const& mask) const
+    {
+        return SpellFamily(SpellFamilyName) == family && IsFitToFamilyMask(mask);
+    }
+
+        // prevent creating custom entries (copy data from original in fact)
     DBCSpellEntry(DBCSpellEntry const&);                      // DON'T must have implementation
 
     DBCSpellEntry() {}

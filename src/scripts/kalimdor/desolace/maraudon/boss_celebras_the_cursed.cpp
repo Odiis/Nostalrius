@@ -27,8 +27,6 @@ EndScriptData */
 #define SPELL_ENTANGLINGROOTS       12747
 #define SPELL_CORRUPT_FORCES        21968
 
-#define GO_CELEBRAS_BLUE_AURA       178964
-
 struct celebras_the_cursedAI : public ScriptedAI
 {
     celebras_the_cursedAI(Creature* pCreature) : ScriptedAI(pCreature)
@@ -49,7 +47,7 @@ struct celebras_the_cursedAI : public ScriptedAI
 
     void JustDied(Unit* Killer)
     {
-        m_creature->SummonCreature(13716, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ() + 1, 0, TEMPSUMMON_TIMED_DESPAWN, 600000);
+        m_creature->SummonCreature(13716, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 600000);
     }
 
     void UpdateAI(const uint32 diff)
@@ -137,7 +135,7 @@ struct celebrasSpiritAI : public npc_escortAI
         switch (i)
         {
             case 1:
-                m_creature->SetOrientation(5.342044f);
+                m_creature->SetOrientation(5.342044);
                 m_creature->MonsterSay("For so long I have drifted in my cursed from. You have freed me... Your hard work shall be repaid.", 0, 0);
                 SetRun(false);
                 Event_Timer = 8000;
@@ -152,17 +150,12 @@ struct celebrasSpiritAI : public npc_escortAI
                 break;
 
             case 4:
-                m_creature->SetOrientation(3.009412f);
+                m_creature->SetOrientation(3.009412);
                 SetEscortPaused(true);
                 break;
 
             case 5:
                 //trigger => Player click on the book
-                if (GameObject* pGo = m_creature->FindNearestGameObject(GO_CELEBRAS_BLUE_AURA, 250.0f))
-                {
-                    pGo->SetRespawnTime(6*MINUTE);
-                    pGo->Refresh();
-                }
                 m_creature->MonsterSay("Shal myrinan ishnu daldorah...", 0, 0);
                 if (GameObject* obj = m_creature->SummonGameObject(178964, 652.463013f, 74.085098f, -85.335297f, 3.054616f, 0, 0, 0, 0, -1, false))
                     auraGUID = obj->GetGUID();
@@ -205,7 +198,6 @@ struct celebrasSpiritAI : public npc_escortAI
             isQuestCompleted = false;
             playerGUID = pPlayer->GetGUID();
             m_creature->MonsterSay("You wish to learn of the stone? Follow me.", 0, 0);
-            m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
             Event_Timer = 5000;
             SetRun();
             underEvent = true;
@@ -224,7 +216,7 @@ struct celebrasSpiritAI : public npc_escortAI
         {
             if (isFirstWaypoint)
             {
-                Start(true, NULL, NULL, false);
+                Start(true, true, NULL, NULL, false);
                 isFirstWaypoint = false;
             }
 
@@ -237,7 +229,7 @@ struct celebrasSpiritAI : public npc_escortAI
                 case 3:
                     if (!isWaitingTomeRead)
                     {
-                        m_creature->SetOrientation(3.009412f);
+                        m_creature->SetOrientation(3.009412);
                         isWaitingTomeRead = true;
                         m_creature->MonsterSay("Read this tome I have placed before you, and speak the words aloud.", 0, 0);
                         //CastSpell Renew druid
@@ -245,7 +237,7 @@ struct celebrasSpiritAI : public npc_escortAI
                         isLinked = true;
                         Event_Timer = 4000;
                         SetEscortPaused(true);
-                        m_creature->SetOrientation(3.009412f);
+                        m_creature->SetOrientation(3.009412);
                     }
                     else if (isLinked)
                     {
@@ -320,7 +312,7 @@ bool GOHello_go_book_celebras(Player* pPlayer, GameObject* pGo)
 {
     if (pPlayer->GetQuestStatus(7046) == QUEST_STATUS_INCOMPLETE)
     {
-        pPlayer->Say("Shal myrinan ishnu daldorah...", 0);
+        pPlayer->Say("Shal myrinan ishnu daldorah", 0);
         pGo->Delete();
 
         std::list<Creature*> celebrasList;

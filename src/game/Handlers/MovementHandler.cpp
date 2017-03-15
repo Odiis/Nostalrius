@@ -35,7 +35,6 @@
 #include "Anticheat.h"
 #include "packet_builder.h"
 #include "MoveSpline.h"
-#include "MovementBroadcaster.h"
 
 
 void WorldSession::HandleMoveWorldportAckOpcode(WorldPacket & /*recv_data*/)
@@ -71,9 +70,9 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     }
 
     // get the destination map entry, not the current one, this will fix homebind and reset greeting
-    MapEntry const* mEntry = sMapStorage.LookupEntry<MapEntry>(loc.mapid);
+    MapEntry const* mEntry = sMapStore.LookupEntry(loc.mapid);
 
-    Map* map = nullptr;
+    Map* map = NULL;
 
     // prevent crash at attempt landing to not existed battleground instance
     if (mEntry->IsBattleGround())
@@ -100,8 +99,10 @@ void WorldSession::HandleMoveWorldportAckOpcode()
         }
     }
 
+    InstanceTemplate const* mInstance = ObjectMgr::GetInstanceTemplate(loc.mapid);
+
     // reset instance validity, except if going to an instance inside an instance
-    if (GetPlayer()->m_InstanceValid == false && !mEntry->IsDungeon())
+    if (GetPlayer()->m_InstanceValid == false && !mInstance)
         GetPlayer()->m_InstanceValid = true;
 
     GetPlayer()->SetSemaphoreTeleportFar(false);
@@ -180,12 +181,12 @@ void WorldSession::HandleMoveWorldportAckOpcode()
         GetPlayer()->m_taxi.ClearTaxiDestinations();
     }
 
-    if (mEntry->IsRaid())
+    if (mEntry->IsRaid() && mInstance)
     {
-        if (time_t timeReset = sMapPersistentStateMgr.GetScheduler().GetResetTimeFor(mEntry->id))
+        if (time_t timeReset = sMapPersistentStateMgr.GetScheduler().GetResetTimeFor(mEntry->MapID))
         {
-            uint32 timeleft = uint32(timeReset - time(nullptr));
-            GetPlayer()->SendInstanceResetWarning(mEntry->id, timeleft);
+            uint32 timeleft = uint32(timeReset - time(NULL));
+            GetPlayer()->SendInstanceResetWarning(mEntry->MapID, timeleft);
         }
     }
 
@@ -275,10 +276,6 @@ void WorldSession::HandleMovementOpcodes(WorldPacket & recv_data)
     if (plMover && !plMover->GetCheatData()->HandleAnticheatTests(movementInfo, this, &recv_data))
         return;
 
-    // this must be called after HandleAnticheatTests because that function will update order counters (for things like slow fall, water walk, etc.)
-    if (plMover && !plMover->GetCheatData()->CheckTeleport(opcode, movementInfo))
-        return;
-
     // Interrupt spell cast at move
     if (movementInfo.HasMovementFlag(MOVEFLAG_MASK_MOVING))
         mover->InterruptSpellsWithInterruptFlags(SPELL_INTERRUPT_FLAG_MOVEMENT);
@@ -289,25 +286,13 @@ void WorldSession::HandleMovementOpcodes(WorldPacket & recv_data)
     if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->IsTaxiFlying())
         plMover->HandleFall(movementInfo);
 
-    // TODO: remove it
-    // reset knockback state when fall to ground or water
-    if (plMover)
-    {
-        if ((opcode == MSG_MOVE_FALL_LAND || opcode == MSG_MOVE_START_SWIM) && plMover->IsLaunched())
-        {
-            plMover->SetLaunched(false);
-            plMover->SetXYSpeed(0.0f);
-        }
-    }
-
     if (plMover)
         plMover->UpdateFallInformationIfNeed(movementInfo, opcode);
 
     WorldPacket data(opcode, recv_data.size());
     data << _clientMoverGuid.WriteAsPacked();             // write guid
     movementInfo.Write(data);                               // write data
-
-    mover->SendMovementMessageToSet(std::move(data), true, _player);
+    mover->SendObjectMessageToSet(&data, true, _player);
 }
 
 void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
@@ -328,7 +313,7 @@ void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
 
     // now can skip not our packet
     ObjectGuid moverGuid = _player->GetMover()->GetObjectGuid();
-    if (guid != moverGuid && guid != _clientMoverGuid)
+    if (moverGuid != moverGuid || guid != _clientMoverGuid)
         return;
     if (!VerifyMovementInfo(movementInfo))
         return;
@@ -371,8 +356,8 @@ void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
             return;
     }
 
-    // Daemon TODO: enregistrement de cette position ?
-    // Daemon: mise a jour de la vitesse pour les joueurs a cote.
+    // TODO: enregistrement de cette position ?
+    //: mise a jour de la vitesse pour les joueurs a cote.
     // Cf Unit::SetSpeedRate pour plus d'infos.
     const uint16 SetSpeed2Opc_table[MAX_MOVE_TYPE][2] =
     {
@@ -387,14 +372,14 @@ void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
     data << _player->GetMover()->GetPackGUID();
     data << movementInfo;
     data << float(newspeed);
-    _player->SendMovementMessageToSet(std::move(data), false);
+    _player->SendObjectMessageToSet(&data, false);
 
     if (!_player->GetMover()->movespline->Finalized())
     {
         WorldPacket splineData(SMSG_MONSTER_MOVE, 31);
         splineData << _player->GetMover()->GetPackGUID();
         Movement::PacketBuilder::WriteMonsterMove(*(_player->GetMover()->movespline), splineData);
-        _player->SendMovementMessageToSet(std::move(splineData), false);
+        _player->SendObjectMessageToSet(&splineData, false);
     }
 }
 
@@ -447,7 +432,7 @@ void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvdata*/)
     WorldPacket data(SMSG_MOUNTSPECIAL_ANIM, 8);
     data << GetPlayer()->GetObjectGuid();
 
-    GetPlayer()->SendMovementMessageToSet(std::move(data), false);
+    GetPlayer()->SendObjectMessageToSet(&data, false);
 }
 
 void WorldSession::HandleMoveKnockBackAck(WorldPacket & recv_data)
@@ -492,7 +477,7 @@ void WorldSession::HandleMoveKnockBackAck(WorldPacket & recv_data)
     data << movementInfo.GetJumpInfo().cosAngle;
     data << movementInfo.GetJumpInfo().xyspeed;
     data << movementInfo.GetJumpInfo().velocity;
-    mover->SendMovementMessageToSet(&data, true, _player);*/
+    mover->SendObjectMessageToSet(&data, true, _player);*/
 }
 
 void WorldSession::HandleMoveHoverAck(WorldPacket& recv_data)
@@ -564,19 +549,12 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     Unit *mover = _player->GetMover();
     movementInfo.CorrectData(mover);
 
-    if (Player* plMover = mover->ToPlayer())
+    if (Player *plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL)
     {
-        // ignore current relocation if needed
-        if (plMover->IsNextRelocationIgnored())
-        {
-            plMover->DoIgnoreRelocation();
-            return;
-        }
-
         if (movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT))
         {
             GetPlayer()->GetCheatData()->OnTransport(plMover, movementInfo.GetTransportGuid());
-            Unit* loadPetOnTransport = nullptr;
+            Unit* loadPetOnTransport = NULL;
             if (!plMover->GetTransport())
                 if (Transport* t = plMover->GetMap()->GetTransport(movementInfo.GetTransportGuid()))
                 {
@@ -623,11 +601,11 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
         plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         plMover->m_movementInfo = movementInfo;
 
-        // super smart decision; rework required
+        // Fermeture fenetre loot en cas de mvt.
         if (ObjectGuid lootGuid = plMover->GetLootGuid())
             plMover->SendLootRelease(lootGuid);
 
-        // Nostalrius - antiundermap1
+        // Elysium - antiundermap1
         if (movementInfo.HasMovementFlag(MOVEFLAG_FALLINGFAR))
         {
             float hauteur = plMover->GetMap()->GetHeight(plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ(), true);
@@ -640,7 +618,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
 
             if (undermap)
                 if (plMover->UndermapRecall())
-                    sLog.nostalrius("[UNDERMAP] %s [GUID %u]. MapId:%u %f %f %f", plMover->GetName(), plMover->GetGUIDLow(), plMover->GetMapId(), plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ());
+                    sLog.elysium("[UNDERMAP] %s [GUID %u]. MapId:%u %f %f %f", plMover->GetName(), plMover->GetGUIDLow(), plMover->GetMapId(), plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ());
         }
         else if (plMover->CanFreeMove())
             plMover->SaveNoUndermapPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z + 3.0f);
@@ -652,7 +630,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
             // TODO: discard movement packets after the player is rooted
             if (plMover->isAlive())
             {
-                // Nostalrius : pas mort quand on chute
+                // Elysium : pas mort quand on chute
                 if (plMover->InBattleGround())
                     plMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, plMover->GetHealth());
                 else
@@ -668,7 +646,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
             }
 
             // cancel the death timer here if started
-            sLog.nostalrius("[UNDERMAP/Teleport] Player %s teleported.", plMover->GetName(), plMover->GetGUIDLow(), plMover->GetMapId(), plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ());
+            sLog.elysium("[UNDERMAP/Teleport] Player %s teleported.", plMover->GetName(), plMover->GetGUIDLow(), plMover->GetMapId(), plMover->GetPositionX(), plMover->GetPositionY(), plMover->GetPositionZ());
             plMover->RepopAtGraveyard();
         }
     }
@@ -693,7 +671,7 @@ void WorldSession::HandleMoveTimeSkippedOpcode(WorldPacket & recv_data)
     data << lag;
     GetPlayer()->m_movementInfo.time += lag;
     GetPlayer()->m_movementInfo.ctime += lag;
-    GetPlayer()->SendMovementMessageToSet(std::move(data), false);
+    GetPlayer()->SendObjectMessageToSet(&data, false);
 }
 
 void WorldSession::HandleFeatherFallAck(WorldPacket &recv_data)
@@ -723,7 +701,7 @@ void WorldSession::HandleFeatherFallAck(WorldPacket &recv_data)
     WorldPacket data(MSG_MOVE_FEATHER_FALL, recv_data.size());
     data << guid.WriteAsPacked();
     movementInfo.Write(data);
-    _player->SendMovementMessageToSet(std::move(data), true, _player);
+    _player->SendObjectMessageToSet(&data, true, _player);
 }
 
 void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
@@ -756,7 +734,7 @@ void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
     WorldPacket data(MSG_MOVE_UNROOT, recv_data.size());
     data << _player->GetPackGUID();
     movementInfo.Write(data);
-    _player->SendMovementMessageToSet(std::move(data), true, _player);
+    _player->SendObjectMessageToSet(&data, true, _player);
     _player->clearUnitState(UNIT_STAT_CLIENT_ROOT);
 }
 
@@ -790,7 +768,7 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
     WorldPacket data(MSG_MOVE_ROOT, recv_data.size());
     data << _player->GetPackGUID();
     movementInfo.Write(data);
-    _player->SendMovementMessageToSet(std::move(data), true, _player);
+    _player->SendObjectMessageToSet(&data, true, _player);
 }
 
 void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)

@@ -114,10 +114,12 @@ struct npc_sergeant_blyAI : public ScriptedAI
                             weegli->AI()->DoAction();
                             DoScriptText(SAY_WEEGLI, weegli);
                         }
-
-                        switchFactionIfAlive(pInstance, ENTRY_RAVEN);
-                        switchFactionIfAlive(pInstance, ENTRY_ORO);
-                        switchFactionIfAlive(pInstance, ENTRY_MURTA);
+                        if (pInstance)
+                        {
+                            switchFactionIfAlive(pInstance, ENTRY_RAVEN);
+                            switchFactionIfAlive(pInstance, ENTRY_ORO);
+                            switchFactionIfAlive(pInstance, ENTRY_MURTA);
+                        }
                 }
                 postGossipStep++;
             }
@@ -235,11 +237,11 @@ bool OnGossipHello_go_troll_cage(Player* pPlayer, GameObject* pGo)
     {
         pInstance->SetData(EVENT_PYRAMID, PYRAMID_CAGES_OPEN);
         //set bly & co to aggressive & start moving to top of stairs
-        initBlyCrewMember(pInstance, ENTRY_BLY, 1887.17f, 1263.72f, 41.484f);
-        initBlyCrewMember(pInstance, ENTRY_RAVEN, 1890.76f, 1265.82f, 41.43f);
-        initBlyCrewMember(pInstance, ENTRY_ORO, 1883.3f, 1272.53f, 41.87f);
-        initBlyCrewMember(pInstance, ENTRY_WEEGLI, 1883.87f, 1263.49f, 41.55f);
-        initBlyCrewMember(pInstance, ENTRY_MURTA, 1886.48f, 1272.76f, 41.76f);
+        initBlyCrewMember(pInstance, ENTRY_BLY, 1887.17, 1263.72, 41.484);
+        initBlyCrewMember(pInstance, ENTRY_RAVEN, 1890.76, 1265.82, 41.43);
+        initBlyCrewMember(pInstance, ENTRY_ORO, 1883.3, 1272.53, 41.87);
+        initBlyCrewMember(pInstance, ENTRY_WEEGLI, 1883.87, 1263.49, 41.55);
+        initBlyCrewMember(pInstance, ENTRY_MURTA, 1886.48, 1272.76, 41.76);
     }
     return false;
 }
@@ -390,7 +392,7 @@ struct npc_weegli_blastfuseAI : public ScriptedAI
                 {
                     pInstance->SetData(EVENT_PYRAMID, PYRAMID_ARRIVED_AT_STAIR);
                     DoScriptText(SAY_WEEGLI_OHNO, m_creature);
-                    m_creature->SetCombatStartPosition(1882.69f, 1272.28f, 41.87f);
+                    m_creature->SetCombatStartPosition(1882.69, 1272.28, 41.87);
                     m_creature->SetWalk(false);
                     m_creature->GetMotionMaster()->MovePoint(2, 1883.27f, 1268.72f, 41.73f);
                 }
@@ -406,7 +408,7 @@ struct npc_weegli_blastfuseAI : public ScriptedAI
             {
                 if (destroyingDoor)
                 {
-                    GameObject* go = m_creature->SummonGameObject(144065, 1856.314209f, 1144.990479f, 15.486275f, 5.6635f, 0, 0, 0, 0, -1, false);
+                    GameObject* go = m_creature->SummonGameObject(144065, 1856.314209f, 1144.990479f, 15.486275, 5.6635f, 0, 0, 0, 0, -1, false);
                     explosiveGUID = go->GetGUID();
                     destroyingDoor = false;
                     RunAfterExplosion1();
@@ -441,8 +443,8 @@ struct npc_weegli_blastfuseAI : public ScriptedAI
         {
             m_creature->setFaction(FACTION_FRIENDLY);
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(0, 1858.57f, 1146.35f, 14.745f);
-            m_creature->SetCombatStartPosition(1858.57f, 1146.35f, 14.745f); // in case he gets interrupted
+            m_creature->GetMotionMaster()->MovePoint(0, 1858.57, 1146.35, 14.745);
+            m_creature->SetCombatStartPosition(1858.57, 1146.35, 14.745); // in case he gets interrupted
             DoScriptText(SAY_WEEGLI_OK_I_GO, m_creature);
             destroyingDoor = true;
         }
@@ -452,8 +454,8 @@ struct npc_weegli_blastfuseAI : public ScriptedAI
     {
         if (m_creature->isAlive())
         {
-            m_creature->GetMotionMaster()->MovePoint(1, 1863.77f, 1176.99f, 9.993f);
-            m_creature->SetCombatStartPosition(1863.77f, 1176.99f, 9.993f); // in case he gets interrupted
+            m_creature->GetMotionMaster()->MovePoint(1, 1863.77, 1176.99, 9.993);
+            m_creature->SetCombatStartPosition(1863.77, 1176.99, 9.993); // in case he gets interrupted
 
             runAway = true;
         }
@@ -685,7 +687,7 @@ struct ZumRahAI : public ScriptedAI
                 (*it)->UseDoorOrButton((*it)->GetGUID());
                 Creature* undead = m_creature->SummonCreature(7286, (*it)->GetPositionX(),
                                    (*it)->GetPositionY(),
-                                   (*it)->GetPositionZ(), 5.93f, TEMPSUMMON_CORPSE_DESPAWN, 60000);
+                                   (*it)->GetPositionZ(), 5.93, TEMPSUMMON_CORPSE_DESPAWN, 60000);
                 undead->AI()->AttackStart(m_creature->getVictim());
                 m_uiGraveTimer = 18000;
                 zombieNumber++;
@@ -750,9 +752,57 @@ CreatureAI* GetAI_ward_zumrah(Creature* pCreature)
     return new ward_zumrahAI(pCreature);
 }
 
-/*
- *
- */
+struct goblinLandMineAI : public ScriptedAI
+{
+    goblinLandMineAI(Creature* pCreature) : ScriptedAI(pCreature)
+    {
+        Reset();
+    }
+
+    uint32 m_uiSelfDestruct_Timer;
+
+    void Reset()
+    {
+        m_uiSelfDestruct_Timer = 9000; //9000; //9000; //9000; //9000; //180000;
+
+//        m_creature->AddAura(23198, ADD_AURA_PERMANENT); // Avoidance : pas touch� par les AOE
+        m_creature->addUnitState(UNIT_STAT_ROOT);
+        SetCombatMovement(false);
+    }
+
+    void UpdateAI(const uint32 uiDiff)
+    {
+        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+
+        if (!m_creature->hasUnitState(UNIT_STAT_ROOT))
+            m_creature->addUnitState(UNIT_STAT_ROOT);
+
+        if (m_uiSelfDestruct_Timer < uiDiff)
+        {
+            DoCastSpellIfCan(m_creature, 4043, true);
+            m_creature->DisappearAndDie();
+            m_uiSelfDestruct_Timer = 3000;
+        }
+        else
+            m_uiSelfDestruct_Timer -= uiDiff;
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        if (m_creature->GetDistance(m_creature->getVictim()) < 7.0f)
+        {
+            DoCastSpellIfCan(m_creature, 4043, true);
+            m_creature->DisappearAndDie();
+        }
+
+    }
+};
+
+CreatureAI* GetAI_goblinLandMine(Creature* pCreature)
+{
+    return new goblinLandMineAI(pCreature);
+}
+
 
 struct earthGrab_totemAI : public ScriptedAI
 {
@@ -965,6 +1015,8 @@ struct SandfuryShadowhunterAI : public ScriptedAI
                 else
                     m_uiShoot_Timer -= uiDiff;
                 break;
+            default:
+                break;
         }
         DoMeleeAttackIfReady();
     }
@@ -1000,6 +1052,11 @@ void AddSC_zulfarrak()
     newscript->RegisterSelf();
 
     newscript = new Script;
+    newscript->Name = "goblin_land_mine";
+    newscript->GetAI = &GetAI_goblinLandMine;
+    newscript->RegisterSelf();
+
+    newscript = new Script;
     newscript->Name = "alarm_o_matic";
     newscript->GetAI = &GetAI_alarmOMatic;
     newscript->RegisterSelf();
@@ -1028,4 +1085,6 @@ void AddSC_zulfarrak()
     newscript->Name = "go_table_theka";
     newscript->pGOHello = &OnGossipHello_go_table_theka;
     newscript->RegisterSelf();
+
+
 }

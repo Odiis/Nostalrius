@@ -260,7 +260,7 @@ class BattleGroundMgr
                 return itr->second[0];
             return m_GameObjectBattleEventIndexMap.find(-1)->second[0];
         }
-        // Nostalrius: allow multiple events per creature ... Avoid when possible.
+        // Elysium: allow multiple events per creature ... Avoid when possible.
         std::vector<BattleGroundEventIdx> const& GetCreatureEventsVector(uint32 dbTableGuidLow) const
         {
             CreatureBattleEventIndexesMap::const_iterator itr = m_CreatureBattleEventIndexMap.find(dbTableGuidLow);

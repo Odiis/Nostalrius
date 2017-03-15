@@ -1,5 +1,6 @@
 /*
- * This file is part of the CMaNGOS Project. See AUTHORS file for Copyright information
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2009-2011 MaNGOSZero <https://github.com/mangos/zero>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,25 +23,25 @@
 #include "Common.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
-#include <vector>
 
 class BigNumber;
+
+#define SEED_KEY_SIZE 16
 
 class HmacHash
 {
     public:
-        HmacHash() { }
-        HmacHash(const uint8* data, int length);
+        HmacHash();
         ~HmacHash();
-        void UpdateBigNumber(BigNumber* bn);
-        void UpdateData(const std::vector<uint8>& data);
-        void UpdateData(const uint8* data, int length);
+        void UpdateBigNumber(BigNumber *bn);
+        void UpdateData(const uint8 *data, int length);
         void Initialize();
         void Finalize();
-        uint8* GetDigest() { return m_digest; };
+        uint8 *GetDigest() { return m_digest; };
         int GetLength() { return SHA_DIGEST_LENGTH; };
     private:
         HMAC_CTX m_ctx;
+        uint8 m_key[SEED_KEY_SIZE];
         uint8 m_digest[SHA_DIGEST_LENGTH];
 };
 #endif

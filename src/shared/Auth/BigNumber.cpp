@@ -23,22 +23,26 @@
 BigNumber::BigNumber()
 {
     _bn = BN_new();
+    ClearArraysMap();
 }
 
 BigNumber::BigNumber(const BigNumber &bn)
 {
     _bn = BN_dup(bn._bn);
+    ClearArraysMap();
 }
 
 BigNumber::BigNumber(uint32 val)
 {
     _bn = BN_new();
     BN_set_word(_bn, val);
+    ClearArraysMap();
 }
 
 BigNumber::~BigNumber()
 {
     BN_free(_bn);
+    ClearArraysMap();
 }
 
 void BigNumber::SetDword(uint32 val)
@@ -161,23 +165,28 @@ bool BigNumber::isZero() const
     return BN_is_zero(_bn)!=0;
 }
 
-std::vector<uint8> BigNumber::AsByteArray(int minSize, bool reverse)
+uint8* BigNumber::AsByteArray(int minSize, bool reverse)
 {
     int length = (minSize >= GetNumBytes()) ? minSize : GetNumBytes();
 
-    std::vector<uint8> byteArray(length);
-    
+    std::map<int, uint8*>::const_iterator itr = arraysMap.find(length);
+    if (itr != arraysMap.end())
+        return itr->second;
+
+    uint8* _array = new uint8[length];
+
     // If we need more bytes than length of BigNumber set the rest to 0
     if (length > GetNumBytes())
-        memset((void*)byteArray.data(), 0, length);
+        memset((void*)_array, 0, length);
 
-    BN_bn2bin(_bn, (unsigned char *)byteArray.data());
+    BN_bn2bin(_bn, (unsigned char *)_array);
 
     if (reverse)
-        std::reverse(byteArray.begin(), byteArray.end());
+        std::reverse(_array, _array + length);
 
+    arraysMap.insert(std::map<int, uint8*>::value_type(length, _array));
 
-    return byteArray;
+    return _array;
 }
 
 const char *BigNumber::AsHexStr()
@@ -188,4 +197,12 @@ const char *BigNumber::AsHexStr()
 const char *BigNumber::AsDecStr()
 {
     return BN_bn2dec(_bn);
+}
+
+void BigNumber::ClearArraysMap()
+{
+    for (std::map<int, uint8*>::const_iterator itr = arraysMap.begin(); itr != arraysMap.end(); ++itr)
+        if (itr->second)
+            delete [] itr->second;
+    arraysMap.clear();
 }

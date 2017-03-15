@@ -136,10 +136,7 @@ void CreatureGroup::MemberAssist(Creature* member, Unit *target)
         return;
 
     if (member->AI())
-    {
-        member->SetNoCallAssistance(true);
         member->AI()->AttackedBy(target);
-    }
 }
 
 void CreatureGroup::RemoveMember(ObjectGuid guid)

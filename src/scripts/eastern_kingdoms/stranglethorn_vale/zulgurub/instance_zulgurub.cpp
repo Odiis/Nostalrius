@@ -37,13 +37,12 @@ void instance_zulgurub::Initialize()
 {
     memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
-    m_uiLorKhanGUID   = 0;
-    m_uiZathGUID      = 0;
-    m_uiThekalGUID    = 0;
-    m_uiJindoGUID     = 0;
-    m_uiHakkarGUID    = 0;
-    m_uiMarliGUID     = 0;
-    m_uiGahzrankaGUID = 0;
+    m_uiLorKhanGUID = 0;
+    m_uiZathGUID    = 0;
+    m_uiThekalGUID  = 0;
+    m_uiJindoGUID   = 0;
+    m_uiHakkarGUID  = 0;
+    m_uiMarliGUID   = 0;
 }
 
 // each time High Priest dies lower Hakkar's HP
@@ -105,9 +104,6 @@ void instance_zulgurub::OnCreatureCreate(Creature* pCreature)
         case NPC_HAKARI_SHADOWCASTER:
         case NPC_RAZZASHI_BROODWIDOW:
             m_lMarliTrashGUIDList.push_back(pCreature->GetGUID());
-            break;
-        case NPC_GAHZRANKA:
-            m_uiGahzrankaGUID = pCreature->GetGUID();
             break;
     }
 }
@@ -192,15 +188,12 @@ void instance_zulgurub::SetData(uint32 uiType, uint32 uiData)
             else
                 m_auiEncounter[9] = uiData;
             break;
-        case TYPE_GAHZRANKA:
-            m_auiEncounter[10] = uiData;
-            break;
     }
 
     if (uiData == DONE)
     {
         OUT_SAVE_INST_DATA;
-        strInstData = GenSaveData(m_auiEncounter, 10);
+        strInstData = GenSaveData(m_auiEncounter, 9);
         SaveToDB();
         OUT_SAVE_INST_DATA_COMPLETE;
     }
@@ -221,7 +214,7 @@ void instance_zulgurub::Load(const char* chrIn)
 
     OUT_LOAD_INST_DATA(chrIn);
 
-    LoadSaveData(chrIn, m_auiEncounter, 10);
+    LoadSaveData(chrIn, m_auiEncounter, 9);
 
     for (uint8 i = 0; i < ZULGURUB_MAX_ENCOUNTER; ++i)
     {
@@ -260,8 +253,6 @@ uint32 instance_zulgurub::GetData(uint32 uiType)
             if (m_auiEncounter[9] >= 15080 && m_auiEncounter[9] <= 15085)
                 return m_auiEncounter[9];
             return 0;
-        case TYPE_GAHZRANKA:
-            return m_auiEncounter[10];
     }
     return 0;
 }
@@ -280,8 +271,6 @@ uint64 instance_zulgurub::GetData64(uint32 uiData)
             return m_uiJindoGUID;
         case DATA_HAKKAR:
             return m_uiHakkarGUID;
-        case DATA_GAHZRANKA:
-            return m_uiGahzrankaGUID;
     }
     return 0;
 }
@@ -289,7 +278,7 @@ uint64 instance_zulgurub::GetData64(uint32 uiData)
 void instance_zulgurub::Create()
 {
     m_auiEncounter[9] = GenerateRandomBoss();
-    strInstData = GenSaveData(m_auiEncounter, 10);
+    strInstData = GenSaveData(m_auiEncounter, 9);
     SaveToDB();
     if (!m_randomBossSpawned)
         SpawnRandomBoss();
@@ -311,7 +300,8 @@ void instance_zulgurub::OnCreatureDeath(Creature * pCreature)
 
 uint32 instance_zulgurub::GenerateRandomBoss()
 {
-    uint32 dayCount = sWorld.GetGameDay();
+    World& world = GetSWorld();
+    uint32 dayCount = world.GetDateToday();
     uint32 weekmod = ((dayCount - (dayCount % 14)) / 14) % 3;
     uint32 bossId = 15082 + weekmod;
     randomBossEntry = bossId;
@@ -322,13 +312,13 @@ uint32 instance_zulgurub::GenerateRandomBoss()
 void instance_zulgurub::SpawnRandomBoss()
 {
     m_randomBossSpawned = true;
-    return; // function deactivated
+    return; // Fonction désactivée
     if (m_auiEncounter[9] < 15082 || m_auiEncounter[9] > 15085)
         return;
     Creature* pCrea = instance->SummonCreature(m_auiEncounter[9], -11901.45f, -1906.337f, 65.37f, TEMPSUMMON_DEAD_DESPAWN);
     if (!pCrea)
         return;
-    pCrea->SetOrientation(M_PI_F / 4.0f);
+    pCrea->SetOrientation(M_PI / 4.0f);
     pCrea->GetMotionMaster()->MoveIdle();
     pCrea->CastSpell(pCrea, 25039, true); // Visuel de fantome vert
     m_randomBossSpawned = true;
@@ -490,30 +480,6 @@ bool OnGossipHello_go_table_madness(Player* pPlayer, GameObject* pGo)
     return true;
 }
 
-bool ProcessEventId_event_summon_gahzranka(uint32 uiEventId, Object* pSource, Object* pTarget, bool bIsStart)
-{
-    if (!pSource->IsPlayer())
-        return false;
-
-    if (ScriptedInstance* m_pInstance = (ScriptedInstance*)((Player*)pSource)->GetInstanceData())
-    {
-        // return if already summoned
-        if (m_pInstance->GetData(TYPE_GAHZRANKA) == DONE)
-            return false;
-
-        if (pSource)
-            ((Player*)pSource)->CastSpell(((Player*)pSource), 12816, true);
-
-        if (Creature* pCreature = m_pInstance->instance->GetCreature(m_pInstance->GetData64(DATA_GAHZRANKA)))
-        {
-            pCreature->Respawn();
-            m_pInstance->SetData(TYPE_GAHZRANKA, DONE);
-            return true;
-        }
-    }
-    return false;
-}
-
 void AddSC_instance_zulgurub()
 {
     Script* newscript;
@@ -530,10 +496,5 @@ void AddSC_instance_zulgurub()
     newscript = new Script;
     newscript->Name = "npc_brazier";
     newscript->GetAI = &GetAI_npc_brazier;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "event_summon_gahzranka";
-    newscript->pProcessEventId = &ProcessEventId_event_summon_gahzranka;
     newscript->RegisterSelf();
 }

@@ -19,8 +19,7 @@ enum PlayerExtraFlags
     PLAYER_EXTRA_AUCTION_ENEMY      = 0x0080,               // overwrite PLAYER_EXTRA_AUCTION_NEUTRAL
 
     // other states
-    PLAYER_EXTRA_PVP_DEATH          = 0x0100,               // store PvP death status until corpse creating.
-    PLAYER_EXTRA_WHISP_RESTRICTION  = 0x0200
+    PLAYER_EXTRA_PVP_DEATH          = 0x0100                // store PvP death status until corpse creating.
 };
 
 class MasterPlayer;

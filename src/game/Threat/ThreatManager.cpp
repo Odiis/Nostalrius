@@ -215,9 +215,9 @@ void ThreatContainer::clearReferences()
 HostileReference* ThreatContainer::getReferenceByTarget(Unit* pVictim)
 {
     if (!pVictim)
-        return nullptr;
+        return NULL;
 
-    HostileReference* result = nullptr;
+    HostileReference* result = NULL;
     ObjectGuid guid = pVictim->GetObjectGuid();
     for (ThreatList::const_iterator i = iThreatList.begin(); i != iThreatList.end(); ++i)
     {
@@ -237,7 +237,7 @@ HostileReference* ThreatContainer::getReferenceByTarget(Unit* pVictim)
 HostileReference* ThreatContainer::addThreat(Unit* pVictim, float pThreat)
 {
     if (!pVictim)
-        return nullptr;
+        return NULL;
 
     HostileReference* ref = getReferenceByTarget(pVictim);
     if (ref)
@@ -286,9 +286,9 @@ void ThreatContainer::update()
 HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, HostileReference* pCurrentVictim)
 {
     if (!pAttacker)
-        return nullptr;
+        return NULL;
 
-    HostileReference* currentRef = nullptr;
+    HostileReference* currentRef = NULL;
     bool found = false;
     bool allowLowPriorityTargets = false;
     bool attackerImmobilized = pAttacker->hasUnitState(UNIT_STAT_CAN_NOT_MOVE);
@@ -304,31 +304,20 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
 
             Unit* target = currentRef->getTarget();
             MANGOS_ASSERT(target);                              // if the ref has status online the target must be there !
-
-            bool outOfThreatArea = pAttacker->IsOutOfThreatArea(target);
-            bool validAttackTarget = pAttacker->IsValidAttackTarget(target);
-            bool targetableForAttack = target->isTargetableForAttack();
-
-            if (outOfThreatArea)
-                return nullptr;
-
-            if (!validAttackTarget || !targetableForAttack)
+            if (!pAttacker->IsValidAttackTarget(target) || pAttacker->IsOutOfThreatArea(target))
             {
-                if (currentRef == pCurrentVictim)
-                    pCurrentVictim = nullptr;
                 ++iter;
                 continue;
             }
-
             float attackDistance = pAttacker->GetMaxChaseDistance(target);
             // Skip this unit if low priority
-            if (!allowLowPriorityTargets && (target->IsImmuneToDamage(pAttacker->GetMeleeDamageSchoolMask()) ||
+            if (!allowLowPriorityTargets && (target->IsImmunedToDamage(pAttacker->GetMeleeDamageSchoolMask()) ||
                                             target->IsSecondaryThreatTarget() ||
                                            (attackerImmobilized && !target->IsWithinDist(pAttacker, attackDistance))))
             {
                 // current victim is a second choice target, so don't compare threat with it below
                 if (currentRef == pCurrentVictim)
-                    pCurrentVictim = nullptr;
+                    pCurrentVictim = NULL;
                 ++iter;
                 continue;
             }
@@ -344,7 +333,8 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
                 }
 
                 if (currentRef->getThreat() > 1.3f * pCurrentVictim->getThreat() ||
-                        currentRef->getThreat() > 1.1f * pCurrentVictim->getThreat() && pAttacker->CanReachWithMeleeAttack(target))
+                        (currentRef->getThreat() > 1.1f * pCurrentVictim->getThreat() &&
+                         pAttacker->IsWithinMeleeRange(target)))
                 {
                     //implement 110% threat rule for targets in melee range
                     found = true;                           //and 130% rule for targets in ranged distances
@@ -360,7 +350,7 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
         }
     }
     if (!found)
-        currentRef = nullptr;
+        currentRef = NULL;
 
     return currentRef;
 }
@@ -369,7 +359,7 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
 //=================== ThreatManager ==========================
 //============================================================
 
-ThreatManager::ThreatManager(Unit* owner) : iCurrentVictim(nullptr), iOwner(owner)
+ThreatManager::ThreatManager(Unit* owner) : iCurrentVictim(NULL), iOwner(owner)
 {
 }
 
@@ -379,12 +369,12 @@ void ThreatManager::clearReferences()
 {
     iThreatContainer.clearReferences();
     iThreatOfflineContainer.clearReferences();
-    iCurrentVictim = nullptr;
+    iCurrentVictim = NULL;
 }
 
 //============================================================
 
-void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *pThreatSpell, bool isAssistThreat)
+void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellSchoolMask schoolMask, SpellEntry const *pThreatSpell)
 {
     //function deals with adding threat and adding players and pets into ThreatList
     //mobs, NPCs, guards have ThreatList and HateOfflineList
@@ -404,13 +394,6 @@ void ThreatManager::addThreat(Unit* pVictim, float pThreat, bool crit, SpellScho
         return;
 
     MANGOS_ASSERT(getOwner()->GetTypeId() == TYPEID_UNIT);
-
-    // don't add assist threat to targets under hard CC
-    // check for fear, blind, freezing trap, reckless charge, banish, etc.
-    if (isAssistThreat)
-        if (getOwner()->hasUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING | UNIT_STAT_ISOLATED)
-          || (getOwner()->hasUnitState(UNIT_STAT_STUNNED) && getOwner()->HasBreakableByDamageAuraType(SPELL_AURA_MOD_STUN, NULL)))
-            pThreat = 0.0f;
 
     float threat = ThreatCalcHelper::CalcThreat(pVictim, iOwner, pThreat, crit, schoolMask, pThreatSpell);
 
@@ -452,7 +435,7 @@ Unit* ThreatManager::getHostileTarget()
     iThreatContainer.update();
     HostileReference* nextVictim = iThreatContainer.selectNextVictim((Creature*) getOwner(), getCurrentVictim());
     setCurrentVictim(nextVictim);
-    return getCurrentVictim() != nullptr ? getCurrentVictim()->getTarget() : NULL;
+    return getCurrentVictim() != NULL ? getCurrentVictim()->getTarget() : NULL;
 }
 
 //============================================================
@@ -520,7 +503,7 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
             {
                 if (hostileReference == getCurrentVictim())
                 {
-                    setCurrentVictim(nullptr);
+                    setCurrentVictim(NULL);
                     setDirty(true);
                 }
                 iThreatContainer.remove(hostileReference);
@@ -537,7 +520,7 @@ void ThreatManager::processThreatEvent(ThreatRefStatusChangeEvent* threatRefStat
         case UEV_THREAT_REF_REMOVE_FROM_LIST:
             if (hostileReference == getCurrentVictim())
             {
-                setCurrentVictim(nullptr);
+                setCurrentVictim(NULL);
                 setDirty(true);
             }
             if (hostileReference->isOnline())

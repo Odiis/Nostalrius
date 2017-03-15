@@ -26,6 +26,7 @@ npc_royal_historian_archesonus
 EndContentData */
 
 #include "scriptPCH.h"
+#include "./../../custom/PlayerStartMgr.h"
 
 /*######
 ## npc_royal_historian_archesonus
@@ -88,10 +89,44 @@ bool GossipSelect_npc_royal_historian_archesonus(Player* pPlayer, Creature* pCre
 
 bool GossipHello_npc_magni_bronzebeard(Player* pPlayer, Creature* pCreature)
 {
-    if (pCreature->isQuestGiver())
-        pPlayer->PrepareQuestMenu(pCreature->GetGUID());
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+    if ((pPlayer->GetQuestStatus(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF)) == QUEST_STATUS_INCOMPLETE) && (PSM_CheckOptionForPlayer(pPlayer, OPTION_SET_55)))
+    {
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_NOTREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_NOTREADY);
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_IAMREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_IAMREADY);
+        pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_1), pCreature->GetGUID());
+    }
+    else
+    {
+        if (pCreature->isQuestGiver())
+            pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+        pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+    }
+    return true;
+}
 
+bool GossipSelect_npc_magni_bronzebeard(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction)
+{
+    switch (uiAction)
+    {
+        case GOSSIP_ACTION_NOTREADY:
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_2), pCreature->GetGUID());
+            break;
+        case GOSSIP_ACTION_IAMREADY:
+            pPlayer->AreaExploredOrEventHappens(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF));
+            if (pCreature->isQuestGiver())
+                pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_3), pCreature->GetGUID());
+            break;
+            }
+    return true;
+}
+
+bool QuestRewarded_npc_magni_bronzebeard(Player* pPlayer, Creature* pCreature, Quest const* pQuest)
+{
+    if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF))
+        PSM_AddSpells(pPlayer);
+    else if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, GET_PEX_REWARD))
+        PSM_PexReward(pPlayer);
     return true;
 }
 
@@ -101,10 +136,44 @@ bool GossipHello_npc_magni_bronzebeard(Player* pPlayer, Creature* pCreature)
 
 bool GossipHello_npc_tinker_mekkatorque(Player* pPlayer, Creature* pCreature)
 {
-    if (pCreature->isQuestGiver())
-        pPlayer->PrepareQuestMenu(pCreature->GetGUID());
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+    if ((pPlayer->GetQuestStatus(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF)) == QUEST_STATUS_INCOMPLETE) && (PSM_CheckOptionForPlayer(pPlayer, OPTION_SET_55)))
+    {
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_NOTREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_NOTREADY);
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_IAMREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_IAMREADY);
+        pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_1), pCreature->GetGUID());
+    }
+    else
+    {
+        if (pCreature->isQuestGiver())
+            pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+        pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
+    }
+    return true;
+}
 
+bool GossipSelect_npc_tinker_mekkatorque(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction)
+{
+    switch (uiAction)
+    {
+        case GOSSIP_ACTION_NOTREADY:
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_2), pCreature->GetGUID());
+            break;
+        case GOSSIP_ACTION_IAMREADY:
+            pPlayer->AreaExploredOrEventHappens(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF));
+            if (pCreature->isQuestGiver())
+                pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_3), pCreature->GetGUID());
+            break;
+    }
+    return true;
+}
+
+bool QuestRewarded_npc_tinker_mekkatorque(Player* pPlayer, Creature* pCreature, Quest const* pQuest)
+{
+    if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF))
+        PSM_AddSpells(pPlayer);
+    else if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, GET_PEX_REWARD))
+        PSM_PexReward(pPlayer);
     return true;
 }
 
@@ -113,7 +182,7 @@ enum eSpells
     SPELL_STORM_BOLT    = 20685,
     SPELL_KNOCK_AWAY    = 20686,
     SPELL_AVATAR        = 19135,
-    SPELL_THUNDER_CLAP  = 23931,
+    SPELL_THUNDER_CLAP  = 23913,
     SPELL_LAY_ON_HAND   = 17233,
     SPELL_CHARGE        = 22911,
 };
@@ -245,11 +314,15 @@ void AddSC_ironforge()
     newscript = new Script;
     newscript->Name = "npc_magni_bronzebeard";
     newscript->pGossipHello   = &GossipHello_npc_magni_bronzebeard;
+    newscript->pGossipSelect  = &GossipSelect_npc_magni_bronzebeard;
+    newscript->pQuestRewardedNPC = &QuestRewarded_npc_magni_bronzebeard;
     newscript->RegisterSelf();
 
     newscript = new Script;
     newscript->Name = "npc_tinker_mekkatorque";
     newscript->pGossipHello   = &GossipHello_npc_tinker_mekkatorque;
+    newscript->pGossipSelect  = &GossipSelect_npc_tinker_mekkatorque;
+    newscript->pQuestRewardedNPC = &QuestRewarded_npc_tinker_mekkatorque;
     newscript->RegisterSelf();
 
     newscript = new Script;

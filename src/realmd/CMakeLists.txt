@@ -22,8 +22,6 @@ if(WIN32)
   list(APPEND EXECUTABLE_SRCS
     realmd.rc
   )
-  
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /D__ACE_INLINE__")
 endif()
 
 include_directories(

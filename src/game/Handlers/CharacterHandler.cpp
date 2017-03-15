@@ -41,7 +41,6 @@
 #include "Chat.h"
 #include "Anticheat.h"
 #include "MasterPlayer.h"
-#include "PlayerBroadcaster.h"
 
 // config option SkipCinematics supported values
 enum CinematicsSkipMode
@@ -84,20 +83,22 @@ bool LoginQueryHolder::Initialize()
 
     // NOTE: all fields in `characters` must be read to prevent lost character data at next save in case wrong DB structure.
     // !!! NOTE: including unused `zone`,`online`
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADFROM,            "SELECT guid, account, name, race, class, gender, level, xp, money, playerBytes, playerBytes2, playerFlags, "
-                     "position_x, position_y, position_z, map, orientation, taximask, cinematic, totaltime, leveltime, rest_bonus, logout_time, is_logout_resting, resettalents_cost, "
-                     "resettalents_time, trans_x, trans_y, trans_z, trans_o, transguid, extra_flags, stable_slots, at_login, zone, online, death_expire_time, taxi_path, "
-                     "honorRankPoints, honorHighestRank, honorStanding, honorLastWeekHK, honorLastWeekCP, honorStoredHK, honorStoredDK, "
-                     "watchedFaction, drunk, health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars, "
-                     "world_phase_mask, customFlags FROM characters WHERE guid = '%u'", m_guid.GetCounter());
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADFROM,            "SELECT guid, account, name, race, class, gender, level, xp, money, playerBytes, playerBytes2, playerFlags,"
+                     "position_x, position_y, position_z, map, orientation, taximask, cinematic, totaltime, leveltime, rest_bonus, logout_time, is_logout_resting, resettalents_cost,"
+                     "resettalents_time, trans_x, trans_y, trans_z, trans_o, transguid, extra_flags, stable_slots, at_login, zone, online, death_expire_time, taxi_path,"
+                     "honor_highest_rank, honor_standing, stored_honor_rating, stored_dishonorable_kills, stored_honorable_kills,"
+                     "watchedFaction, drunk,"
+                     "health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars, "
+                     "customFlags, lastweek_honorable_kills, lastweek_honor, world_phase_mask " // Elysium
+                     "FROM characters WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADGROUP,           "SELECT groupId FROM group_member WHERE memberGuid ='%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADBOUNDINSTANCES,  "SELECT id, permanent, map, resettime FROM character_instance LEFT JOIN instance ON instance = id WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADAURAS,           "SELECT caster_guid,item_guid,spell,stackcount,remaincharges,basepoints0,basepoints1,basepoints2,periodictime0,periodictime1,periodictime2,maxduration,remaintime,effIndexMask FROM character_aura WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADSPELLS,          "SELECT spell,active,disabled FROM character_spell WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADQUESTSTATUS,     "SELECT quest,status,rewarded,explored,timer,mobcount1,mobcount2,mobcount3,mobcount4,itemcount1,itemcount2,itemcount3,itemcount4 FROM character_queststatus WHERE guid = '%u'", m_guid.GetCounter());
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADHONORCP,         "SELECT victimType,victim,cp,date,type FROM character_honor_cp WHERE guid = '%u'", m_guid.GetCounter());
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADHONORCP,         "SELECT victim_type,victim,honor,date,type FROM character_honor_cp WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADREPUTATION,      "SELECT faction,standing,flags FROM character_reputation WHERE guid = '%u'", m_guid.GetCounter());
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADINVENTORY,       "SELECT * FROM (SELECT creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, text, bag, slot, item, itemEntry FROM character_inventory JOIN item_instance ON character_inventory.item = item_instance.guid WHERE character_inventory.guid = '%u') as t ORDER BY bag,slot", m_guid.GetCounter());
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADINVENTORY,       "SELECT creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, text, bag, slot, item, itemEntry FROM character_inventory JOIN item_instance ON character_inventory.item = item_instance.guid WHERE character_inventory.guid = '%u' ORDER BY bag,slot", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADITEMLOOT,        "SELECT guid,itemid,amount,property FROM item_loot WHERE owner_guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADACTIONS,         "SELECT button,action,type FROM character_action WHERE guid = '%u' ORDER BY button", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADSOCIALLIST,      "SELECT friend,flags FROM character_social WHERE guid = '%u' LIMIT 255", m_guid.GetCounter());
@@ -413,8 +414,6 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket & recv_data)
     WorldPacket data(SMSG_CHAR_DELETE, 1);
     data << (uint8)CHAR_DELETE_SUCCESS;
     SendPacket(&data);
-
-    sWorld.LogCharacter(this, lowguid, name, "Delete");
 }
 
 void WorldSession::HandlePlayerLoginOpcode(WorldPacket & recv_data)
@@ -463,7 +462,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
     // Session2 created, requests login, and receives 2 login callback.
     if (GetPlayer() || !m_playerLoading)
     {
-        sLog.nostalrius("[CRASH] HandlePlayerLogin on session %u with player %s [loading=%u]", GetAccountId(), GetPlayerName(), m_playerLoading);
+        sLog.elysium("[CRASH] HandlePlayerLogin on session %u with player %s [loading=%u]", GetAccountId(), GetPlayerName(), m_playerLoading);
         delete holder;
         m_playerLoading = false;
         return;
@@ -487,8 +486,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
         }
         pCurrChar->GetSession()->SetPlayer(NULL);
         pCurrChar->SetSession(this);
-        // Need to attach packet bcaster to the new socket
-        pCurrChar->m_broadcaster->ChangeSocket(GetSocket());
         alreadyOnline = true;
         // If the character had a logout request, then he is articifially stunned (cf CMSG_LOGOUT_REQUEST handler). Fix it here.
         if (pCurrChar->CanFreeMove())
@@ -503,7 +500,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
         // Character found online but not in world ?
         if (HashMapHolder<Player>::Find(playerGuid))
         {
-            sLog.nostalrius("[CRASH] Trying to login already ingame character guid %u", playerGuid.GetCounter());
+            sLog.elysium("[CRASH] Trying to login already ingame character guid %u", playerGuid.GetCounter());
             KickPlayer();
             delete holder;
             m_playerLoading = false;
@@ -677,7 +674,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
 
     // announce group about member online (must be after add to player list to receive announce to self)
     if (Group *group = pCurrChar->GetGroup())
-        group->UpdatePlayerOnlineStatus(pCurrChar);
+        group->SendUpdate();
 
     // friend status
     // TODO: Call it when node finished loading also
@@ -764,12 +761,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
         if (pCurrChar->getDeathState() == CORPSE)
             pCurrChar->KillPlayer();
     }
-
     // Update warden speeds
-    //if (GetWarden())
-        //for (int i = 0; i < MAX_MOVE_TYPE; ++i)
-            //GetWarden()->SendSpeedChange(UnitMoveType(i), pCurrChar->GetSpeed(UnitMoveType(i)));
-
+    if (GetWarden())
+        for (int i = 0; i < MAX_MOVE_TYPE; ++i)
+            GetWarden()->SendSpeedChange(UnitMoveType(i), pCurrChar->GetSpeed(UnitMoveType(i)));
     ALL_SESSION_SCRIPTS(this, OnLogin(pCurrChar));
 }
 
@@ -909,7 +904,7 @@ void WorldSession::HandleChangePlayerNameOpcodeCallBack(QueryResult *result, uin
     WorldSession * session = sWorld.FindSession(accountId);
     if (!session)
     {
-        delete result;
+        if (result) delete result;
         return;
     }
 
@@ -938,6 +933,4 @@ void WorldSession::HandleChangePlayerNameOpcodeCallBack(QueryResult *result, uin
     data << guid;
     data << newname;
     session->SendPacket(&data);
-
-    sObjectMgr.ChangePlayerNameInCache(guidLow, oldname, newname);
 }

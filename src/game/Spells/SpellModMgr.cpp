@@ -42,7 +42,7 @@ SpellModMgr::~SpellModMgr()
 }
 
 /*
-SQL : cf sql/nostalrius/spell_mod.sql et sql/nostalrius/spell_effect_mod.sql
+SQL : cf sql/elysium/spell_mod.sql et sql/elysium/spell_effect_mod.sql
 */
 
 inline void ModUInt32ValueIfExplicit(Field &f, uint32 &value)
@@ -286,18 +286,7 @@ void SpellModMgr::LoadSpellMods()
         OUT_LOG(">> Loaded %u spell effect modifications", total_count);
     }
 
-    // Other modifications (no 'speed' field in spell_mod)
-
-    // Flare
-    if (SpellEntry* fuseeEcl = (SpellEntry*)sSpellMgr.GetSpellEntry(1543))
-        fuseeEcl->speed = 0.0f;
-
-    // Seal of Command Trigger minor delay (melee radius 5.0 / 10.0 * 1000 = 0.5sec delay)
-    if (SpellEntry* spellInfo = (SpellEntry*)sSpellMgr.GetSpellEntry(20424))
-        spellInfo->speed = 10.0f;
-
-    // Divine Favor EffectItemMask for Holy Light base spell
-    // (HACK) need to modify EffectItemType column in spell_effect_mod to support bigint flags
-    if (SpellEntry* pDivine = (SpellEntry*)sSpellMgr.GetSpellEntry(20216))
-        pDivine->EffectItemType[0] = 0x80202000;
+    // Autres modifs (pas de champ 'speed' dans spell_mod)
+    SpellEntry* fuseeEcl = (SpellEntry*)sSpellMgr.GetSpellEntry(1543);
+    fuseeEcl->speed = 0.0f;
 }

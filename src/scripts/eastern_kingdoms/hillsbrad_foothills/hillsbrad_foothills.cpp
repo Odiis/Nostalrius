@@ -1,4 +1,4 @@
-/* Nostalrius
+/* Elysium
 *Alita: j'inaugure ce fichier!
 *
 *
@@ -40,7 +40,7 @@ bool QuestRewarded_go_helcular_s_grave(Player* pPlayer, GameObject* pGo, Quest c
     {
         if (!pGraveAI->CheckHelcularSpawned())
         {
-            if (Creature* helcular = pGo->SummonCreature(2433, -741.982f, -621.186f, 18.3853f, 2.05043f, TEMPSUMMON_DEAD_DESPAWN, 0))
+            if (Creature* helcular = pGo->SummonCreature(2433, -741.982, -621.186, 18.3853, 2.05043, TEMPSUMMON_DEAD_DESPAWN, 0))
                 pGraveAI->SetHelcularGuid(helcular);
         }
     }
@@ -65,7 +65,7 @@ struct go_dusty_rugAI: public GameObjectAI
     GuidList Farmers;
     uint8 step;//0 = usual, nothing giong on // 1+ event going on
 
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (step)
         {
@@ -138,7 +138,8 @@ struct go_dusty_rugAI: public GameObjectAI
             return;
         step = 1;
         timer = 2000;
-        if (GameObject* pKeg = me->FindNearestGameObject(GO_TAINTED_KEG, 10.0f))
+        float fX, fY, fZ;
+        if (GameObject* pKeg = me->FindNearestGameObject(GO_TAINTED_KEG, 10.000000))
         {
             pKeg->SetRespawnTime(120);
             pKeg->Refresh();

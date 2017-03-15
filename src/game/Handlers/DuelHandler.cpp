@@ -55,20 +55,19 @@ void WorldSession::HandleDuelCancelledOpcode(WorldPacket& recvPacket)
 {
     //DEBUG_LOG( "WORLD: received CMSG_DUEL_CANCELLED" );
 
-    auto pPlayer = GetPlayer();
     // no duel requested
-    if (!pPlayer->duel)
+    if (!GetPlayer()->duel)
         return;
 
     // player surrendered in a duel using /forfeit
-    if (pPlayer->duel->startTime != 0)
+    if (GetPlayer()->duel->startTime != 0)
     {
-        pPlayer->CombatStopWithPets(true);
-        if (pPlayer->duel->opponent)
-            pPlayer->duel->opponent->CombatStopWithPets(true);
+        GetPlayer()->CombatStopWithPets(true);
+        if (GetPlayer()->duel->opponent)
+            GetPlayer()->duel->opponent->CombatStopWithPets(true);
 
-        pPlayer->CastSpell(GetPlayer(), 7267, true);    // beg
-        pPlayer->DuelComplete(DUEL_WON);
+        GetPlayer()->CastSpell(GetPlayer(), 7267, true);    // beg
+        GetPlayer()->DuelComplete(DUEL_WON);
         return;
     }
 
@@ -77,5 +76,5 @@ void WorldSession::HandleDuelCancelledOpcode(WorldPacket& recvPacket)
     ObjectGuid guid;
     recvPacket >> guid;
 
-    pPlayer->DuelComplete(DUEL_INTERUPTED);
+    GetPlayer()->DuelComplete(DUEL_INTERUPTED);
 }

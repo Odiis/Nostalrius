@@ -1,5 +1,5 @@
-/* Copyright (C) 2009 - 2010 Nostalrius <http://nostalrius.ath.cx/>
- * Auteur        : Daemon
+/* Copyright (C) 2009 - 2010 Elysium <https://elysium-project.org/>
+ * 1.12
  * All rights reserved */
 
 #include "scriptPCH.h"
@@ -58,13 +58,6 @@ struct boss_immol_tharAI : public ScriptedAI
         m_uiPortalOfImmolTharTimer = urand(10000, 14000);
         CheckBug_Timer = 0;
         m_bEngage = false;
-    }
-
-    void EnterEvadeMode() override
-    {
-        m_creature->RemoveGuardians();
-        
-        ScriptedAI::EnterEvadeMode();
     }
 
     void Aggro(Unit* pWho)

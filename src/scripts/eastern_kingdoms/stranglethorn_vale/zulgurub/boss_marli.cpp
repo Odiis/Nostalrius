@@ -96,8 +96,7 @@ struct boss_marliAI : public ScriptedAI
         m_bHasWebbed = false;
 
         if (m_pInstance)
-            if (m_pInstance->GetData(TYPE_MARLI) != DONE)
-                m_pInstance->SetData(TYPE_MARLI, NOT_STARTED);
+            m_pInstance->SetData(TYPE_MARLI, NOT_STARTED);
 
         std::list<GameObject*> lSpiderEggs;
         GetGameObjectListWithEntryInGrid(lSpiderEggs, m_creature, GO_EGG, DEFAULT_VISIBILITY_INSTANCE);

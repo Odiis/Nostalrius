@@ -312,7 +312,7 @@ struct npc_grark_lorkrubAI : public npc_escortAI/*, private DialogueHelper*/
             {
                 dialogueStep = i;
                 dialogueTimer = 0;
-                //sLog.nostalrius("size of aOutroDialogue: 9, i=%i, firstAction=%i",i,firstAction);
+                //sLog.elysium("size of aOutroDialogue: 9, i=%i, firstAction=%i",i,firstAction);
                 break;
             }
         }
@@ -401,7 +401,7 @@ struct npc_grark_lorkrubAI : public npc_escortAI/*, private DialogueHelper*/
                     //pSummoned->GetMotionMaster()->MoveIdle();
                     pSummoned->GetMotionMaster()->MoveRandom();
                     //if(pSummoned->CanFly())
-                    //sLog.nostalrius("creature can fly");
+                    //sLog.elysium("creature can fly");
                 }
                 m_lSearscaleGuidList.push_back(pSummoned->GetObjectGuid());
                 break;
@@ -417,7 +417,7 @@ struct npc_grark_lorkrubAI : public npc_escortAI/*, private DialogueHelper*/
     void SummonedCreatureJustDied(Creature* /*pSummoned*/) override
     {
         ++m_uiKilledCreatures;
-        //sLog.nostalrius("m_uiKilledCreatures = %u", m_uiKilledCreatures);
+        //sLog.elysium("m_uiKilledCreatures = %u", m_uiKilledCreatures);
         switch (m_uiKilledCreatures)
         {
             case 4:
@@ -484,7 +484,7 @@ bool QuestAccept_npc_grark_lorkrub(Player* pPlayer, Creature* pCreature, const Q
     if (pQuest->GetQuestId() == QUEST_ID_PRECARIOUS_PREDICAMENT)
     {
         if (npc_grark_lorkrubAI* pEscortAI = dynamic_cast<npc_grark_lorkrubAI*>(pCreature->AI()))
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(false, false, pPlayer->GetGUID(), pQuest);
 
         return true;
     }
@@ -513,243 +513,283 @@ bool EffectDummyCreature_spell_capture_grark(Unit* /*pCaster*/, uint32 uiSpellId
     return false;
 }
 
+
+
+// Elysium - quete épique chasseur
+
 enum
 {
-    SPELL_FOOLS_PLIGHT              = 23504,    
-    
-    SPELL_DEMONIC_FRENZY            = 23257,
-    SPELL_ENTROPIC_STING            = 23260,
+    DEMONIC_FRENZY          = 23257,
+    ENTROPIC_STING          = 23260,
+    DESESPOIR_IDIOT         = 23503,
+    SCORPID_STING           = 14277, // rank 4
+    FOOL_PLIGHT             = 23504,
 
-    EMOTE_FRENZY                    = -1000001,
+    HUNTER_QUEST_DESPAWN_TIMER    = 2400000, //Shall despawn after 40 minutes if turned into a demon
+    HUNTER_QUEST_COMBAT_TIMER     = 1200000, //Combat shall not last more than 20 minutes
 
-    NPC_NELSON_THE_NICE             = 14529,
-    NPC_KLINFRAN_THE_CRAZED         = 14534,
-    NPC_THE_CLEANER                 = 14503,
-    
-    QUEST_STAVE_OF_THE_ANCIENTS     = 7636
+    NPC_CLEANER             = 14503,
+    NPC_FRANKLIN            = 14529,
+    NPC_KLINFRAN            = 14534
 };
 
-#define GOSSIP_ITEM                 "Show me your real face, demon."
-
-/*######
-## npc_franklin_the_friendly
-######*/
-
-/*######
-## npc_klinfran_the_crazed
-######*/
-
-struct npc_klinfranAI : public ScriptedAI
+struct mob_KlinfranAI : public ScriptedAI
 {
-    npc_klinfranAI(Creature* pCreature) : ScriptedAI(pCreature)
+    mob_KlinfranAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_bTransform      = false;
-        m_uiDespawn_Timer = 0;
+        EventBegin = false;
+        EventEnd = true;
+        BoredOrInterfere = false;
+        CombatTimer = 10000;
+
+        _combatDespawnTimer = HUNTER_QUEST_COMBAT_TIMER;
+        _despawnTimer       = HUNTER_QUEST_DESPAWN_TIMER;
+
         Reset();
     }
 
-    uint32 m_uiTransform_Timer;
-    uint32 m_uiTransformEmote_Timer;
-    bool m_bTransform;
+    bool isEngaged;
+    bool EventBegin;
+    bool EventEnd;
+    bool BoredOrInterfere;
+    uint32 CombatTimer;
+    uint32 FrenezyTimer;
+    uint32 DespawnTimer;
+    uint64 PlayerGuid;
+    uint32 CheckBug_Timer;
+    uint32 CleanerTimer;
+    uint32 _despawnTimer;
+    uint32 _combatDespawnTimer;
 
-    ObjectGuid m_hunterGuid;
-    uint32 m_uiDemonic_Frenzy_Timer;
-    uint32 m_uiDespawn_Timer;
-
-    void Reset() 
+    void Reset()
     {
-        switch (m_creature->GetEntry())
+        isEngaged = false;
+        //EventBegin = false;
+        FrenezyTimer = 15000;
+        CheckBug_Timer = 0;
+        CleanerTimer = 0;
+        PlayerGuid = 0;
+
+        if (BoredOrInterfere || EventEnd)
         {
-            case NPC_NELSON_THE_NICE:
-                m_creature->SetRespawnDelay(35*MINUTE);
-                m_creature->SetRespawnTime(35*MINUTE);
-                m_creature->SetHomePosition(-8318.19f, -993.662f, 176.956f, 5.65024f);
-                m_creature->NearTeleportTo(-8318.19f, -993.662f, 176.956f, 5.65024f);
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
-                {
-                    m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
-                    m_creature->GetMotionMaster()->Initialize();
-                }
-                
-                m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+            EventBegin = false;
+            EventEnd = false;
+            BoredOrInterfere = false;
+            CombatTimer = 10000;
+            m_creature->SetEntry(NPC_FRANKLIN);
+            m_creature->UpdateEntry(NPC_FRANKLIN);
+            m_creature->SetHomePosition(-8318.19f, -993.662f, 176.956f, 5.65024f);
+            m_creature->NearTeleportTo(-8318.19f, -993.662f, 176.956f, 5.65024f);
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveWaypoint();
+            //m_creature->GetMotionMaster()->Initialize();
+            m_creature->SaveToDB();
+             _despawnTimer     = HUNTER_QUEST_DESPAWN_TIMER;
+        }
+        else if (EventBegin)
+        {
+            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            m_creature->GetMotionMaster()->MoveIdle();
+            //m_creature->GetMotionMaster()->Initialize();
 
-                m_uiTransform_Timer      = 10000;
-                m_uiTransformEmote_Timer = 5000;
-                m_bTransform             = false;
-                m_uiDespawn_Timer        = 0;
-                break;
-            case NPC_KLINFRAN_THE_CRAZED:
-                if (!m_uiDespawn_Timer)
-                    m_uiDespawn_Timer = 20*MINUTE*IN_MILLISECONDS;
-
-                m_hunterGuid.Clear();
-                m_uiDemonic_Frenzy_Timer = 5000;
-                break;
+             if (_despawnTimer < 1000)
+             {
+                 m_creature->SetRespawnDelay(10000);
+                 m_creature->DisappearAndDie();
+                 EventEnd = true;
+             }
         }
     }
 
-    /** Franklin the Friendly */
-    void Transform()
+    void Aggro(Unit* pWho)
     {
-        m_creature->UpdateEntry(NPC_KLINFRAN_THE_CRAZED);
-        m_creature->SetHomePosition(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation());
-        m_creature->SetDefaultMovementType(IDLE_MOTION_TYPE);
-        m_creature->GetMotionMaster()->Initialize();
-        Reset();
+         /** Combat shall not last more than 20 minutes */
+         if(!isEngaged)
+         {
+             isEngaged     = true;
+             _combatDespawnTimer = HUNTER_QUEST_DESPAWN_TIMER;
+         }
     }
 
-    void BeginEvent(ObjectGuid playerGuid)
+    void JustDied(Unit* pKiller)
     {
-        m_hunterGuid = playerGuid;
-        m_creature->GetMotionMaster()->Clear(false);
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
-        m_bTransform = true;      
+        //m_creature->SetHomePosition(-8318.19f, -993.66f, 176.96f, 6.27f);
+        //m_creature->SaveToDB();
+        if (!BoredOrInterfere)
+            EventEnd = true;
     }
 
-    /** Klinfran the Crazed */
-    void Aggro(Unit* pWho) 
+    void JustReachedHome()
     {
-        if (pWho->getClass() == CLASS_HUNTER && (m_hunterGuid.IsEmpty() || m_hunterGuid == pWho->GetObjectGuid())/*&& pWho->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE*/)
+    }
+
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell)
+    {
+        if (pSpell->Id == SCORPID_STING) // Piqûre de scorpide rang 4
         {
-            m_hunterGuid = pWho->GetObjectGuid();
+            m_creature->CastSpell(m_creature, ENTROPIC_STING, true);
+            if (m_creature->HasAura(DEMONIC_FRENZY))
+                m_creature->RemoveAurasDueToSpell(DEMONIC_FRENZY);
         }
-        else
-            DemonDespawn();
     }
 
-    void JustDied(Unit* /*pKiller*/)
+    void DamageTaken(Unit *done_by, uint32 &damage)
     {
-        m_creature->SetHomePosition(-8318.19f, -993.662f, 176.956f, 5.65024f);
-
-        // DRSS
-        uint32 m_respawn_delay_Timer = 3*HOUR;
-        if (sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
-            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
-
-        m_creature->SetRespawnDelay(m_respawn_delay_Timer);
-        m_creature->SetRespawnTime(m_respawn_delay_Timer);
-        m_creature->SaveRespawnTime();
-    }
-    
-    void DemonDespawn(bool triggered = true)
-    {
-        m_creature->SetHomePosition(-8318.19f, -993.662f, 176.956f, 5.65024f);
-        m_creature->SetRespawnDelay(15*MINUTE);
-        m_creature->SetRespawnTime(15*MINUTE);
-        m_creature->SaveRespawnTime();
-    
-        if (triggered)
-        {
-            Creature* pCleaner = m_creature->SummonCreature(NPC_THE_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetAngle(m_creature), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 20*MINUTE*IN_MILLISECONDS);
-            if (pCleaner)
-            {
-                ThreatList const& tList = m_creature->getThreatManager().getThreatList();
-                
-                for (ThreatList::const_iterator itr = tList.begin();itr != tList.end(); ++itr)
-                {
-                    if (Unit* pUnit = m_creature->GetMap()->GetUnit((*itr)->getUnitGuid()))
-                    {
-                        if (pUnit->isAlive())
-                        {
-                            pCleaner->SetInCombatWith(pUnit);
-                            pCleaner->AddThreat(pUnit);
-                            pCleaner->AI()->AttackStart(pUnit);
-                        }
-                    }
-                }
-            }
-        }
-        
-        m_creature->ForcedDespawn();
-    }
-    
-    void SpellHit(Unit* /*pCaster*/, const SpellEntry* pSpell) override
-    {
-        if (pSpell && pSpell->Id == 14277)   // Scorpid Sting (Rank 4)
-        {
-            m_creature->RemoveAurasDueToSpell(SPELL_DEMONIC_FRENZY);
-            DoCastSpellIfCan(m_creature, SPELL_ENTROPIC_STING, CAST_TRIGGERED);
-        }
+        if (EventBegin == false)
+            m_creature->CastSpell(done_by, DESESPOIR_IDIOT, true);
     }
 
     void UpdateAI(const uint32 uiDiff)
     {
-        /** Franklin the Friendly */
-        if (m_bTransform)
-        {
-            if (m_uiTransformEmote_Timer)
-            {
-                if (m_uiTransformEmote_Timer <= uiDiff)
-                {
-                    m_creature->HandleEmote(EMOTE_ONESHOT_POINT);
-                    m_uiTransformEmote_Timer = 0;
-                }
-                else
-                    m_uiTransformEmote_Timer -= uiDiff;
-            }
-
-            if (m_uiTransform_Timer < uiDiff)
-            {
-                m_bTransform = false;
-                Transform();
-            }
-            else
-                m_uiTransform_Timer -= uiDiff;
-        }
-
-        /** Klinfran the Crazed */
-        if (m_uiDespawn_Timer)
-        {
-            if (m_uiDespawn_Timer <= uiDiff)
-            {
-                if (m_creature->isAlive() && !m_creature->isInCombat())
-                    DemonDespawn(false);
-            }
-            else
-                m_uiDespawn_Timer -= uiDiff;
-        }
-            
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        if (EventBegin == false)
             return;
-
-        if (m_creature->getThreatManager().getThreatList().size() > 1 /*|| pHunter->isDead()*/)
-            DemonDespawn();
-
-        if (m_uiDemonic_Frenzy_Timer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_DEMONIC_FRENZY) == CAST_OK)
-            {
-                DoScriptText(EMOTE_FRENZY, m_creature);
-                m_uiDemonic_Frenzy_Timer = 15000;
+         else
+         {
+             if (_despawnTimer <= uiDiff)
+             {
+                 if(!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+                 {
+                     m_creature->SetRespawnDelay(10000);
+                     m_creature->DisappearAndDie();
+                     EventEnd = true;
+                 }
             }
+             else
+                 _despawnTimer -= uiDiff;
+          }
+
+        if (CombatTimer <= uiDiff && CombatTimer != 0)
+        {
+            if (Player* pPlayer = m_creature->GetMap()->GetPlayer(PlayerGuid))
+            {
+                CombatTimer = 0;
+                m_creature->SetEntry(NPC_KLINFRAN);
+                m_creature->UpdateEntry(NPC_KLINFRAN);
+                //m_creature->AddThreat(pPlayer);
+            }
+            else
+            {
+                m_creature->MonsterYell("Joueur introuvable, reset.", 0);
+                Reset();
+            }
+        }
+        else if (CombatTimer != 0)
+        {
+            CombatTimer -= uiDiff;
+            return;
+        }
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            if (m_creature->GetHealthPercent() < 100.0f)
+            {
+                // En cas de bug pathfinding
+                CheckBug_Timer += uiDiff;
+                if (CheckBug_Timer > 5000)
+                {
+                    EnterEvadeMode();
+                    m_creature->CombatStop();
+                    m_creature->SetHealth(m_creature->GetMaxHealth());
+                }
+            }
+            return;
         }
         else
-            m_uiDemonic_Frenzy_Timer -= uiDiff;
+            CheckBug_Timer = 0;
+
+          /** If combat last for too long, force creature respawn */
+          if (_combatDespawnTimer < uiDiff)
+          {
+              if(isEngaged)
+              {
+                  BoredOrInterfere = true;
+                  m_creature->SetRespawnDelay(10000);
+                  m_creature->DisappearAndDie();
+              }
+          }
+          else
+              _combatDespawnTimer -= uiDiff;
+
+        if (m_creature->getThreatManager().getThreatList().size() > 1 && !m_creature->FindNearestCreature(NPC_CLEANER, 150.0f))
+        {
+            if (Creature* Crea = m_creature->SummonCreature(NPC_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 1000))
+            {
+                Crea->AddThreatsOf(m_creature);
+                //Crea->MonsterYell("Vous osez gener le combat de cette creature ? La bataille doit etre menee seule ! Vous allez tous payer pour cette intervention !", 0);
+                Crea->MonsterYell(ELYSIUM_TEXT(206), 0);
+
+                //m_creature->MonsterSay("Seul un idiot resterait dans la bataille. Adieu, trouillard !", 0);
+                m_creature->MonsterSay(ELYSIUM_TEXT(207), 0);
+                //m_creature->SetRespawnDelay(25200); // Ustaag : prochain respawn fix a 7h 25200
+                m_creature->CastSpellOnNearestVictim(FOOL_PLIGHT, 0.0f, 20.0f, false);
+                BoredOrInterfere = true;
+            }
+        }
+
+        if (Creature* Crea = m_creature->FindNearestCreature(NPC_CLEANER, 50.0f))
+        {
+            CleanerTimer += uiDiff;
+            if (CleanerTimer > 2000)
+                m_creature->DisappearAndDie();
+            return;
+        }
+        else
+            CleanerTimer = 0;
+
+        if (FrenezyTimer < uiDiff)
+        {
+            if (DoCastSpellIfCan(m_creature, DEMONIC_FRENZY, CAST_AURA_NOT_PRESENT) == CAST_OK)
+                FrenezyTimer = 15000;
+        }
+        else
+            FrenezyTimer -= uiDiff;
 
         DoMeleeAttackIfReady();
     }
 };
 
-bool GossipHello_npc_klinfran(Player* pPlayer, Creature* pCreature)
+bool GossipHello_mob_Klinfran(Player* pPlayer, Creature* pCreature)
 {
-    if (pPlayer->GetQuestStatus(QUEST_STAVE_OF_THE_ANCIENTS) == QUEST_STATUS_INCOMPLETE)
-        pPlayer->ADD_GOSSIP_ITEM(0, GOSSIP_ITEM , GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
-    
-    pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetObjectGuid());
+    if (pPlayer->GetQuestStatus(7636) == QUEST_STATUS_INCOMPLETE && pPlayer->getClass() == CLASS_HUNTER)
+        pPlayer->ADD_GOSSIP_ITEM(0, ELYSIUM_TEXT(213), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
+
+    pPlayer->SEND_GOSSIP_MENU(7043, pCreature->GetObjectGuid());
     return true;
 }
 
-bool GossipSelect_npc_klinfran(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction )
+bool GossipSelect_mob_Klinfran(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action)
 {
-    pPlayer->CLOSE_GOSSIP_MENU();
-    ((npc_klinfranAI*)pCreature->AI())->BeginEvent(pPlayer->GetObjectGuid());    
+    if (sender != GOSSIP_SENDER_MAIN)
+        return false;
+
+    switch (action)
+    {
+        case GOSSIP_ACTION_INFO_DEF:
+        {
+            if (mob_KlinfranAI* pKlinfranEventAI = dynamic_cast<mob_KlinfranAI*>(pCreature->AI()))
+            {
+                pKlinfranEventAI->EventBegin = true;
+                pKlinfranEventAI->PlayerGuid = pPlayer->GetGUID();
+                pCreature->MonsterSay(ELYSIUM_TEXT(212), 0, 0);
+                //pCreature->MonsterSay("Je vais apprecier, Chasseur.", 0, 0);
+                pCreature->SetHomePosition(pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ(), pCreature->GetOrientation());
+                pCreature->GetMotionMaster()->Clear(false);
+                pCreature->SetDefaultMovementType(IDLE_MOTION_TYPE);
+                pCreature->GetMotionMaster()->MoveIdle();
+                pCreature->SaveToDB();
+            }
+            pPlayer->CLOSE_GOSSIP_MENU();
+        }
+        break;
+    }
     return true;
 }
 
-CreatureAI* GetAI_npc_klinfran(Creature* pCreature)
+CreatureAI* GetAI_mob_Klinfran(Creature* pCreature)
 {
-    return new npc_klinfranAI(pCreature);
+    return new mob_KlinfranAI(pCreature);
 }
 
 void AddSC_burning_steppes()
@@ -770,10 +810,11 @@ void AddSC_burning_steppes()
     newscript->pEffectDummyCreature = &EffectDummyCreature_spell_capture_grark;
     newscript->RegisterSelf();
 
+    // Elysium
     newscript = new Script;
-    newscript->Name = "npc_klinfran";
-    newscript->GetAI = &GetAI_npc_klinfran;
-    newscript->pGossipHello =  &GossipHello_npc_klinfran;
-    newscript->pGossipSelect = &GossipSelect_npc_klinfran;
+    newscript->Name = "mob_Klinfran";
+    newscript->GetAI = &GetAI_mob_Klinfran;
+    newscript->pGossipHello = &GossipHello_mob_Klinfran;
+    newscript->pGossipSelect = &GossipSelect_mob_Klinfran;
     newscript->RegisterSelf();
 }

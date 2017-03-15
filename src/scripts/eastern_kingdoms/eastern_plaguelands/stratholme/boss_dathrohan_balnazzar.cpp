@@ -111,7 +111,6 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
     uint32 m_uiPsychicScream_Timer;
     uint32 m_uiDeepSleep_Timer;
     uint32 m_uiMindControl_Timer;
-    uint32 m_uiTransform_Timer;
     bool m_bTransformed;
 
     uint64 MCPlayerGuid;
@@ -125,11 +124,10 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
         m_uiCrusaderStrike_Timer = 12000;
         m_uiMindBlast_Timer = 6000;
         m_uiHolyStrike_Timer = 18000;
-        m_uiShadowShock_Timer = 3000;
+        m_uiShadowShock_Timer = 4000;
         m_uiPsychicScream_Timer = 12000;
-        m_uiDeepSleep_Timer = 9000;
-        m_uiMindControl_Timer = 18000;
-        m_uiTransform_Timer = 0;
+        m_uiDeepSleep_Timer = 18000;
+        m_uiMindControl_Timer = 8000;
         m_bTransformed = false;
 
         MCPlayerGuid = 0;
@@ -144,8 +142,6 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
 
     void JustDied(Unit* Victim)
     {
-        m_creature->MonsterSay("Damn you mortals! All my plans of revenge, all my hate... all burned to ash...");
-        
         static uint32 uiCount = sizeof(m_aSummonPoint) / sizeof(SummonDef);
 
         for (uint8 i = 0; i < uiCount; ++i)
@@ -164,11 +160,6 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
                     break;
             }
         }
-    }
-
-    void Aggro(Unit* /*pWho*/)
-    {
-        m_creature->MonsterYell("Today you have unmade what took me years to create! For this you shall all die by my hand!");
     }
 
     void UpdateAI(const uint32 uiDiff)
@@ -220,27 +211,11 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
                 //restore hp, mana and stun
                 DoCastSpellIfCan(m_creature, SPELL_BALNAZZARTRANSFORM);
                 m_creature->UpdateEntry(NPC_BALNAZZAR);
-                m_uiTransform_Timer = 4000;
                 m_bTransformed = true;
-                return;
             }
         }
         else
         {
-            if (m_uiTransform_Timer)
-            {
-                if (m_uiTransform_Timer <= uiDiff)
-                {
-                    m_creature->MonsterYell("You fools think you can defeat me so easily? Face the true might of the Nathrezim!");
-                    m_uiTransform_Timer = 0;
-                }
-                else
-                {
-                    m_uiTransform_Timer -= uiDiff;
-                    return;
-                }
-            }
-
             if (MCPlayerGuid)
             {
                 if (Unit* pTarget = m_creature->GetMap()->GetPlayer(MCPlayerGuid))
@@ -306,7 +281,7 @@ struct boss_dathrohan_balnazzarAI : public ScriptedAI
             //DeepSleep
             if (m_uiDeepSleep_Timer < uiDiff)
             {
-                if (Unit *pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1))
+                if (Unit *pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
                     if (!pTarget->HasAura(SPELL_SLEEP))
                     {

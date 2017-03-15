@@ -71,18 +71,6 @@ class ByteBuffer
         // copy constructor
         ByteBuffer(const ByteBuffer &buf): _rpos(buf._rpos), _wpos(buf._wpos), _storage(buf._storage) { }
 
-        // move constructor
-        ByteBuffer(ByteBuffer &&buf) : _rpos(buf._rpos), _wpos(buf._wpos), _storage(std::move(buf._storage)) {}
-
-        // move operator
-        ByteBuffer& operator=(ByteBuffer &&rhs)
-        {
-            _rpos = rhs._rpos;
-            _wpos = rhs._wpos;
-            _storage = std::move(rhs._storage);
-            return *this;
-        }
-
         void clear()
         {
             _storage.clear();
@@ -365,11 +353,6 @@ class ByteBuffer
         void append(const std::string& str)
         {
             append((uint8 const*)str.c_str(), str.size() + 1);
-        }
-
-        void append(const std::vector<uint8>& src) 
-        {
-            return append(src.data(), src.size());
         }
 
         void append(const char *src, size_t cnt)

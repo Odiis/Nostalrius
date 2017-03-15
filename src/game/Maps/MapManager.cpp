@@ -57,18 +57,21 @@ MapManager::Initialize()
 {
     InitStateMachine();
     InitMaxInstanceId();
-    for (auto itr = sMapStorage.begin<MapEntry>(); itr < sMapStorage.end<MapEntry>(); ++itr)
+    for (uint32 mapId = 0; mapId < sMapStore.GetNumRows(); ++mapId)
     {
-        bool load = false;
-        if (itr->IsContinent() && sWorld.getConfig(CONFIG_BOOL_TERRAIN_PRELOAD_CONTINENTS))
-            load = true;
-        if (itr->Instanceable() && sWorld.getConfig(CONFIG_BOOL_TERRAIN_PRELOAD_INSTANCES))
-            load = true;
-        if (!load)
-            continue;
-        TerrainInfo* terrain = sTerrainMgr.LoadTerrain(itr->id);
-        terrain->AddRef(); // So it won't be deleted
-        terrain->LoadAll();
+        if (MapEntry const* mapEntry = sMapStore.LookupEntry(mapId))
+        {
+            bool load = false;
+            if (mapEntry->IsContinent() && sWorld.getConfig(CONFIG_BOOL_TERRAIN_PRELOAD_CONTINENTS))
+                load = true;
+            if (mapEntry->Instanceable() && sWorld.getConfig(CONFIG_BOOL_TERRAIN_PRELOAD_INSTANCES))
+                load = true;
+            if (!load)
+                continue;
+            TerrainInfo* terrain = sTerrainMgr.LoadTerrain(mapId);
+            terrain->AddRef(); // So it won't be deleted
+            terrain->LoadAll();
+        }
     }
 }
 
@@ -111,7 +114,7 @@ Map* MapManager::CreateMap(uint32 id, const WorldObject* obj)
 
     Map * m = NULL;
 
-    const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(id);
+    const MapEntry* entry = sMapStore.LookupEntry(id);
     if (!entry)
         return NULL;
 
@@ -172,11 +175,11 @@ Map* MapManager::FindMap(uint32 mapid, uint32 instanceId) const
 */
 bool MapManager::CanPlayerEnter(uint32 mapid, Player* player)
 {
-    const MapEntry *entry = sMapStorage.LookupEntry<MapEntry>(mapid);
+    const MapEntry *entry = sMapStore.LookupEntry(mapid);
     if (!entry)
         return false;
 
-    const char *mapName = entry->name;
+    const char *mapName = entry->name[player->GetSession()->GetSessionDbcLocale()];
 
     if (entry->IsDungeon())
     {
@@ -201,7 +204,7 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player)
         uint32 instanceId = state ? state->GetInstanceId() : 0;
         if (!player->CheckInstanceCount(instanceId))
         {
-            DEBUG_LOG("MAP: Player '%s' can't enter instance %u on map %u. Has already entered too many instances.", player->GetName(), instanceId, mapid);
+            DEBUG_LOG("MAP: Player '%s' can't enter instance %u on map %u. Has already entered too many instances.", player->GetName(), state->GetInstanceId(), mapid);
             player->SendTransferAborted(mapid, TRANSFER_ABORT_TOO_MANY_INSTANCES, 0);
             return false;
         }
@@ -411,7 +414,9 @@ bool MapManager::ExistMapAndVMap(uint32 mapid, float x, float y)
 
 bool MapManager::IsValidMAP(uint32 mapid)
 {
-    return sMapStorage.LookupEntry<MapEntry>(mapid);
+    MapEntry const* mEntry = sMapStore.LookupEntry(mapid);
+    return mEntry && (!mEntry->IsDungeon() || ObjectMgr::GetInstanceTemplate(mapid));
+    // TODO: add check for battleground template
 }
 
 void MapManager::UnloadAll()
@@ -477,7 +482,7 @@ Map* MapManager::CreateInstance(uint32 id, Player * player)
     Map * pNewMap = NULL;
     uint32 NewInstanceId = 0;                                   // instanceId of the resulting map
     bool newlyGeneratedInstanceId = false;
-    const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(id);
+    const MapEntry* entry = sMapStore.LookupEntry(id);
 
     if (entry->IsBattleGround())
     {
@@ -535,7 +540,7 @@ Map* MapManager::CreateTestMap(uint32 mapid, bool instanced, float posX, float p
     }
 
     // make sure we have a valid map id
-    const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(mapid);
+    const MapEntry* entry = sMapStore.LookupEntry(mapid);
     if (!entry)
     {
         sLog.outError("CreateTestMap: no entry for map %d", mapid);
@@ -566,10 +571,15 @@ void MapManager::DeleteTestMap(Map* map)
 DungeonMap* MapManager::CreateDungeonMap(uint32 id, uint32 InstanceId, DungeonPersistentState *save)
 {
     // make sure we have a valid map id
-    const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(id);
+    const MapEntry* entry = sMapStore.LookupEntry(id);
     if (!entry)
     {
         sLog.outError("CreateDungeonMap: no entry for map %d", id);
+        MANGOS_ASSERT(false);
+    }
+    if (!ObjectMgr::GetInstanceTemplate(id))
+    {
+        sLog.outError("CreateDungeonMap: no instance template for map %d", id);
         MANGOS_ASSERT(false);
     }
 
@@ -655,29 +665,19 @@ uint32 MapManager::GetContinentInstanceId(uint32 mapId, float x, float y, bool* 
                 -6063.96f, -1411.76f,
                 -6087.62f, -2190.21f,
                 -6349.54f, -2533.66f,
-                -6308.63f, -3049.32f,
-                -6107.82f, -3345.30f,
-                -6008.49f, -3590.52f,
-                -5989.37f, -4312.29f, 
                 -5806.26f, -5864.11f
             };
             const static float stormwindAreaNorthLimit[] = {
                  -8004.25f,  3714.11f,
-                 -8075.00f, -179.00f,
-                 -8638.00f, 169.00f,
-                 -9044.00f, 35.00f,
-                 -9068.00f, -125.00f,
-                 -9094.00f, -147.00f,
-                 -9206.00f, -290.00f,
-                 -9097.00f, -510.00f,
-                 -8739.00f, -501.00f,
+                 -7964.05f,  -458.57f,
+                 -8455.66f,  -739.25f,
                  -8725.50f, -1618.45f,
                  -9810.40f, -1698.41f,
                 -10049.60f, -1740.40f,
                 -10670.61f, -1692.51f,
                 -10908.48f, -1563.87f,
                 -13006.40f, -1622.80f,
-                -12863.23f, -4798.42f
+                -13330.17f, -3579.20f
             };
             const static float stormwindAreaSouthLimit[] = {
                  -8725.337891f,  3535.624023f,
@@ -756,31 +756,11 @@ uint32 MapManager::GetContinentInstanceId(uint32 mapId, float x, float y, bool* 
                     1762.00f, -3746.00f,
                     1564.00f, -3943.00f,
                     1184.00f, -3915.00f,
-                     737.00f, -3782.00f,
-                     -75.00f, -3742.00f,
-                    -263.00f, -3836.00f,
-                    -173.00f, -4064.00f,
-                     -81.00f, -4091.00f,
-                     -49.00f, -4089.00f,
-                     -16.00f, -4187.00f,
-                      -5.00f, -4192.00f,
-                     -14.00f, -4551.00f,
-                    -397.00f, -4601.00f,
-                    -522.00f, -4583.00f,
-                    -668.00f, -4539.00f,
-                    -790.00f, -4502.00f,
-                   -1176.00f, -4213.00f,
-                   -1387.00f, -4674.00f,
-                   -2243.00f, -6046.00f
-            };
-            const static float valleyoftrialsSouthLimit[] = {
-                    -324.00f, -3869.00f,
-                    -774.00f, -3992.00f,
-                    -965.00f, -4290.00f,
-                    -932.00f, -4349.00f,
-                    -828.00f, -4414.00f,
-                    -661.00f, -4541.00f,
-                    -521.00f, -4582.00f
+                    0737.00f, -3782.00f,
+                    -075.00f, -3742.00f,
+                   -1038.00f, -4139.00f,
+                   -1746.00f, -4919.00f,
+                   -2252.00f, -6932.00f
             };
             const static float middleToSouthLimit[] = {
                         -2402.01f,      4255.70f,
@@ -802,8 +782,6 @@ uint32 MapManager::GetContinentInstanceId(uint32 mapId, float x, float y, bool* 
                 return MAP1_NORTH;
             if (IsNorthTo(x, y, durotarSouthLimit, sizeof(durotarSouthLimit) / (2 * sizeof(float))))
                 return MAP1_DUROTAR;
-            if (IsNorthTo(x, y, valleyoftrialsSouthLimit, sizeof(valleyoftrialsSouthLimit) / (2 * sizeof(float))))
-                return MAP1_VALLEY;
             if (IsNorthTo(x, y, middleToSouthLimit, sizeof(middleToSouthLimit) / (2 * sizeof(float))))
                 return MAP1_MIDDLE_EST;
             return MAP1_SOUTH;

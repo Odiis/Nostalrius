@@ -36,7 +36,7 @@ public:
     MapRayCallback(ModelInstance* val, bool isLos): prims(val), hit(false), los(isLos) {}
     bool operator()(const G3D::Ray& ray, uint32 entry, float& distance, bool pStopAtFirstHit = true)
     {
-        // Nostalrius: pas de LoS pour certains models (arbres, ...)
+        // Elysium: pas de LoS pour certains models (arbres, ...)
         if (los && prims[entry].flags & MOD_NO_BREAK_LOS)
             return false;
 

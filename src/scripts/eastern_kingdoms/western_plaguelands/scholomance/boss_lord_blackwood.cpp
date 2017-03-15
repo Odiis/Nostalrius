@@ -75,9 +75,3 @@ void AddSC_boss_lordblackwood()
     newscript->GetAI = &GetAI_boss_lordblackwood;
     newscript->RegisterSelf();
 }*/
-
-
-void AddSC_boss_lordblackwood()
-{
-
-}

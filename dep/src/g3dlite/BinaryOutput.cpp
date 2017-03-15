@@ -340,10 +340,9 @@ void BinaryOutput::commit(bool flush) {
         if (flush) {
             fflush(file);
         }
+        fclose(file);
+        file = NULL;
     }
-
-    fclose(file);
-    file = NULL;
 }
 
 

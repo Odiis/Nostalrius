@@ -269,7 +269,7 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket & recv_data)
     if (obj->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT))
         return;
 
-    // Nostalrius
+    // Elysium
     if (obj->PlayerCanUse(_player))
     {
         _player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_USE);
@@ -368,7 +368,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
 
     Spell *spell = new Spell(_player, spellInfo, false);
 
-    // Nostalrius : Ivina
+    // Elysium : Ivina
     spell->SetClientStarted(true);
     spell->prepare(&targets);
     ALL_SESSION_SCRIPTS(this, OnSpellCasted(spellId));
@@ -430,25 +430,6 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
         }
         else
             return;
-    }
-
-    // prevent last relocation opcode handling: CancelAura is handled before Mover is changed
-    // thus the last movement data is written into pMover, that should not happen
-    for (uint8 i = 0; i < MAX_EFFECT_INDEX; ++i)
-    {
-        // Eye of Kilrogg case
-        if (spellInfo->Effect[i] == SPELL_EFFECT_SUMMON_POSSESSED)
-        {
-            _player->SetNextRelocationsIgnoredCount(1);
-            break;
-        }
-
-        // Eyes of the Beast case
-        if (spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_POSSESS_PET)
-        {
-            _player->SetNextRelocationsIgnoredCount(3);
-            break;
-        }
     }
 
     // channeled spell case (it currently casted then)

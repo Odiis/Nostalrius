@@ -45,17 +45,14 @@
 #include "ZoneScript.h"
 #include "Anticheat.h"
 #include "MasterPlayer.h"
-#include "GossipDef.h"
 
-void WorldSession::HandleRepopRequestOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleRepopRequestOpcode(WorldPacket & recv_data)
 {
     DEBUG_LOG("WORLD: Recvd CMSG_REPOP_REQUEST Message");
 
     // recv_data.read_skip<uint8>(); client crash
 
-    auto player = GetPlayer();
-
-    if (player->isAlive() || player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
+    if (GetPlayer()->isAlive() || GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
         return;
 
     // the world update order is sessions, players, creatures
@@ -63,20 +60,16 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket & /*recv_data*/)
     // creatures can kill players
     // so if the server is lagging enough the player can
     // release spirit after he's killed but before he is updated
-    if (player->getDeathState() == JUST_DIED)
+    if (GetPlayer()->getDeathState() == JUST_DIED)
     {
-        DEBUG_LOG("HandleRepopRequestOpcode: got request after player %s(%d) was killed and before he was updated", player->GetName(), player->GetGUIDLow());
-        player->KillPlayer();
+        DEBUG_LOG("HandleRepopRequestOpcode: got request after player %s(%d) was killed and before he was updated", GetPlayer()->GetName(), GetPlayer()->GetGUIDLow());
+        GetPlayer()->KillPlayer();
     }
 
-    // Waiting to Resurrect (probably redundant cast, yet to check thoroughly)
-    if (player->InBattleGround())
-        player->CastSpell(player, 2584, true);
-
     //this is spirit release confirm?
-    player->RemovePet(PET_SAVE_REAGENTS);
-    player->BuildPlayerRepop();
-    player->RepopAtGraveyard();
+    GetPlayer()->RemovePet(PET_SAVE_REAGENTS);
+    GetPlayer()->BuildPlayerRepop();
+    GetPlayer()->RepopAtGraveyard();
 }
 
 class WhoListClientQueryTask: public AsyncTask
@@ -180,11 +173,8 @@ public:
                 continue;
 
             std::string aname;
-            if (const auto *areaEntry = AreaEntry::GetById(pzoneid))
-            {
-                aname = areaEntry->Name;
-                sObjectMgr.GetAreaLocaleString(areaEntry->Id, sess->GetSessionDbLocaleIndex(), &aname);
-            }
+            if (AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(pzoneid))
+                aname = areaEntry->area_name[sess->GetSessionDbcLocale()];
 
             bool s_show = true;
             for (uint32 i = 0; i < str_count; ++i)
@@ -750,31 +740,13 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
                 pl->AreaExploredOrEventHappens(quest_id);
         }
     }
-    
+
     // enter to tavern, not overwrite city rest
     if (sObjectMgr.IsTavernAreaTrigger(Trigger_ID))
     {
         // set resting flag we are in the inn
         if (pl->GetRestType() != REST_TYPE_IN_CITY)
             pl->SetRestType(REST_TYPE_IN_TAVERN, Trigger_ID);
-        return;
-    }
-
-    BattlegroundEntranceTrigger const* bget = sObjectMgr.GetBattlegroundEntranceTrigger(Trigger_ID);
-    if (bget)
-    {
-        if (pl->GetTeam() == bget->team)
-        {
-            if (pl->GetBGAccessByLevel(bget->bgTypeId))
-            {
-                pl->SetBattleGroundEntryPoint(bget->exit_mapId, bget->exit_X, bget->exit_Y, bget->exit_Z, bget->exit_Orientation);
-                SendBattlegGroundList(pl->GetObjectGuid(), bget->bgTypeId);
-            }
-            else
-                SendAreaTriggerMessage("You do not meet this Battleground's level requirements.");
-        }
-        else
-            SendAreaTriggerMessage("Only %s members can enter the Battleground here.", pl->GetTeam() == ALLIANCE ? "Horde" : "Alliance");
         return;
     }
 
@@ -795,7 +767,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
     if (!at)
         return;
 
-    MapEntry const* targetMapEntry = sMapStorage.LookupEntry<MapEntry>(at->target_mapId);
+    MapEntry const* targetMapEntry = sMapStore.LookupEntry(at->target_mapId);
     if (!targetMapEntry)
         return;
 
@@ -806,7 +778,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
         {
             if (GetPlayer()->GetTeam() == HORDE)
             {
-                if (GetPlayer()->GetHonorMgr().GetHighestRank().visualRank < 6)
+                if (GetPlayer()->GetHonorHighestRankInfo().visualRank < 6)
                 {
                     SendAreaTriggerMessage("You must have the rank Stone Guard to enter");
                     return;
@@ -822,7 +794,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
         {
             if (GetPlayer()->GetTeam() == ALLIANCE)
             {
-                if (GetPlayer()->GetHonorMgr().GetHighestRank().visualRank < 6)
+                if (GetPlayer()->GetHonorHighestRankInfo().visualRank < 6)
                 {
                     SendAreaTriggerMessage("You must have the rank Knight to enter");
                     return;
@@ -847,18 +819,19 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket & recv_data)
             do
             {
                 // most often fast case
-                if (instance_map == targetMapEntry->id)
+                if (instance_map == targetMapEntry->MapID)
                     break;
 
-                MapEntry const* instance = sMapStorage.LookupEntry<MapEntry>(instance_map);
-                instance_map = instance && instance->IsDungeon() ? instance->parent : 0;
+                InstanceTemplate const* instance = ObjectMgr::GetInstanceTemplate(instance_map);
+                instance_map = instance ? instance->parent : 0;
             }
             while (instance_map);
 
             // corpse not in dungeon or some linked deep dungeons
             if (!instance_map)
             {
-                pl->GetSession()->SendAreaTriggerMessage("You cannot enter %s while in ghost form.", targetMapEntry->name);
+                pl->GetSession()->SendAreaTriggerMessage("You cannot enter %s while in a ghost mode",
+                        targetMapEntry->name[pl->GetSession()->GetSessionDbcLocale()]);
                 return;
             }
 
@@ -1024,62 +997,43 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
     SendPacket(&data);
 }
 
-void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data) {
+void WorldSession::HandleInspectHonorStatsOpcode(WorldPacket& recv_data)
+{
     ObjectGuid guid;
     recv_data >> guid;
     // DEBUG_LOG("Party Stats guid is " I64FMTD,guid);
 
     Player *pl = sObjectMgr.GetPlayer(guid);
-    if(pl)
+    if (pl)
     {
         WorldPacket data(MSG_INSPECT_HONOR_STATS, (8 + 1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 1));
         data << guid;                                       // player guid
-        data << (uint8)pl->GetHonorMgr().GetHighestRank().rank;           // Highest Rank
-
-                                                                          // Today Honorable and Dishonorable Kills
+        // Rank, filling bar, PLAYER_BYTES_3, ??
+        data << (uint8)pl->GetByteValue(PLAYER_FIELD_BYTES2, 0);
+        // Today Honorable and Dishonorable Kills
         data << pl->GetUInt32Value(PLAYER_FIELD_SESSION_KILLS);
-
         // Yesterday Honorable Kills
-        data << pl->GetUInt16Value(PLAYER_FIELD_YESTERDAY_KILLS, 0);
-
-        // Unknown (deprecated, yesterday dishonourable?)
-        data << (uint16)0;
-
+        data << pl->GetUInt32Value(PLAYER_FIELD_YESTERDAY_KILLS);
         // Last Week Honorable Kills
-        data << pl->GetUInt16Value(PLAYER_FIELD_LAST_WEEK_KILLS, 0);
-
-        // Unknown (deprecated, last week dishonourable?)
-        data << (uint16)0;
-
+        data << pl->GetUInt32Value(PLAYER_FIELD_LAST_WEEK_KILLS);
         // This Week Honorable kills
-        data << pl->GetUInt16Value(PLAYER_FIELD_THIS_WEEK_KILLS, 0);
-
-        // Unknown (deprecated, this week dishonourable?)
-        data << (uint16)0;
-
+        data << pl->GetUInt32Value(PLAYER_FIELD_THIS_WEEK_KILLS);
         // Lifetime Honorable Kills
         data << pl->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
-
         // Lifetime Dishonorable Kills
         data << pl->GetUInt32Value(PLAYER_FIELD_LIFETIME_DISHONORABLE_KILLS);
-
         // Yesterday Honor
         data << pl->GetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION);
-
         // Last Week Honor
         data << pl->GetUInt32Value(PLAYER_FIELD_LAST_WEEK_CONTRIBUTION);
-
         // This Week Honor
         data << pl->GetUInt32Value(PLAYER_FIELD_THIS_WEEK_CONTRIBUTION);
-
         // Last Week Standing
         data << pl->GetUInt32Value(PLAYER_FIELD_LAST_WEEK_RANK);
-
-        // Rank progress bar
-        data << (uint8)pl->GetByteValue(PLAYER_FIELD_BYTES2, 0);
-
+        data << (uint8)pl->GetHonorHighestRankInfo().visualRank;           // Highest Rank, ??
         SendPacket(&data);
-    } else
+    }
+    else
         DEBUG_LOG("%s not found!", guid.GetString().c_str());
 }
 
@@ -1238,12 +1192,10 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket & /*recv_data*/)
 
 void WorldSession::HandleRequestPetInfoOpcode(WorldPacket & /*recv_data */)
 {
-    DEBUG_LOG("WORLD: CMSG_REQUEST_PET_INFO");
-
-    if (_player->GetPet())
-        _player->PetSpellInitialize();
-    else if (_player->GetCharm())
-        _player->CharmSpellInitialize();
+    /*
+        DEBUG_LOG("WORLD: CMSG_REQUEST_PET_INFO");
+        recv_data.hexlike();
+    */
 }
 
 void WorldSession::HandleSetTaxiBenchmarkOpcode(WorldPacket & recv_data)
@@ -1256,11 +1208,7 @@ void WorldSession::HandleSetTaxiBenchmarkOpcode(WorldPacket & recv_data)
 
 void WorldSession::HandleWardenDataOpcode(WorldPacket & recv_data)
 {
-    if (!m_warden)
-    {
-        sLog.outWarden("HandleWardenDataOpcode: warden interface not found!");
+    if (!m_Warden)
         return;
-    }
-
-    m_warden->HandleWardenDataOpcode(recv_data);
+    m_Warden->HandleWardenDataOpcode(recv_data);
 }

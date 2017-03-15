@@ -43,7 +43,7 @@ enum
     DOOR_OPEN_ID                = 175705,
 
     REQUIRED_SUMMONERS          = 3,
-    SAY_BOSS_FREE               = NOST_TEXT(151),
+    SAY_BOSS_FREE               = ELYSIUM_TEXT(151),
 };
 
 struct boss_pyroguard_emberseerAI : public ScriptedAI
@@ -60,7 +60,7 @@ struct boss_pyroguard_emberseerAI : public ScriptedAI
     uint32 m_uiFlameBuffetTimer;
     uint32 m_uiPyroBlastTimer;
 
-    // NOSTALRIUS
+    // ELYSIUM
     bool initialized;
     bool bCanalisationEnCours;
     bool bBossEnferme;
@@ -186,7 +186,7 @@ struct boss_pyroguard_emberseerAI : public ScriptedAI
             pGo->SetGoState(GO_STATE_ACTIVE);
 
     }
-    // END NOSTALRIUS
+    // END ELYSIUM
 
     void Reset()
     {
@@ -194,7 +194,7 @@ struct boss_pyroguard_emberseerAI : public ScriptedAI
         m_uiFlameBuffetTimer = 3000;
         m_uiPyroBlastTimer = 14000;
 
-        // NOSTALRIUS
+        // ELYSIUM
         bCanalisationEnCours = true;
         bBossEnferme = true;
 
@@ -317,7 +317,7 @@ struct npc_geolier_main_noireAI : public ScriptedAI
     uint32 MiseEnCage_Timer;
     uint32 Frappe_Timer;
     bool fled;
-    // END NOSTALRIUS
+    // END ELYSIUM
 
     void Reset()
     {

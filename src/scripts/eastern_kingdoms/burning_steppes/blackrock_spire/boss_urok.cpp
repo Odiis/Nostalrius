@@ -192,6 +192,7 @@ struct go_urok_challengeAI: public GameObjectAI
 
     void EventBannerDestroyed(uint64 sourceGuid)
     {
+        Creature * crea;
         if(_actived == false)
             return;
         _actived = false;
@@ -288,7 +289,7 @@ struct urokUnderlingAI : public ScriptedAI
           }
           return false;
     }
-    void UpdateAI(const uint32 uiDiff)
+    void UpdateAI(uint32 uiDiff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {

@@ -353,12 +353,6 @@ void PoolGroup<T>::SpawnObject(MapPersistentState& mapState, uint32 limit, uint3
     uint32 lastDespawned = 0;
     int count = limit - spawns.GetSpawnedObjects(poolId);
 
-    // If triggered from some object respawn this object is still marked as spawned
-    // and also counted into m_SpawnedPoolAmount so we need increase count to be
-    // spawned by 1
-    if (triggerFrom && spawns.IsSpawnedObject<T>(triggerFrom))
-        ++count;
-
     // This will try to spawn the rest of pool, not guaranteed
     for (int i = 0; i < count; ++i)
     {
@@ -543,7 +537,7 @@ struct PoolMapChecker
 
     bool CheckAndRemember(uint32 mapid, uint32 pool_id, char const* tableName, char const* elementName)
     {
-        MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(mapid);
+        MapEntry const* mapEntry = sMapStore.LookupEntry(mapid);
         if (!mapEntry)
             return false;
 
@@ -564,7 +558,7 @@ struct PoolMapChecker
         if (mapEntry->Instanceable())
         {
             sLog.outErrorDb("`%s` has %s spawned at instanceable map %u when one or several other spawned at different map %u in pool id %i, skipped.",
-                            tableName, elementName, mapid, poolMapEntry->id, pool_id);
+                            tableName, elementName, mapid, poolMapEntry->MapID, pool_id);
             return false;
         }
 
@@ -572,7 +566,7 @@ struct PoolMapChecker
         if (poolMapEntry->Instanceable())
         {
             sLog.outErrorDb("`%s` has %s spawned at map %u when one or several other spawned at different instanceable map %u in pool id %i, skipped.",
-                            tableName, elementName, mapid, poolMapEntry->id, pool_id);
+                            tableName, elementName, mapid, poolMapEntry->MapID, pool_id);
             return false;
         }
 
@@ -614,7 +608,7 @@ void PoolManager::LoadFromDB()
 
     mPoolTemplate.resize(max_pool_id + 1);
 
-    result = WorldDatabase.Query("SELECT entry, max_limit, flags, description, instance FROM pool_template");
+    result = WorldDatabase.Query("SELECT entry, max_limit, flags, description FROM pool_template");
     if (!result)
     {
         mPoolTemplate.clear();
@@ -639,8 +633,6 @@ void PoolManager::LoadFromDB()
         pPoolTemplate.MaxLimit    = fields[1].GetUInt32();
         pPoolTemplate.PoolFlags   = fields[2].GetUInt32();
         pPoolTemplate.description = fields[3].GetCppString();
-        pPoolTemplate.InstanceId  = sWorld.getConfig(CONFIG_BOOL_CONTINENTS_INSTANCIATE) ? fields[4].GetUInt32() : 0;
-
         pPoolTemplate.PoolFlags |= POOL_FLAG_AUTO_SPAWN;
 
     }
@@ -876,7 +868,7 @@ void PoolManager::LoadFromDB()
                 // if child pool not have map data then it empty or have not checked child then will checked and all line later
                 if (MapEntry const* childMapEntry = mPoolTemplate[poolItr->first].mapEntry)
                 {
-                    if (!mapChecker.CheckAndRemember(childMapEntry->id, poolItr->second, "pool_pool", "pool with creature/gameobject"))
+                    if (!mapChecker.CheckAndRemember(childMapEntry->MapID, poolItr->second, "pool_pool", "pool with creature/gameobject"))
                     {
                         mPoolPoolGroups[poolItr->second].RemoveOneRelation(poolItr->first);
                         mPoolSearchMap.erase(poolItr);
@@ -1031,7 +1023,7 @@ struct SpawnPoolInMapsWorker
     explicit SpawnPoolInMapsWorker(PoolManager& mgr, uint32 pool_id, bool instantly)
         : i_mgr(mgr), i_pool_id(pool_id), i_instantly(instantly) {}
 
-    void operator()(MapPersistentState* state) const
+    void operator()(MapPersistentState* state)
     {
         i_mgr.SpawnPool(*state, i_pool_id, i_instantly);
     }
@@ -1045,9 +1037,9 @@ struct SpawnPoolInMapsWorker
 void PoolManager::SpawnPoolInMaps(uint16 pool_id, bool instantly)
 {
     PoolTemplateData& poolTemplate = mPoolTemplate[pool_id];
-    
+
     SpawnPoolInMapsWorker worker(*this, pool_id, instantly);
-    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->id, poolTemplate.InstanceId, worker);
+    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->MapID, worker);
 }
 
 struct DespawnPoolInMapsWorker
@@ -1070,7 +1062,7 @@ void PoolManager::DespawnPoolInMaps(uint16 pool_id)
     PoolTemplateData& poolTemplate = mPoolTemplate[pool_id];
 
     DespawnPoolInMapsWorker worker(*this, pool_id);
-    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->id, poolTemplate.InstanceId, worker);
+    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->MapID, worker);
 }
 
 void PoolManager::InitSpawnPool(MapPersistentState& mapState, uint16 pool_id)
@@ -1102,7 +1094,7 @@ void PoolManager::UpdatePoolInMaps(uint16 pool_id, uint32 db_guid_or_pool_id)
     PoolTemplateData& poolTemplate = mPoolTemplate[pool_id];
 
     UpdatePoolInMapsWorker<T> worker(*this, pool_id, db_guid_or_pool_id);
-    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->id, poolTemplate.InstanceId, worker);
+    sMapPersistentStateMgr.DoForAllStatesWithMapId(poolTemplate.mapEntry->MapID, worker);
 }
 
 template void PoolManager::UpdatePoolInMaps<Pool>(uint16 pool_id, uint32 db_guid_or_pool_id);

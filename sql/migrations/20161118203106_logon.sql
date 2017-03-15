@@ -1,0 +1,2 @@
+INSERT INTO `migrations` VALUES ('20161118203106');
+

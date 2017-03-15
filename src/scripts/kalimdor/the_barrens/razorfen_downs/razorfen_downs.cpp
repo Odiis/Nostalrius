@@ -199,7 +199,7 @@ struct npc_belnistraszAI : public npc_escortAI
         {
             if (!m_bAggro)
             {
-                DoScriptText(urand(0, 1) ? SAY_BELNISTRASZ_AGGRO_1 : SAY_BELNISTRASZ_AGGRO_2, m_creature, pAttacker);
+                DoScriptText(urand(0, 1) ? SAY_BELNISTRASZ_AGGRO_1 : SAY_BELNISTRASZ_AGGRO_1, m_creature, pAttacker);
                 m_bAggro = true;
             }
             return;
@@ -373,7 +373,7 @@ bool QuestAccept_npc_belnistrasz(Player* pPlayer, Creature* pCreature, const Que
     {
         if (npc_belnistraszAI* pEscortAI = dynamic_cast<npc_belnistraszAI*>(pCreature->AI()))
         {
-            pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
+            pEscortAI->Start(true, false, pPlayer->GetGUID(), pQuest);
             DoScriptText(SAY_BELNISTRASZ_READY, pCreature, pPlayer);
             pCreature->setFaction(FACTION_ESCORT_N_NEUTRAL_ACTIVE);
         }

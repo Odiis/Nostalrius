@@ -23,7 +23,7 @@
 #define MPQ_H
 
 #include "loadlib/loadlib.h"
-#include "libmpq/mpq.h"
+#include "loadlib/mpq.h"
 #include <string.h>
 #include <ctype.h>
 #include <vector>

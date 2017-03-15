@@ -52,7 +52,7 @@ bool PetAI::_needToStop() const
     if (m_creature->isCharmed() && m_creature->getVictim() == m_creature->GetCharmer())
         return true;
 
-    // Stop attacking when player is mounted
+    // On stop l'attaque en monture.
     if (m_creature->IsPet() && !((Pet*)m_creature)->IsEnabled())
         return true;
 
@@ -78,7 +78,7 @@ void PetAI::_stopAttack()
     HandleReturnMovement();
 }
 
-void PetAI::UpdateAI(const uint32 diff)
+void PetAI::UpdateAI(uint32 diff)
 {
     if (!m_creature->isAlive() || !m_creature->GetCharmInfo())
         return;
@@ -117,7 +117,6 @@ void PetAI::UpdateAI(const uint32 diff)
 
     if (m_creature->getVictim() && m_creature->getVictim()->isAlive())
     {
-        
         if (_needToStop())
         {
             _stopAttack();
@@ -130,7 +129,7 @@ void PetAI::UpdateAI(const uint32 diff)
             bool attacked = false;
             if (m_creature->GetCharmInfo()->HasCommandState(COMMAND_STAY))
             {
-                if (m_creature->GetCharmInfo()->IsCommandAttack() || (m_creature->GetCharmInfo()->IsAtStay() && m_creature->CanReachWithMeleeAttack(m_creature->getVictim())))
+                if (m_creature->GetCharmInfo()->IsCommandAttack() || (m_creature->GetCharmInfo()->IsAtStay() && m_creature->IsWithinMeleeRange(m_creature->getVictim())))
                     attacked = DoMeleeAttackIfReady();
             }
             else
@@ -211,7 +210,7 @@ void PetAI::UpdateAI(const uint32 diff)
                         castOnlyInCombat = true;
                     // 2947 - Fire Shield, rank 1 enUS
                     // When set to auto-cast, the Imp will cast this on any party members within 30 yds if they receive a melee attack.
-                    if (spellInfo->IsFitToFamily<SPELLFAMILY_WARLOCK, CF_WARLOCK_IMP_BUFFS>() && spellInfo->SpellVisual == 289)
+                    if (spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK && spellInfo->SpellFamilyFlags == 0x800000 && spellInfo->SpellVisual == 289)
                         castOnlyInCombat = false;
                     // Furious Howl: in combat only
                     if (IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_DAMAGE_DONE))
@@ -464,8 +463,7 @@ Unit* PetAI::SelectNextTarget(bool allowAutoSelect) const
 
     // Check pet attackers first so we don't drag a bunch of targets to the owner
     if (Unit* myAttacker = m_creature->getAttackerForHelper())
-        if (!myAttacker->HasBreakableByDamageCrowdControlAura())
-            return myAttacker;
+        return myAttacker;
 
     // Not sure why we wouldn't have an owner but just in case...
     Unit* owner = m_creature->GetCharmerOrOwner();
@@ -474,8 +472,7 @@ Unit* PetAI::SelectNextTarget(bool allowAutoSelect) const
 
     // Check owner attackers
     if (Unit* ownerAttacker = owner->getAttackerForHelper())
-        if (!ownerAttacker->HasBreakableByDamageCrowdControlAura())
-            return ownerAttacker;
+        return ownerAttacker;
 
     // Check owner victim
     // 3.0.2 - Pets now start attacking their owners victim in defensive mode as soon as the hunter does
@@ -624,10 +621,6 @@ bool PetAI::CanAttack(Unit* target)
     if (m_creature->HasReactState(REACT_PASSIVE))
         return m_creature->GetCharmInfo()->IsCommandAttack();
 
-    // CC - mobs under crowd control can be attacked if owner commanded
-    if (target->HasBreakableByDamageCrowdControlAura())
-        return m_creature->GetCharmInfo()->IsCommandAttack();
-        
     // Returning - pets ignore attacks only if owner clicked follow
     if (m_creature->GetCharmInfo()->IsReturning())
         return !m_creature->GetCharmInfo()->IsCommandFollow();

@@ -28,29 +28,28 @@ class MANGOS_DLL_DECL FollowerAI : public ScriptedAI
 
         //virtual void WaypointReached(uint32 uiPointId) = 0;
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override;
+        void MovementInform(uint32 uiMotionType, uint32 uiPointId);
 
-        void AttackStart(Unit*) override;
+        void AttackStart(Unit*);
 
-        void MoveInLineOfSight(Unit*) override;
+        void MoveInLineOfSight(Unit*);
 
-        void EnterEvadeMode() override;
+        void EnterEvadeMode();
 
-        void JustDied(Unit*) override;
+        void JustDied(Unit*);
 
-        void JustRespawned() override;
+        void JustRespawned();
 
-        void UpdateAI(const uint32) override;                        //the "internal" update, calls UpdateFollowerAI()
+        void UpdateAI(const uint32);                        //the "internal" update, calls UpdateFollowerAI()
         virtual void UpdateFollowerAI(const uint32);        //used when it's needed to add code in update (abilities, scripted events, etc)
 
-        void StartFollow(Player* pPlayer, uint32 uiFactionForFollower = 0, const Quest* pQuest = nullptr, float followDist = PET_FOLLOW_DIST);
+        void StartFollow(Player* pPlayer, uint32 uiFactionForFollower = 0, const Quest* pQuest = NULL, float followDist=PET_FOLLOW_DIST);
 
         void SetFollowPaused(bool bPaused);                 //if special event require follow mode to hold/resume during the follow
         void SetFollowComplete(bool bWithEndEvent = false);
 
-        bool HasFollowState(uint32 uiFollowState) const { return m_uiFollowState & uiFollowState; }
-
-        void GetAIInformation(ChatHandler& /*reader*/) override;
+        bool HasFollowState(uint32 uiFollowState) { return (m_uiFollowState & uiFollowState); }
+        virtual void GetAIInformation(ChatHandler& /*reader*/);
 
     protected:
         Player* GetLeaderForFollower();

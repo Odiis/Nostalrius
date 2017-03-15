@@ -22,6 +22,7 @@ SDCategory: Thunder Bluff
 EndScriptData */
 
 #include "scriptPCH.h"
+#include "./../../custom/PlayerStartMgr.h"
 
 /*#####
 # npc_cairne_bloodhoof
@@ -131,12 +132,20 @@ CreatureAI* GetAI_boss_cairne_bloodhoof(Creature* pCreature)
 
 bool GossipHello_npc_cairne_bloodhoof(Player* pPlayer, Creature* pCreature)
 {
-    if (pCreature->isQuestGiver())
-        pPlayer->PrepareQuestMenu(pCreature->GetGUID());
-    if (pPlayer->GetQuestStatus(925) == QUEST_STATUS_INCOMPLETE)
-        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I know this is rather silly but a young ward who is a bit shy would like your hoofprint.", GOSSIP_SENDER_MAIN, GOSSIP_SENDER_INFO);
-    pPlayer->SEND_GOSSIP_MENU(7013, pCreature->GetGUID());
-
+    if ((pPlayer->GetQuestStatus(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF)) == QUEST_STATUS_INCOMPLETE) && (PSM_CheckOptionForPlayer(pPlayer, OPTION_SET_55)))
+    {
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_NOTREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_NOTREADY);
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_IAMREADY, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_IAMREADY);
+        pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_1), pCreature->GetGUID());
+    }
+    else
+    {
+        if (pCreature->isQuestGiver())
+            pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+        if (pPlayer->GetQuestStatus(925) == QUEST_STATUS_INCOMPLETE)
+            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I know this is rather silly but a young ward who is a bit shy would like your hoofprint.", GOSSIP_SENDER_MAIN, GOSSIP_SENDER_INFO);
+        pPlayer->SEND_GOSSIP_MENU(7013, pCreature->GetGUID());
+    }
     return true;
 }
 
@@ -148,7 +157,25 @@ bool GossipSelect_npc_cairne_bloodhoof(Player* pPlayer, Creature* pCreature, uin
             pPlayer->CastSpell(pPlayer, 23123, false);
             pPlayer->SEND_GOSSIP_MENU(7014, pCreature->GetGUID());
             break;
+        case GOSSIP_ACTION_NOTREADY:
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_2), pCreature->GetGUID());
+            break;
+        case GOSSIP_ACTION_IAMREADY:
+            pPlayer->AreaExploredOrEventHappens(PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF));
+            if (pCreature->isQuestGiver())
+                pPlayer->PrepareQuestMenu(pCreature->GetGUID());
+            pPlayer->SEND_GOSSIP_MENU(PSM_GetGossipMessID(pPlayer, GS_FACTION_CHIEF_3), pCreature->GetGUID());
+            break;
     }
+    return true;
+}
+
+bool QuestRewarded_npc_cairne_bloodhoof(Player* pPlayer, Creature* pCreature, Quest const* pQuest)
+{
+    if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, TO_FACTION_CHIEF))
+        PSM_AddSpells(pPlayer);
+    else if (pQuest->GetQuestId() == PSM_GetQuestID(pPlayer, GET_PEX_REWARD))
+        PSM_PexReward(pPlayer);
     return true;
 }
 
@@ -161,5 +188,6 @@ void AddSC_thunder_bluff()
     newscript->GetAI = &GetAI_boss_cairne_bloodhoof;
     newscript->pGossipHello = &GossipHello_npc_cairne_bloodhoof;
     newscript->pGossipSelect = &GossipSelect_npc_cairne_bloodhoof;
+    newscript->pQuestRewardedNPC = &QuestRewarded_npc_cairne_bloodhoof;
     newscript->RegisterSelf();
 }
